@@ -48,35 +48,50 @@ fi
 
 # --- 3. Companion apps: dock, power menu, quickshell overview, walker + elephant ---
 step 3 7 "Desktop apps (dock, power menu, launcher)"
+
+# install_app NAME: copy the app unless the installed copy is already identical.
+# Sets APP_CHANGED=1 when files were copied.
 install_app() {
     local name=$1 dest="$SHARE_DIR/$1"
+    APP_CHANGED=0
     [ -d "$APPS_SRC/$name" ] || { warn "App source missing: $name"; return 1; }
+    if [ -d "$dest" ] && diff -rq --exclude=.git "$APPS_SRC/$name" "$dest" &> /dev/null; then
+        return 0
+    fi
     mkdir -p "$dest"
-    rsync -a "$APPS_SRC/$name/" "$dest/"
+    rsync -a "$APPS_SRC/$name/" "$dest/" || return 1
+    APP_CHANGED=1
+}
+report_app() {
+    if [ "$APP_CHANGED" -eq 1 ]; then info "  ✓ $1 installed."; else info "  - $1 is already installed and up to date. Skipping."; fi
 }
 
 for app in catastrophic-dock catastrophic-powermenu; do
     if install_app "$app"; then
         ln -sf "$SHARE_DIR/$app/bin/$app" "$BIN_DIR/$app"
-        info "  ✓ $app installed."
+        report_app "$app"
     fi
 done
 
-if install_app quickshell-overview; then
-    info "  ✓ quickshell-overview installed."
-fi
+if install_app quickshell-overview; then report_app quickshell-overview; fi
 
 # Settings app: the shared files plus its launcher script
 if install_app catastrophic-dotfiles-settings; then
-    install -m755 "$APPS_SRC/catastrophic-dotfiles-settings-launcher" "$BIN_DIR/catastrophic-dotfiles-settings"
-    info "  ✓ catastrophic-dotfiles-settings installed."
+    if ! cmp -s "$APPS_SRC/catastrophic-dotfiles-settings-launcher" "$BIN_DIR/catastrophic-dotfiles-settings"; then
+        install -m755 "$APPS_SRC/catastrophic-dotfiles-settings-launcher" "$BIN_DIR/catastrophic-dotfiles-settings"
+        APP_CHANGED=1
+    fi
+    report_app catastrophic-dotfiles-settings
 fi
 
 # walker downloads the upstream walker and elephant binaries; it has its own installer
 if install_app catastrophic-walker; then
+    walker_changed=$APP_CHANGED
     # walker's installer only accepts an install folder that is a git repository
     [ -d "$SHARE_DIR/catastrophic-walker/.git" ] || git -C "$SHARE_DIR/catastrophic-walker" init -q
-    if run_logged --title "Installing walker and elephant..." \
+    if [ "$walker_changed" -eq 0 ] && { command -v walker && command -v elephant; } &> /dev/null; then
+        info "  - walker and elephant are already installed. Skipping."
+    elif run_logged --title "Installing walker and elephant..." \
         env CATASTROPHIC_WALKER_MANAGED=1 bash "$SHARE_DIR/catastrophic-walker/install.sh" --no-deps; then
         info "  ✓ walker and elephant installed."
     else
@@ -90,67 +105,96 @@ xdg-user-dirs-update 2> /dev/null || true
 
 # --- 5. System services ---
 step 4 7 "System services"
-if gum confirm "Enable NetworkManager, Bluetooth and power-profiles services (sudo)?"; then
-    for svc in NetworkManager bluetooth power-profiles-daemon; do
-        if systemctl list-unit-files "$svc.service" &> /dev/null; then
-            sudo systemctl enable "$svc.service" &>> "$LOG_FILE" && info "  ✓ $svc enabled." \
-                || warn "  Could not enable $svc."
-        fi
+svc_todo=()
+for svc in NetworkManager bluetooth power-profiles-daemon; do
+    systemctl list-unit-files "$svc.service" 2> /dev/null | grep -q "^$svc.service" || continue
+    if systemctl is-enabled --quiet "$svc.service" 2> /dev/null; then
+        info "  - $svc is already enabled. Skipping."
+    else
+        svc_todo+=("$svc")
+    fi
+done
+if [ ${#svc_todo[@]} -gt 0 ] && gum confirm "Enable ${svc_todo[*]} (sudo)?"; then
+    for svc in "${svc_todo[@]}"; do
+        sudo systemctl enable "$svc.service" &>> "$LOG_FILE" && info "  ✓ $svc enabled." \
+            || warn "  Could not enable $svc."
     done
 fi
 
 # --- 6. NVIDIA driver ---
 step 5 7 "Graphics driver"
 if lspci 2> /dev/null | grep -iE 'vga|3d' | grep -qi nvidia; then
-    warn "An NVIDIA GPU was detected."
-    if command -v chwd &> /dev/null; then
-        if gum confirm "Install the matching NVIDIA driver with CachyOS chwd (sudo chwd -a)?"; then
-            run_logged --title "Installing GPU drivers..." sudo chwd -a \
-                && info "  ✓ GPU drivers installed." \
-                || POST_NOTES+=("GPU driver install failed: run sudo chwd -a")
-        fi
+    if pacman -Qq nvidia-utils &> /dev/null; then
+        info "  - An NVIDIA driver is already installed. Skipping."
     else
-        # DKMS needs the headers of the kernel that is running (linux, linux-lts, linux-zen, ...)
-        kbase="$(cat "/usr/lib/modules/$(uname -r)/pkgbase" 2> /dev/null || echo linux)"
-        if gum confirm "Install nvidia-open-dkms, ${kbase}-headers, nvidia-utils and egl-wayland (sudo)?"; then
-            run_logged --title "Installing NVIDIA driver..." \
-                sudo pacman -S --needed --noconfirm "${kbase}-headers" nvidia-open-dkms nvidia-utils nvidia-settings egl-wayland \
-                && info "  ✓ NVIDIA driver installed." \
-                || POST_NOTES+=("NVIDIA driver install failed. See $LOG_FILE")
-            POST_NOTES+=("NVIDIA: add nvidia_drm.modeset=1 to your kernel parameters if Hyprland does not start")
+        warn "An NVIDIA GPU was detected."
+        if command -v chwd &> /dev/null; then
+            if gum confirm "Install the matching NVIDIA driver with CachyOS chwd (sudo chwd -a)?"; then
+                run_logged --title "Installing GPU drivers..." sudo chwd -a \
+                    && info "  ✓ GPU drivers installed." \
+                    || POST_NOTES+=("GPU driver install failed: run sudo chwd -a")
+            fi
+        else
+            # DKMS needs the headers of the kernel that is running (linux, linux-lts, linux-zen, ...)
+            kbase="$(cat "/usr/lib/modules/$(uname -r)/pkgbase" 2> /dev/null || echo linux)"
+            if gum confirm "Install nvidia-open-dkms, ${kbase}-headers, nvidia-utils and egl-wayland (sudo)?"; then
+                run_logged --title "Installing NVIDIA driver..." \
+                    sudo pacman -S --needed --noconfirm "${kbase}-headers" nvidia-open-dkms nvidia-utils nvidia-settings egl-wayland \
+                    && info "  ✓ NVIDIA driver installed." \
+                    || POST_NOTES+=("NVIDIA driver install failed. See $LOG_FILE")
+                POST_NOTES+=("NVIDIA: add nvidia_drm.modeset=1 to your kernel parameters if Hyprland does not start")
+            fi
         fi
     fi
+else
+    info "  - No NVIDIA GPU detected. Skipping."
 fi
 
 # --- 7. Login manager (SDDM) ---
 step 6 7 "Login manager"
-if ! systemctl is-enabled --quiet sddm 2> /dev/null; then
-    if gum confirm "Use SDDM as your login manager (disables the current one, sudo)?"; then
-        # --force replaces whichever display manager is currently enabled
-        sudo systemctl enable --force sddm.service &>> "$LOG_FILE" && info "  ✓ SDDM enabled." \
-            || POST_NOTES+=("Could not enable SDDM")
-    fi
+if systemctl is-enabled --quiet sddm 2> /dev/null; then
+    info "  - SDDM is already your login manager. Skipping."
+elif gum confirm "Use SDDM as your login manager (disables the current one, sudo)?"; then
+    # --force replaces whichever display manager is currently enabled
+    sudo systemctl enable --force sddm.service &>> "$LOG_FILE" && info "  ✓ SDDM enabled." \
+        || POST_NOTES+=("Could not enable SDDM")
 fi
 
 # --- 8. Branding: system icon and boot splash ---
 step 7 7 "Branding"
-if [ -d "$BRAND_SRC" ] && gum confirm "Install the Catastrophic OS icon and boot splash (sudo)?"; then
-    sudo install -Dm644 "$BRAND_SRC/mark.svg" /usr/share/icons/hicolor/scalable/apps/catastrophic.svg
-    sudo install -Dm644 "$BRAND_SRC/mark.png" /usr/share/pixmaps/catastrophic.png
-    sudo gtk-update-icon-cache -q /usr/share/icons/hicolor 2> /dev/null || true
+if [ -d "$BRAND_SRC" ]; then
+    icon_todo=0
+    cmp -s "$BRAND_SRC/mark.svg" /usr/share/icons/hicolor/scalable/apps/catastrophic.svg 2> /dev/null || icon_todo=1
+    cmp -s "$BRAND_SRC/mark.png" /usr/share/pixmaps/catastrophic.png 2> /dev/null || icon_todo=1
 
     # The boot splash needs the plymouth hook in mkinitcpio; skip it otherwise
+    splash_possible=0; splash_todo=0
     if grep -rqs 'plymouth' /etc/mkinitcpio.conf /etc/mkinitcpio.conf.d 2> /dev/null; then
-        sudo install -d /usr/share/plymouth/themes/catastrophic
-        sudo install -m644 "$BRAND_SRC"/plymouth/catastrophic/* /usr/share/plymouth/themes/catastrophic/
-        if gum confirm "Rebuild the initramfs to apply the boot splash? (takes a minute)"; then
-            run_logged --title "Applying boot splash..." sudo plymouth-set-default-theme -R catastrophic \
-                && info "  ✓ Boot splash installed." \
-                || POST_NOTES+=("Boot splash failed. See $LOG_FILE")
+        splash_possible=1
+        [ "$(plymouth-set-default-theme 2> /dev/null)" = "catastrophic" ] || splash_todo=1
+    fi
+
+    if [ "$icon_todo" -eq 0 ] && [ "$splash_todo" -eq 0 ]; then
+        info "  - The icon and boot splash are already installed. Skipping."
+    elif gum confirm "Install the Catastrophic OS icon and boot splash (sudo)?"; then
+        if [ "$icon_todo" -eq 1 ]; then
+            sudo install -Dm644 "$BRAND_SRC/mark.svg" /usr/share/icons/hicolor/scalable/apps/catastrophic.svg
+            sudo install -Dm644 "$BRAND_SRC/mark.png" /usr/share/pixmaps/catastrophic.png
+            sudo gtk-update-icon-cache -q /usr/share/icons/hicolor 2> /dev/null || true
+            info "  ✓ Icon installed."
         fi
-    else
-        warn "The plymouth hook is not enabled in mkinitcpio. Skipping the boot splash."
-        POST_NOTES+=("Boot splash skipped: add 'plymouth' to HOOKS in /etc/mkinitcpio.conf and add 'splash' to your kernel parameters to enable it")
+        if [ "$splash_todo" -eq 1 ]; then
+            sudo install -d /usr/share/plymouth/themes/catastrophic
+            sudo install -m644 "$BRAND_SRC"/plymouth/catastrophic/* /usr/share/plymouth/themes/catastrophic/
+            if gum confirm "Rebuild the initramfs to apply the boot splash? (takes a minute)"; then
+                run_logged --title "Applying boot splash..." sudo plymouth-set-default-theme -R catastrophic \
+                    && info "  ✓ Boot splash installed." \
+                    || POST_NOTES+=("Boot splash failed. See $LOG_FILE")
+            fi
+        elif [ "$splash_possible" -eq 0 ]; then
+            warn "The plymouth hook is not enabled in mkinitcpio. Skipping the boot splash."
+            POST_NOTES+=("Boot splash skipped: add 'plymouth' to HOOKS in /etc/mkinitcpio.conf and add 'splash' to your kernel parameters to enable it")
+        fi
     fi
 fi
 

@@ -127,7 +127,13 @@ if [ "$UPDATE" -eq 1 ]; then
 else
     warn "Skipping the system update. Installs can fail on an outdated system."
 fi
-sudo pacman -S --needed --noconfirm base-devel git curl jq gum || die "Could not install the installer's prerequisites."
+missing="$(pacman -T base-devel git curl jq gum || true)"
+if [ -n "$missing" ]; then
+    say "Installing prerequisites: $(echo $missing)"
+    sudo pacman -S --needed --noconfirm $missing || die "Could not install the installer's prerequisites."
+else
+    say "Prerequisites are already installed."
+fi
 
 # --- 5. Install the dotfiles installer and run it ---
 stage 4 "Installing Hyprland, apps and dotfiles"

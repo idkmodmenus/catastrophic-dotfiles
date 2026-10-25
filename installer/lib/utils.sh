@@ -239,7 +239,7 @@ process_package_file() {
         local installed=false
         case "$distro" in
             arch)
-                if pacman -Qi "$pkg" &> /dev/null; then installed=true; fi
+                if pacman -Qi "$pkg" &> /dev/null || pacman -T "$pkg" &> /dev/null; then installed=true; fi
                 ;;
             fedora|opensuse)
                 if rpm -q "$pkg" &> /dev/null; then installed=true; fi
