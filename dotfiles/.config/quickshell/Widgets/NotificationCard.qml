@@ -77,6 +77,8 @@ Rectangle {
                 Text {
                     Layout.fillWidth: true
                     text: card.notif?.summary ?? ""
+                    wrapMode: Text.Wrap
+                    maximumLineCount: 2
                     elide: Text.ElideRight
                     font.family: Theme.fontFamily
                     font.pixelSize: 14
@@ -84,6 +86,8 @@ Rectangle {
                     color: card.critical ? Theme.on_error_container : Theme.on_surface
                 }
                 Text {
+                    Layout.maximumWidth: 84
+                    elide: Text.ElideRight
                     text: card.notif?.appName ?? ""
                     font.family: Theme.fontFamilyRegular
                     font.pixelSize: 11

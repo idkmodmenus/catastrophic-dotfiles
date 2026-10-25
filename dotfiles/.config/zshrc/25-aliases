@@ -36,7 +36,7 @@ alias settings='catastrophic-dotfiles-settings com.catastrophic.dotfiles'
 # Catastrophic Apps
 # -----------------------------------------------------
 alias catastrophic='qs ipc call welcome toggle'
-alias catastrophic-settings='qs -p ~/.local/share/catastrophic-dotfiles-settings/quickshell ipc call settings toggle'
+alias catastrophic-settings='~/.config/catastrophic/scripts/catastrophic-app settings toggle'
 alias catastrophic-calendar='qs ipc call calendar toggle'
 alias catastrophic-hyprland='flatpak run com.catastrophic.hyprlandsettings'
 alias catastrophic-sidebar='qs ipc call sidebar toggle'

@@ -27,11 +27,39 @@ again: steps that are done are skipped, and your previous setup was backed up in
 1. Checks for Arch or CachyOS and an internet connection.
 2. Offers a full system update first, then installs Hyprland and everything the desktop needs
    (`setup/dependencies/packages-arch`, plus AUR packages in `packages-aur`).
-3. Installs the dock, power menu, window overview, walker and elephant.
+3. Installs the dock, window overview, settings app, walker and elephant. The overview, settings
+   app, walker and elephant are not started at login; they start the first time you use them
+   (see Memory use).
 4. Copies the dotfiles to `~/.mydotfiles` and symlinks them into `~/.config`.
    Anything it replaces is backed up first.
 5. Asks before each system-level change: services, login manager (SDDM),
    NVIDIA driver, system icon and boot splash. `--yes` does not skip these.
+
+## The shell
+
+The panels slide out of the screen frame. Keys are on `Super`:
+
+| Keys | Opens |
+| --- | --- |
+| `Super + D` | Dashboard: clock, weather, calendar, media, system load. Resting the pointer on the top border opens it too. |
+| `Super + N` | Notification centre (or click the bell; right-click it for Silent mode) |
+| `Super + Ctrl + P` | Session menu: lock, log out, sleep, restart, shut down (or the power icon in the bar) |
+| `Super + Ctrl + Return` | Application launcher |
+| `Super + Ctrl + S` | Sidebar: volume, brightness and toggles |
+| `Super + Tab` | Window overview |
+
+Hover the volume, battery, clock, Wi-Fi, Bluetooth and media icons in the bar for a popout.
+Notifications are served by the shell itself, with action buttons such as the update prompt.
+
+## Memory use
+
+Things that are only needed now and then are not started at login: the settings app and the
+window overview start the first time they are opened (`catastrophic-app`), the sidebar, wallpaper
+picker and welcome window are created when first shown, and walker and its backend elephant
+start when a menu such as the clipboard history or the screenshot menu is first shown, and walker
+quits when the menu closes. The first time you open one of these there is a short wait of a
+second or so. On a test machine this took what runs at login for the shell and its helpers from
+about 850 MB to about 370 MB.
 
 ## Updating
 

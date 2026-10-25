@@ -11,6 +11,7 @@
 # -----------------------------------------------------
 launcher=$($HOME/.config/catastrophic/scripts/catastrophic-launcher which)
 if [ "$launcher" == "walker" ]; then
+    "$HOME/.config/catastrophic/scripts/catastrophic-launcher" ensure
     walker -t catastrophic -m clipboard -N -H
 else
     case $1 in

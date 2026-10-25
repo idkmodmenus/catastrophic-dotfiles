@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Opens a Quickshell app on demand.
+#
+# The settings app and the window overview are only needed now and then, so they are
+# not started at login (each one is a whole process that holds memory). The first time
+# one is asked for, this starts it, waits until it answers, and then sends the command.
+# After that it simply stays available.
+#
+#   catastrophic-app settings toggle
+#   catastrophic-app overview toggle
+
+app="${1:-}"
+[ $# -gt 0 ] && shift
+
+case "$app" in
+    settings)
+        dir="$HOME/.local/share/catastrophic-dotfiles-settings/quickshell"
+        export PROFILE="com.catastrophic.dotfiles"
+        ;;
+    overview)
+        dir="$HOME/.local/share/quickshell-overview"
+        ;;
+    *)
+        echo "Usage: $(basename "$0") <settings|overview> <function>   (for example: toggle)" >&2
+        exit 2
+        ;;
+esac
+
+# The IPC target has the same name as the app
+send() { qs -p "$dir" ipc call "$app" "$@" > /dev/null 2>&1; }
+
+# Already running: just send it
+send "$@" && exit 0
+
+[ -d "$dir" ] || { echo "$app is not installed ($dir is missing)." >&2; exit 1; }
+
+# Not running yet: start it (-n: never a second copy), then wait for it to answer
+qs -n -d -p "$dir" > /dev/null 2>&1
+for _ in $(seq 1 60); do
+    sleep 0.1
+    send "$@" && exit 0
+done
+
+echo "$app did not start in time." >&2
+exit 1

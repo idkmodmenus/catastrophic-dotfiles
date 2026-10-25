@@ -69,13 +69,6 @@ PanelWindow {
         }
     }
 
-    IpcHandler {
-        target: "sidebar"
-        function toggle(): void { root.isOpen = !root.isOpen }
-        function open(): void { root.isOpen = true }
-        function close(): void { root.isOpen = false }
-        function isOpen(): bool { return root.isOpen }
-    }
 
     Process {
         command: ["bash", "-c", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-command-exists hyprmod"]
@@ -311,7 +304,7 @@ PanelWindow {
                     onClicked: {
                         root.isOpen = false
                         // Quickshell.execDetached(["kitty", "--class", "dotfiles-floating", "-e", "catastrophic-dotfiles-settings", "com.catastrophic.dotfiles"])
-                        Quickshell.execDetached(["bash", "-c", "qs -p " + Quickshell.env("HOME") + "/.local/share/catastrophic-dotfiles-settings/quickshell ipc call settings toggle"])
+                        Quickshell.execDetached([Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-app", "settings", "toggle"])
                     }
                 }
                 CatastrophicButton {

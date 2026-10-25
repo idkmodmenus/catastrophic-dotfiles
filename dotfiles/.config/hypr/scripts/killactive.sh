@@ -23,7 +23,7 @@ case "$ACTIVE_TITLE" in
         qs ipc call welcome toggle
         ;;
     "Catastrophic Dotfiles Settings")
-        qs -p $HOME/.local/share/catastrophic-dotfiles-settings/quickshell ipc call settings toggle
+        "$HOME/.config/catastrophic/scripts/catastrophic-app" settings toggle
         ;;
     *)
         # Updated for Hyprland 0.55+ Lua dispatcher syntax

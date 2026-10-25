@@ -97,31 +97,17 @@ else
     ~/.config/catastrophic/scripts/catastrophic-wallpaper "$WALLPAPER" &
 fi
 
-# Start Catastrophic Settings App
-info "Starting Catastrophic Dotfiles Settings"
-PROFILE="com.catastrophic.dotfiles" qs -p $HOME/.local/share/catastrophic-dotfiles-settings/quickshell &
-info "Catastrophic Dotfiles Settings started"
-
-# Start Quickshell Overview
-info "Starting Quickshell Overview"
-qs -p $HOME/.local/share/quickshell-overview &
-info "Quickshell Overview started"
+# The settings app and the window overview start the first time they are opened
+# (catastrophic-app), so they do not hold memory until then. The old power menu is
+# replaced by the session menu in the main shell.
 
 # Start Catastrophic Dock
 info "Starting Catastrophic Dock"
 catastrophic-dock start &
 info "Catastrophic Dock started"
 
-# Start Catastrophic Power Menu
-info "Starting Catastrophic Power Menu"
-catastrophic-powermenu start &
-info "Catastrophic Power Menu started"
-
-# Start Catastrophic Walker (starts elephant first, then walker -- see
-# catastrophic-walker's own start command)
-info "Starting Catastrophic Walker"
-catastrophic-walker start &
-info "Catastrophic Walker started"
+# Walker and its backend (elephant) are not started at login: the launcher starts
+# elephant the first time a menu is shown, and walker quits when the menu closes.
 
 # Check GitHub for a new version and offer to update (waits for the network in the background)
 info "Starting update check"

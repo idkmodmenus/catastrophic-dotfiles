@@ -19,7 +19,10 @@ Scope {
         function close(): void { win.open = false }
     }
 
+    // Only computed while the launcher is showing: sorting every installed app at
+    // login was wasted work for a menu that is usually closed
     readonly property var results: {
+        if (!win.visible) return []
         const q = query.trim().toLowerCase()
         const apps = DesktopEntries.applications.values.filter(a => !a.noDisplay)
         if (q === "")

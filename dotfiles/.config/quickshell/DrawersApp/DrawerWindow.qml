@@ -33,7 +33,17 @@ PanelWindow {
     // closed the panel on every press. Clicks outside the panel are caught below.
     // Non-modal drawers stay click-through everywhere except the panel.
     mask: modal && open ? null : panelMask
-    Region { id: panelMask; item: framePanel.hit }
+    // The region follows a proxy with explicit window coordinates. Following the
+    // item nested inside the panel missed the panel moving (a toast widening
+    // shifts it left), which left the clickable area in the wrong place.
+    Item {
+        id: maskProxy
+        x: framePanel.x + framePanel.hit.x
+        y: framePanel.y + framePanel.hit.y
+        width: framePanel.hit.width
+        height: framePanel.hit.height
+    }
+    Region { id: panelMask; item: maskProxy }
 
     HyprlandFocusGrab {
         windows: [win]

@@ -41,13 +41,6 @@ FloatingWindow {
             versionFile.reload()
     }
 
-    IpcHandler {
-        target: "welcome"
-        function toggle(): void {
-            root.visible = !root.visible
-        }
-    }
-
     // --- Check if flatpak is installed when window opens ---
     Process {
         command: ["bash", "-c", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-command-exists hyprmod"]
@@ -174,7 +167,7 @@ FloatingWindow {
                 CatastrophicMenuItem { 
                     text: qsTr("Dotfiles Settings");
                     onClicked: {
-                        Quickshell.execDetached(["qs", "-p", Quickshell.env("HOME") + "/.local/share/catastrophic-dotfiles-settings/quickshell", "ipc", "call", "settings", "toggle"])
+                        Quickshell.execDetached([Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-app", "settings", "toggle"])
                     }
                 }
                 CatastrophicMenuItem { 
@@ -250,7 +243,7 @@ FloatingWindow {
                 CatastrophicMenuItem { 
                     text: qsTr("Exit Hyprland") 
                     onClicked: {
-                        Quickshell.execDetached(["bash", "-c", "catastrophic-powermenu toggle"])
+                        Quickshell.execDetached(["qs", "ipc", "call", "session", "toggle"])
                     }
                 }
 
@@ -390,7 +383,7 @@ FloatingWindow {
                         Button {
                             text: "Dotfiles Settings"
                             onClicked: {
-                                Quickshell.execDetached(["qs", "-p", Quickshell.env("HOME") + "/.local/share/catastrophic-dotfiles-settings/quickshell", "ipc", "call", "settings", "toggle"])
+                                Quickshell.execDetached([Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-app", "settings", "toggle"])
                             }
                             background: Rectangle {
                                 color: "transparent"

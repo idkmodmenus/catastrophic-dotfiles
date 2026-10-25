@@ -2,6 +2,7 @@
 
 import Quickshell
 import Quickshell.Io
+import QtQuick
 import "WelcomeApp"
 import "SidebarApp"
 import "WallpaperApp"
@@ -9,6 +10,7 @@ import "StatusbarApp"
 import "CustomTheme"
 import "FrameApp"
 import "DrawersApp"
+import "Widgets"
 
 ShellRoot {
     // Test IPC tools: qs ipc show
@@ -26,9 +28,9 @@ ShellRoot {
     Session {}
     NotificationPopups {}
     NotificationCenter {}
-    WelcomeWindow {}
-    SidebarWindow {}
-    WallpaperWindow {}
+    LazyWindow { name: "welcome"; openProperty: "visible"; window: Component { WelcomeWindow {} } }
+    LazyWindow { name: "sidebar"; window: Component { SidebarWindow {} } }
+    LazyWindow { name: "wallpaper"; window: Component { WallpaperWindow {} } }
     StatusbarWindow {}
 
     Variants {

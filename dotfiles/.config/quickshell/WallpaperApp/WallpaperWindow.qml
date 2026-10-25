@@ -68,14 +68,6 @@ PanelWindow {
         }
     }
 
-    // --- IPC HANDLER ---
-    IpcHandler {
-        target: "wallpaper"
-        function toggle(): void { root.isOpen = !root.isOpen }
-        function open(): void { root.isOpen = true }   
-        function close(): void { root.isOpen = false }
-        function isOpen(): bool { return root.isOpen }
-    }
 
     property string defaultWallpaperFolder: Quickshell.env("HOME") + "/.config/catastrophic/wallpapers"
     property string wallpaperSettingFile: Quickshell.env("HOME") + "/.config/catastrophic/settings/wallpaper-folder"

@@ -1,10 +1,10 @@
 import Quickshell
 import QtQuick
 
-// Power menu -> toggles the Catastrophic Power Menu (github.com/catastrophic-os/catastrophic-powermenu).
+// Power menu -> opens the session menu (lock, log out, sleep, restart, shut down).
 BarButton {
     iconSrc: "../shared/icons/power.svg"
     onClicked: {
-        Quickshell.execDetached(["bash", "-c", "catastrophic-powermenu toggle"])
+        Quickshell.execDetached(["qs", "ipc", "call", "session", "toggle"])
     }
 }

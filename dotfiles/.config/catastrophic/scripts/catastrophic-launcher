@@ -19,6 +19,7 @@
 #       --rofi-args "<args>"    Extra arguments for rofi only
 #       --walker-args "<args>"  Extra arguments for walker only
 #   catastrophic-launcher which         Print the launcher in use: walker or rofi
+#   catastrophic-launcher ensure        Make sure walker's backend is running (for scripts that call walker)
 
 # -----------------------------------------------------
 # Resolve Launcher
@@ -39,6 +40,24 @@ _resolve_launcher() {
 launcher=$(_resolve_launcher)
 
 # -----------------------------------------------------
+# Walker backend
+# -----------------------------------------------------
+# walker needs elephant. Neither is started at login any more (they held about
+# 200 MB while idle): elephant is started here the first time a menu is shown, and
+# walker itself quits as soon as the menu closes.
+_ensure_elephant() {
+    pgrep -x elephant >/dev/null 2>&1 && return 0
+    command -v elephant >/dev/null 2>&1 || return 1
+    local sock="${XDG_RUNTIME_DIR:-/tmp}/elephant/elephant.sock" i
+    setsid -f elephant >/dev/null 2>&1 </dev/null
+    for i in $(seq 1 50); do
+        [ -S "$sock" ] && pgrep -x elephant >/dev/null 2>&1 && return 0
+        sleep 0.1
+    done
+    return 1
+}
+
+# -----------------------------------------------------
 # Application Launcher
 # -----------------------------------------------------
 _drun() {
@@ -47,6 +66,7 @@ _drun() {
         return
     fi
     if [ "$launcher" == "walker" ]; then
+        _ensure_elephant
         walker -t catastrophic --height 500
     else
         pkill rofi || rofi -show drun -replace -i
@@ -77,6 +97,7 @@ _dmenu() {
     done
 
     if [ "$launcher" == "walker" ]; then
+        _ensure_elephant
         local args=(-t catastrophic -d -N -H)
         [ -n "$prompt" ] && args+=(-p "$prompt")
         [ "$index" == 1 ] && args+=(-i)
@@ -97,5 +118,6 @@ case "$1" in
     "" | drun) _drun ;;
     dmenu) shift; _dmenu "$@" ;;
     which) echo "$launcher" ;;
+    ensure) [ "$launcher" == "walker" ] && _ensure_elephant ;;
     *) echo "catastrophic-launcher: unknown command $1" >&2; exit 1 ;;
 esac
