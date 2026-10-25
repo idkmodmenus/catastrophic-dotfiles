@@ -5,13 +5,13 @@ Hyprland desktop for Arch Linux and CachyOS.
 ## Install
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh)
+curl -fsSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh | bash
 ```
 
 Preview first, changing nothing:
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh) --dry-run
+curl -fsSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh | bash -s -- --dry-run
 ```
 
 Run it as your normal user. `sudo` asks for your password when it is needed.

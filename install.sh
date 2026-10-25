@@ -2,7 +2,7 @@
 #
 # Catastrophic OS installer (Arch Linux / CachyOS)
 #
-#   bash <(curl -fsSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh)
+#   curl -fsSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh | bash
 #
 # Options:
 #   --yes        Skip the "Continue?" prompts. System-level changes are still asked
