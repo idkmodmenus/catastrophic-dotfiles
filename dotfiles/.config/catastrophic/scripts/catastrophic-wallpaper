@@ -106,6 +106,46 @@ set_wallpaper() {
     done
 }
 
+# Builds the colors from a picture. matugen cannot read every format people download (AVIF, HEIC and
+# ICO fail) and ignores see-through pixels, which would leave a transparent picture with the default
+# blue. So when the format is unusual, or the picture has transparency, or matugen fails, a plain
+# opaque PNG copy made with ImageMagick is used instead.
+matugen_image() {
+    local bin="$1" img="$2" mode="$3" ext tmp="" convert_first=false magick_bin=""
+    ext="${img##*.}"; ext="${ext,,}"
+    command -v magick > /dev/null 2>&1 && magick_bin="magick"
+    [ -z "$magick_bin" ] && command -v convert > /dev/null 2>&1 && magick_bin="convert"
+
+    case "$ext" in
+        jpg|jpeg|png|webp|gif|bmp|tif|tiff|tga) ;;
+        *) convert_first=true ;;
+    esac
+    if [ "$convert_first" = false ] && [ -n "$magick_bin" ] \
+        && [ "$("$magick_bin" identify -format '%[opaque]' "${img}[0]" 2> /dev/null)" = "False" ]; then
+        convert_first=true
+    fi
+
+    if [ "$convert_first" = false ]; then
+        "$bin" image "$img" --source-color-index 0 -m "$mode" && return 0
+        info "matugen could not use this picture as it is, trying a converted copy"
+    fi
+
+    if [ -z "$magick_bin" ]; then
+        warn "Cannot read the colors from this picture, and ImageMagick is needed to convert it. The theme was not changed."
+        return 1
+    fi
+    tmp="$(mktemp --suffix=.png "${TMPDIR:-/tmp}/catastrophic-theme-XXXXXX")" || return 1
+    if "$magick_bin" "${img}[0]" -background black -alpha remove -alpha off -colorspace sRGB "$tmp" 2> /dev/null \
+        && "$bin" image "$tmp" --source-color-index 0 -m "$mode"; then
+        rm -f "$tmp"
+        return 0
+    fi
+    rm -f "$tmp"
+    warn "Could not read the colors from $img. The theme was not changed."
+    send_notification "Theme not updated" "That picture could not be read. Try a JPG or PNG."
+    return 1
+}
+
 run_matugen() {
     local theme_pref
     theme_pref=$(grep -E '^gtk-application-prefer-dark-theme=' "$HOME/.config/gtk-3.0/settings.ini" | awk -F'=' '{print $2}')
@@ -143,7 +183,7 @@ run_matugen() {
         "$bin" color hex "$theme_color" -m "$mode" -t "$theme_type"
     else
         info "Running matugen in $mode mode"
-        "$bin" image "$IMAGE_PATH" --source-color-index 0 -m "$mode"
+        matugen_image "$bin" "$IMAGE_PATH" "$mode" || return 1
     fi
     info "Matugen updated"
 }

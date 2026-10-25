@@ -52,6 +52,16 @@ and makes the system match it:
 - Packages the desktop no longer uses (`setup/obsolete-packages`) are offered for
   removal. It asks first. Other packages are never removed.
 
+## Theme and wallpapers
+
+The colors of the whole desktop come from your wallpaper. Set a new one (Super + Ctrl + W, or from the
+sidebar) and the shell, dock, terminal, launcher, GTK and Qt apps recolor to match, in light or dark. This
+works for pictures you download too: JPG, PNG, WebP, GIF, AVIF, HEIC and more. Pictures with transparency are
+flattened first, and if a file cannot be read you get a message and the old theme stays.
+
+If you want one color whatever the wallpaper, pick it in the sidebar's Theme settings. Remove
+`~/.config/catastrophic/settings/theme-color` to follow the wallpaper again.
+
 ## Update notification
 
 A small background check watches GitHub. It starts at login and looks again every

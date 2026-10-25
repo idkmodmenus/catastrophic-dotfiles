@@ -28,3 +28,12 @@ if [ -f "$DEFAULT_APPS_FILE" ] && [ -d "$FINAL_TARGET/.config/catastrophic/setti
     done < "$DEFAULT_APPS_FILE"
     info "Default apps set from what is installed."
 fi
+
+# The first releases shipped a fixed theme color (#475569, scheme-vibrant). While that file exists
+# the wallpaper script ignores the wallpaper, so the theme never changed when the background did.
+# Unless the user picked a color of their own, go back to following the wallpaper.
+theme_color_file="$FINAL_TARGET/.config/catastrophic/settings/theme-color"
+if [ -f "$theme_color_file" ] && [ "$(tr -s '[:space:]' ' ' < "$theme_color_file" | sed 's/^ //; s/ $//')" = "#475569 scheme-vibrant" ]; then
+    rm -f "$theme_color_file"
+    info "Theme colors now follow the wallpaper."
+fi
