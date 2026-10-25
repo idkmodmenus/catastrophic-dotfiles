@@ -39,6 +39,11 @@ die()  { printf '\033[1;31m:: ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 cleanup() { if [ -n "$WORK_DIR" ]; then rm -rf "$WORK_DIR"; fi; }
 trap cleanup EXIT
 
+# Everything below lives in main() so bash has read the whole script before it runs
+# anything. When started through a pipe (curl | bash) the script arrives on stdin,
+# and switching stdin to the terminal for prompts would otherwise make bash read
+# the rest of the script from the keyboard.
+main() {
 while [ $# -gt 0 ]; do
     case "$1" in
         --yes|-y)   YES=1 ;;
@@ -151,3 +156,6 @@ ARGS=(--install "$PROFILE")
 CATASTROPHIC_YES="$YES" CATASTROPHIC_SRC="$SRC" catastrophic-dotfiles-installer "${ARGS[@]}"
 rm -f "$PROFILE"
 stage 5 "Done. Reboot, then choose the Hyprland session at the login screen."
+}
+
+main "$@"; exit $?
