@@ -150,6 +150,23 @@ copy_with_blacklist() {
 }
 
 # --- Update: remove what the repo no longer ships ---
+# Removes the paths listed in a file (setup/obsolete-paths) from a folder. Globs are allowed.
+remove_obsolete_paths() {
+    local dir=$1 list=$2 rel p
+    [ -f "$list" ] || return 0
+    while IFS= read -r rel || [ -n "$rel" ]; do
+        rel=$(echo "$rel" | xargs)
+        [[ -z "$rel" || "$rel" == \#* || "$rel" == /* || "$rel" == *..* ]] && continue
+        for p in "$dir"/$rel; do
+            if [ -e "$p" ] || [ -L "$p" ]; then
+                rm -rf -- "$p"
+                info "  - Removed obsolete: ${p#$dir/}"
+            fi
+        done
+    done < "$list"
+}
+
+
 # Run before staging the new files. Removes
 #   1. paths listed in setup/obsolete-paths (installs from before the manifest), and
 #   2. files that the previous update installed (its manifest) and the repo no
@@ -160,19 +177,7 @@ prune_obsolete() {
     [ -d "$final_target" ] || return 0
     local removed=0 rel p
 
-    local list="$clone_path/setup/obsolete-paths"
-    if [ -f "$list" ]; then
-        while IFS= read -r rel || [ -n "$rel" ]; do
-            rel=$(echo "$rel" | xargs)
-            [[ -z "$rel" || "$rel" == \#* || "$rel" == /* || "$rel" == *..* ]] && continue
-            for p in "$final_target"/$rel; do
-                if [ -e "$p" ] || [ -L "$p" ]; then
-                    rm -rf -- "$p"; removed=$((removed + 1))
-                    info "  - Removed obsolete: ${p#$final_target/}"
-                fi
-            done
-        done < "$list"
-    fi
+    remove_obsolete_paths "$final_target" "$clone_path/setup/obsolete-paths"
 
     if [ -f "$manifest" ]; then
         while IFS= read -r rel; do
@@ -186,7 +191,7 @@ prune_obsolete() {
 
     # Directories left empty by the removals
     find "$final_target" -mindepth 1 -type d -empty -delete 2> /dev/null
-    [ "$removed" -gt 0 ] && info "Removed $removed obsolete item(s)." || info "Nothing obsolete to remove."
+    info "Obsolete file check done."
     return 0
 }
 

@@ -176,6 +176,29 @@ Item {
                 }
             }
 
+            // Update warning: shown while the installed Catastrophic OS is behind GitHub, so
+            // this system may be out of date. Click for the update notification.
+            // catastrophic-update-check keeps ~/.local/state/catastrophic/update-status.
+            Icon {
+                id: updateWarning
+                property bool outdated: false
+                visible: outdated
+                text: "󰀦"
+                color: "#ffb74d"
+                onClicked: bar.run("~/.config/catastrophic/scripts/catastrophic-update-check --prompt")
+
+                // The file changes only when the checker finds a new state, so this
+                // costs nothing while idle (no polling).
+                FileView {
+                    path: Quickshell.env("HOME") + "/.local/state/catastrophic/update-status"
+                    watchChanges: true
+                    printErrors: false
+                    onFileChanged: reload()
+                    onLoaded: updateWarning.outdated = text().startsWith("outdated")
+                    onLoadFailed: updateWarning.outdated = false
+                }
+            }
+
             // Volume: scroll to adjust, right click to mute, click for the mixer
             Icon {
                 id: volume

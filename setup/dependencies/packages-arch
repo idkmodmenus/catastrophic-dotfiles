@@ -17,6 +17,8 @@ rsync
 dbus
 xdg-utils
 lm_sensors
+pciutils
+figlet
 
 # --- Hyprland and Wayland session ---
 hyprland
@@ -39,6 +41,9 @@ qt6-declarative
 qt6-5compat
 
 # --- Desktop shell ---
+gtk4
+gtk4-layer-shell
+poppler-glib
 quickshell
 rofi
 swaync
@@ -97,6 +102,7 @@ breeze
 breeze-icons
 breeze-gtk
 kde-gtk-config
+ttf-fira-sans
 ttf-jetbrains-mono-nerd
 ttf-nerd-fonts-symbols
 noto-fonts

@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+# Watches GitHub for a newer Catastrophic OS.
+#
+# Started at login (from catastrophic-autostart) and keeps running. Every
+# half hour it compares the installed version with the latest one on GitHub. While
+# the installed version is behind it:
+#   - keeps a warning badge on the screen (the rail), because this system may be
+#     out of date, and
+#   - shows a notification once per new version, with three buttons:
+#       Update now         opens a terminal and runs the install command
+#       Later              asks again at the next login
+#       Skip this version  no more pop-ups for this version (the badge stays)
+#
+#   catastrophic-update-check            watch in the background (login behaviour)
+#   catastrophic-update-check --now      check once, right away
+#   catastrophic-update-check --prompt   show the update notification now (the badge calls this)
+#
+# Turn it off with the "Notify me about updates" setting, or by putting False in
+# ~/.config/catastrophic/settings/update-notifications.sh
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/catastrophic"
+INSTALLED_FILE="$STATE_DIR/installed-commit"
+SKIPPED_FILE="$STATE_DIR/skipped-commit"
+STATUS_FILE="$STATE_DIR/update-status"         # "ok", or "outdated" followed by the latest commit and what changed. The rail watches it.
+SETTING_FILE="$HOME/.config/catastrophic/settings/update-notifications.sh"
+REPO_URL="${CATASTROPHIC_REPO:-https://github.com/idkmodmenus/catastrophic-dotfiles}"
+BRANCH="${CATASTROPHIC_BRANCH:-main}"
+INTERVAL="${CATASTROPHIC_UPDATE_INTERVAL:-1800}"
+
+MODE=watch
+case "${1:-}" in
+    --now)    MODE=now ;;
+    --prompt) MODE=prompt ;;
+esac
+
+mkdir -p "$STATE_DIR"
+[ -e "$STATUS_FILE" ] || echo ok > "$STATUS_FILE"
+
+# Written in place (not replaced), so the rail's file watch keeps working
+set_ok()       { [ "$(sed -n 1p "$STATUS_FILE" 2> /dev/null)" = ok ] || echo ok > "$STATUS_FILE"; }
+set_outdated() { printf 'outdated\n%s\n%s\n' "$1" "$2" > "$STATUS_FILE"; }
+is_outdated()  { [ "$(sed -n 1p "$STATUS_FILE" 2> /dev/null)" = outdated ]; }
+
+# Only one watcher at a time. A pidfile that is checked against the running process
+# (not a lock inherited by child processes) cannot be left behind by a killed watcher.
+if [ "$MODE" = watch ]; then
+    PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/catastrophic-update-check.pid"
+    other="$(cat "$PIDFILE" 2> /dev/null)"
+    if [ -n "$other" ] && [ "$other" != "$$" ] && grep -q catastrophic-update-check "/proc/$other/cmdline" 2> /dev/null; then
+        exit 0
+    fi
+    echo "$$" > "$PIDFILE"
+    trap 'rm -f "$PIDFILE"' EXIT
+fi
+
+command -v git > /dev/null 2>&1 || exit 0
+
+# The checks are background work: never compete with what the user is doing
+if command -v ionice > /dev/null 2>&1; then lowprio() { nice -n 19 ionice -c3 "$@"; }; else lowprio() { nice -n 19 "$@"; }; fi
+
+enabled() {
+    ! { [ -f "$SETTING_FILE" ] && [ "$(tr -d '[:space:]' < "$SETTING_FILE")" = "False" ]; }
+}
+
+# The latest commit on the branch. Prints nothing when GitHub cannot be reached.
+remote_commit() {
+    lowprio timeout 20 git ls-remote "$REPO_URL" "refs/heads/$BRANCH" 2> /dev/null | cut -f1
+}
+
+# Where the installer lives on GitHub, for the update command and the change summary
+if [[ "$REPO_URL" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
+    GH_OWNER="${BASH_REMATCH[1]}"; GH_REPO="${BASH_REMATCH[2]}"
+    INSTALL_URL="https://raw.githubusercontent.com/$GH_OWNER/$GH_REPO/$BRANCH/install.sh"
+else
+    GH_OWNER=""; GH_REPO=""
+    INSTALL_URL="https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh"
+fi
+UPDATE_CMD="curl -fsSL $INSTALL_URL | bash"
+
+# What changed: the subject of the latest commit, when the repository is on GitHub
+change_summary() {
+    [ -n "$GH_OWNER" ] && command -v jq > /dev/null 2>&1 || return 0
+    lowprio curl -fsS --max-time 10 "https://api.github.com/repos/$GH_OWNER/$GH_REPO/commits/$BRANCH" 2> /dev/null \
+        | jq -r '.commit.message // empty' 2> /dev/null | head -n 1
+}
+
+run_in_terminal() {
+    local script="$1" term
+    term="$(cat "$HOME/.config/catastrophic/settings/terminal.sh" 2> /dev/null | head -n 1 | awk '{print $1}')"
+    if [ -z "$term" ] || ! command -v "$term" > /dev/null 2>&1; then
+        term=""
+        for t in kitty konsole alacritty foot wezterm gnome-terminal xfce4-terminal xterm; do
+            command -v "$t" > /dev/null 2>&1 && { term="$t"; break; }
+        done
+    fi
+    [ -n "$term" ] || return 1
+    if [ -n "${CATASTROPHIC_UPDATE_DRY_RUN:-}" ]; then
+        echo "WOULD RUN in $term: $script"; return 0
+    fi
+    case "$term" in
+        gnome-terminal) "$term" -- bash -c "$script" ;;
+        wezterm)        "$term" start -- bash -c "$script" ;;
+        foot)           "$term" bash -c "$script" ;;
+        *)              "$term" -e bash -c "$script" ;;
+    esac
+}
+
+# Shows the notification and acts on the button that is pressed. Blocks until then.
+notify_and_act() {
+    local latest="$1" summary="$2" body action
+    body="Your installed version may be out of date. A newer one is on GitHub."
+    [ -n "$summary" ] && body="$summary"$'\n'"Your installed version may be out of date."
+    command -v notify-send > /dev/null 2>&1 || return 0
+
+    action="$(timeout 12h notify-send --app-name="Catastrophic OS" --icon=system-software-update \
+        --urgency=critical --expire-time=0 --wait \
+        --action=update="Update now" --action=later="Later" --action=skip="Skip this version" \
+        "Catastrophic OS update available" "$body" 2> /dev/null)"
+
+    case "$action" in
+        update)
+            run_in_terminal "echo 'Updating Catastrophic OS...'; echo; $UPDATE_CMD; status=\$?; echo; read -r -p 'Press Enter to close this window. ' _; exit \$status" \
+                || notify-send --app-name="Catastrophic OS" "Could not open a terminal" "Run this yourself: $UPDATE_CMD"
+            check_once quiet   # refresh the badge now that the update has run
+            ;;
+        skip)
+            echo "$latest" > "$SKIPPED_FILE"
+            ;;
+        *) : ;;   # Later, or dismissed: asked again at the next login
+    esac
+}
+
+NOTIFIED=""   # the commit already announced in this session
+
+# One check. With "quiet" it only updates the badge and never pops anything up.
+check_once() {
+    local quiet="${1:-}" latest installed summary
+    enabled || { set_ok; return 0; }
+    latest="$(remote_commit)"
+    [ -n "$latest" ] || return 2     # offline: leave things as they are, and let the watcher retry soon
+
+    installed="$(cat "$INSTALLED_FILE" 2> /dev/null)"
+    if [ -z "$installed" ]; then
+        # Installed before versions were recorded: treat this as the current version
+        echo "$latest" > "$INSTALLED_FILE"
+        set_ok
+        return 0
+    fi
+    if [ "$latest" = "$installed" ]; then
+        set_ok
+        return 0
+    fi
+
+    # Behind GitHub: keep the on-screen warning
+    summary="$(change_summary)"
+    set_outdated "$latest" "$summary"
+
+    [ "$quiet" = quiet ] && return 0
+    [ "$latest" = "$NOTIFIED" ] && return 0
+    [ "$latest" = "$(cat "$SKIPPED_FILE" 2> /dev/null)" ] && return 0
+    NOTIFIED="$latest"
+    notify_and_act "$latest" "$summary" &
+}
+
+case "$MODE" in
+    now)
+        check_once
+        wait
+        ;;
+    prompt)
+        # Clicked from the badge: ask again even if this version was skipped or announced
+        check_once quiet
+        if is_outdated; then
+            notify_and_act "$(sed -n 2p "$STATUS_FILE")" "$(sed -n 3p "$STATUS_FILE")"
+        else
+            command -v notify-send > /dev/null 2>&1 && notify-send --app-name="Catastrophic OS" "Catastrophic OS is up to date" "You have the latest version."
+        fi
+        ;;
+    watch)
+        # Give the desktop a moment to come up, then wait for the network: it is
+        # often not ready right after login.
+        sleep "${CATASTROPHIC_UPDATE_DELAY:-25}"
+        retries=0
+        while true; do
+            check_once; rc=$?
+            if [ "$rc" -eq 2 ] && [ "$retries" -lt 40 ]; then
+                retries=$((retries + 1)); sleep 15     # offline: try again soon, for about ten minutes
+            else
+                retries=0; sleep "$INTERVAL"
+            fi
+        done
+        ;;
+esac

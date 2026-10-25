@@ -12,9 +12,11 @@ mkdir -p "$SHARE_DIR" "$BIN_DIR"
 POST_NOTES=()
 
 # --- Default apps: use what the system already has, install one only if missing ---
-# Each line: category | candidates (first one found wins) | package to install if none | launch command template
+# pick_default_app CATEGORY "candidates, the first one found wins" FALLBACK_PACKAGE COMMAND
+# This runs once, on the first install. Updates keep whatever the user has chosen since.
 DEFAULT_APPS_FILE="$HOME/.cache/catastrophic-default-apps"
-mkdir -p "$(dirname "$DEFAULT_APPS_FILE")"; : > "$DEFAULT_APPS_FILE"
+DEFAULT_APPS_STAMP="$HOME/.cache/catastrophic-applied/default-apps"
+mkdir -p "$(dirname "$DEFAULT_APPS_FILE")" "$(dirname "$DEFAULT_APPS_STAMP")"
 pick_default_app() {
     local category="$1" candidates="$2" fallback_pkg="$3" fallback_cmd="$4" cmd="" c
     for c in $candidates; do
@@ -33,10 +35,17 @@ pick_default_app() {
     fi
     echo "$category=$cmd" >> "$DEFAULT_APPS_FILE"
 }
-pick_default_app terminal     "kitty konsole alacritty foot wezterm gnome-terminal xfce4-terminal xterm" kitty kitty
-pick_default_app browser      "firefox librewolf zen-browser brave chromium google-chrome-stable vivaldi-stable qutebrowser" firefox firefox
-pick_default_app filemanager  "nautilus dolphin thunar nemo pcmanfm" nautilus nautilus
-pick_default_app editor       "gnome-text-editor kate kwrite gedit mousepad" gnome-text-editor gnome-text-editor
+if [ -e "$DEFAULT_APPS_STAMP" ]; then
+    info "  - Default apps were chosen on the first install. Keeping them."
+    rm -f "$DEFAULT_APPS_FILE"
+else
+    : > "$DEFAULT_APPS_FILE"
+    pick_default_app terminal     "kitty konsole alacritty foot wezterm gnome-terminal xfce4-terminal xterm" kitty kitty
+    pick_default_app browser      "firefox librewolf zen-browser brave chromium google-chrome-stable vivaldi-stable qutebrowser" firefox firefox
+    pick_default_app filemanager  "nautilus dolphin thunar nemo pcmanfm" nautilus nautilus
+    pick_default_app editor       "gnome-text-editor kate kwrite gedit mousepad" gnome-text-editor gnome-text-editor
+    echo done > "$DEFAULT_APPS_STAMP"
+fi
 
 # --- Dock and status bar look ---
 # The apps write their own config on first run, so a missing file is not the only case.
@@ -260,6 +269,15 @@ if [ -d "$BRAND_SRC" ]; then
             POST_NOTES+=("Boot splash skipped: add 'plymouth' to HOOKS in /etc/mkinitcpio.conf and add 'splash' to your kernel parameters to enable it")
         fi
     fi
+fi
+
+# --- Remember which version is installed (used by the update notification) ---
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/catastrophic"
+mkdir -p "$state_dir"
+if installed_sha="$(git -C "$repo_path" rev-parse HEAD 2> /dev/null)" && [ -n "$installed_sha" ]; then
+    echo "$installed_sha" > "$state_dir/installed-commit"
+    rm -f "$state_dir/skipped-commit"
+    echo ok > "$state_dir/update-status"
 fi
 
 # --- Summary ---

@@ -41,6 +41,10 @@ if [ -z "$QS_ICON_THEME" ]; then
 fi
 info "Quickshell icon theme: ${QS_ICON_THEME:-<unset>}"
 
+# The rail watches this file for the update warning, so it has to exist first
+mkdir -p "$HOME/.local/state/catastrophic"
+[ -e "$HOME/.local/state/catastrophic/update-status" ] || echo ok > "$HOME/.local/state/catastrophic/update-status"
+
 # Kill any existing qs instances
 killall qs 2>/dev/null || true
 
@@ -118,6 +122,10 @@ info "Catastrophic Power Menu started"
 info "Starting Catastrophic Walker"
 catastrophic-walker start &
 info "Catastrophic Walker started"
+
+# Check GitHub for a new version and offer to update (waits for the network in the background)
+info "Starting update check"
+~/.config/catastrophic/scripts/catastrophic-update-check &
 
 # Start Catastrophic Welcome App
 info "Starting Catastrophic Welcome App"

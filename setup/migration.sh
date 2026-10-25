@@ -6,7 +6,7 @@ AUTHOR_HOME="/home/nyx"
 if [ "$HOME" != "$AUTHOR_HOME" ] && [ -d "$FINAL_TARGET" ]; then
     info "Adjusting home paths for $HOME..."
     grep -rIl --exclude-dir=.git "$AUTHOR_HOME" "$FINAL_TARGET" 2> /dev/null \
-        | xargs -r sed -i "s|$AUTHOR_HOME|$HOME|g"
+        | xargs -r -d '\n' sed -i "s|$AUTHOR_HOME|$HOME|g"
 fi
 
 # Point the default-app settings at the apps found (or installed) by post-arch.sh

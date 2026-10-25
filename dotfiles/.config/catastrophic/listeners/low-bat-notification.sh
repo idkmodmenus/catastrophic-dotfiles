@@ -14,8 +14,9 @@ NOTIFIED_20=false
 NOTIFIED_15=false
 
 while true; do
-    CAPACITY=$(cat "$BAT/capacity")
-    STATUS=$(cat "$BAT/status")
+    # Shell builtins: no new process every minute
+    read -r CAPACITY < "$BAT/capacity"
+    read -r STATUS < "$BAT/status"
 
     if [[ "$STATUS" == "Discharging" ]]; then
         if [[ $CAPACITY -le 15 && $NOTIFIED_15 == false ]]; then

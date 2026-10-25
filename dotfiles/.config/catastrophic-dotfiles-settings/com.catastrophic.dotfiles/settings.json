@@ -252,6 +252,16 @@
       "mode": "overwrite",
       "default": "rofi",
       "options": ["rofi", "walker"]
+    },{
+      "name": "Notify me about updates",
+      "id": "update_notifications",
+      "instructions": "Show a notification at login when a new Catastrophic OS update is available?",
+      "file": "~/.config/catastrophic/settings/update-notifications.sh",
+      "type": "toggle",
+      "mode": "overwrite",
+      "default": "True",
+      "true_value": "True",
+      "false_value": "False"
     }]
   }
 ]

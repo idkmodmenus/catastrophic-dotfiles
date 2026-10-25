@@ -36,7 +36,8 @@ say()  { printf '\033[1;32m::\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m:: WARNING:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m:: ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
-cleanup() { if [ -n "$WORK_DIR" ]; then rm -rf "$WORK_DIR"; fi; }
+PROFILE=""
+cleanup() { if [ -n "$WORK_DIR" ]; then rm -rf "$WORK_DIR"; fi; if [ -n "$PROFILE" ]; then rm -f "$PROFILE"; fi; }
 trap cleanup EXIT
 
 # Everything below lives in main() so bash has read the whole script before it runs
@@ -64,13 +65,23 @@ case " ${ID:-} ${ID_LIKE:-} " in
     *" arch "*|*" cachyos "*) ;;
     *) die "Unsupported distribution: ${PRETTY_NAME:-unknown}. Arch Linux and CachyOS are supported." ;;
 esac
-curl -fsI --max-time 15 https://archlinux.org >/dev/null 2>&1 || die "No internet connection."
+curl -fsI --max-time 15 https://archlinux.org >/dev/null 2>&1 || curl -fsI --max-time 15 https://github.com >/dev/null 2>&1 || die "No internet connection."
 
 # --- 2. Locate the source (a local checkout, or clone the repository) ---
 stage 2 "Downloading Catastrophic OS"
-SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
+# A local checkout is used only when this file is run from disk. Through a pipe there is
+# no file, and the current folder must not be mistaken for the source.
+SELF_DIR=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)"
+fi
 if [ -n "$SELF_DIR" ] && [ -f "$SELF_DIR/catastrophic.dotinst" ] && [ -d "$SELF_DIR/setup" ]; then
-    SRC="$SELF_DIR"
+    # Work on a copy: the installer merges your kept settings into its source, and that must
+    # never end up inside a git checkout.
+    WORK_DIR="$(mktemp -d -t catastrophic-install-XXXXXX)"
+    say "Using the local checkout in $SELF_DIR (copied, so it stays untouched)."
+    cp -a "$SELF_DIR" "$WORK_DIR/src"
+    SRC="$WORK_DIR/src"
 else
     command -v git >/dev/null 2>&1 || { say "git is required. Installing it (sudo)."; sudo pacman -S --needed --noconfirm git; }
     WORK_DIR="$(mktemp -d -t catastrophic-install-XXXXXX)"

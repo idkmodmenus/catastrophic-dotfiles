@@ -34,13 +34,37 @@ system match it:
 
 - Files that changed in the repo are overwritten with the new version (the old
   profile is backed up first, in `~/.mydotfiles/backups/`).
+- Your settings are kept: the default apps, theme, launcher and the other choices in
+  `~/.config/catastrophic/settings`. The installer asks "Keep my Catastrophic settings"
+  and keeps them by default. New settings from the repo are added next to them.
 - Files the repo no longer ships are removed, along with their links in `~/.config`.
   `setup/obsolete-paths` covers installs from before the installer kept a record.
 - Files you created yourself are left alone.
+- The default terminal, browser, file manager and editor are chosen on the first install
+  only. Updates never change them.
 - Packages the desktop no longer uses (`setup/obsolete-packages`) are offered for
   removal. It asks first. Other packages are never removed.
 
-Logs are in `~/.local/state/catastrophic-dotfiles-installer/logs/`.
+## Update notification
+
+A small background check watches GitHub. It starts at login and looks again every
+half hour, so you hear about a new version while you are working, not only after a
+reboot. While your installed version is behind GitHub:
+
+- A **warning badge** (a yellow triangle) stays in the status group of the rail on the
+  left edge, because this system may be out of date. Click it to see the notification again.
+- A **notification** appears once for each new version, with three buttons:
+  - **Update now** opens a terminal and runs the install command.
+  - **Later** asks again at the next login.
+  - **Skip this version** stops the pop-ups for that version. The badge stays.
+
+The badge disappears as soon as the update is installed. The check is cheap: one tiny
+request to GitHub every half hour at low priority, and the badge watches a file
+instead of polling, so nothing runs while it is idle. It waits for the network after
+login, and does nothing if GitHub cannot be reached. Turn it off with the "Notify me
+about updates" setting. The state is in `~/.local/state/catastrophic/`
+(`installed-commit` and `update-status`). Run
+`~/.config/catastrophic/scripts/catastrophic-update-check --now` to check immediately.
 
 ## Layout
 
