@@ -38,14 +38,27 @@ pick_default_app browser      "firefox librewolf zen-browser brave chromium goog
 pick_default_app filemanager  "nautilus dolphin thunar nemo pcmanfm" nautilus nautilus
 pick_default_app editor       "gnome-text-editor kate kwrite gedit mousepad" gnome-text-editor gnome-text-editor
 
-# --- Dock and status bar look: seed the shipped settings, never overwrite the user's own ---
+# --- Dock and status bar look ---
+# The apps write their own config on first run, so a missing file is not the only case.
+# Merge the shipped look over the existing config (other keys, like pinned apps, stay),
+# and only when the shipped file changed since it was last applied, so a setting the
+# user changes afterwards is not reset on every update.
 for app in catastrophic-dock catastrophic-statusbar; do
     cfg="$HOME/.config/$app/config.json"
-    if [ ! -s "$cfg" ] && [ -f "$repo_path/setup/defaults/$app/config.json" ]; then
-        mkdir -p "$(dirname "$cfg")"
-        cp "$repo_path/setup/defaults/$app/config.json" "$cfg"
-        info "  ✓ $app: default look applied"
+    shipped="$repo_path/setup/defaults/$app/config.json"
+    [ -f "$shipped" ] || continue
+    stamp="$HOME/.cache/catastrophic-applied/$app"
+    sum="$(sha256sum "$shipped" | cut -d' ' -f1)"
+    [ "$(cat "$stamp" 2> /dev/null)" = "$sum" ] && continue
+    mkdir -p "$(dirname "$cfg")" "$(dirname "$stamp")"
+    if [ -s "$cfg" ] && jq empty "$cfg" &> /dev/null; then
+        tmp="$(mktemp)"
+        if jq -s '.[0] * .[1]' "$cfg" "$shipped" > "$tmp"; then mv "$tmp" "$cfg"; else rm -f "$tmp"; continue; fi
+    else
+        cp "$shipped" "$cfg"
     fi
+    echo "$sum" > "$stamp"
+    info "  ✓ $app: look updated"
 done
 
 # --- Packages the desktop no longer uses (asks first) ---
