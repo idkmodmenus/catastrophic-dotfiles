@@ -70,23 +70,44 @@ stop_sudo_keepalive() {
     SUDO_KEEPALIVE_PID=""
 }
 
-# --- Text progress bar ---
-# Usage: progress_bar CURRENT TOTAL [WIDTH]   ->  ████████░░░░░░░░ 12/40
+# --- Progress bar ---
+# progress_bar CURRENT TOTAL [WIDTH]  ->  ████████▌░░░░░░░░ 52%
+# Partial blocks give eight steps per cell, so the bar moves on every package.
 progress_bar() {
-    local cur=$1 total=$2 width=${3:-20} filled i bar=""
+    local cur=$1 total=$2 width=${3:-24} units full rem i bar=""
+    local partial=("" "▏" "▎" "▍" "▌" "▋" "▊" "▉")
     (( total > 0 )) || total=1
     (( cur > total )) && cur=$total
-    filled=$(( cur * width / total ))
-    for (( i = 0; i < width; i++ )); do
-        if (( i < filled )); then bar+="█"; else bar+="░"; fi
-    done
-    printf '%s %d/%d' "$bar" "$cur" "$total"
+    units=$(( cur * width * 8 / total ))
+    full=$(( units / 8 )); rem=$(( units % 8 ))
+    for (( i = 0; i < full; i++ )); do bar+="█"; done
+    if (( full < width )); then
+        bar+="${partial[rem]}"
+        (( rem == 0 )) && bar+="░"
+        for (( i = full + 1; i < width; i++ )); do bar+="░"; done
+    fi
+    printf '%s %3d%%' "$bar" $(( cur * 100 / total ))
 }
 
-# --- Overall step counter: step N TOTAL "Message" ---
+# progress_line CURRENT TOTAL LABEL  - redraws one line in place (plain lines when not a terminal)
+progress_line() {
+    local cur=$1 total=$2 label=$3 cols=${COLUMNS:-$(tput cols 2> /dev/null || echo 80)}
+    label="${label:0:$(( cols > 50 ? cols - 42 : 8 ))}"
+    if [ -t 2 ]; then
+        printf '\r\033[K  %s  %d/%d  %s' "$(progress_bar "$cur" "$total" 24)" "$cur" "$total" "$label" >&2
+    elif (( cur == total || cur % 10 == 0 )); then
+        echo "  [$cur/$total] $label" >&2
+    fi
+}
+
+# progress_done - clear the in-place line
+progress_done() { [ -t 2 ] && printf '\r\033[K' >&2; return 0; }
+
+# --- Overall step header: step N TOTAL "Message" ---
 step() {
     echo >&2
-    info "[$(progress_bar "$1" "$2" 12)] $3"
+    printf '\033[1;36m━━ %s\033[0m  %s\n' "$(progress_bar "$1" "$2" 12)" "$3" >&2
+    log_msg "[STEP $1/$2] $3"
 }
 
 # --- Helper to install a package disto agnostic ---
@@ -94,7 +115,13 @@ install_package() {
     local pkg=$1; local distro=$(get_distro_by_bin)
     ensure_sudo || return 1
     case "$distro" in
-        arch) run_logged --title "${PROGRESS_PREFIX}Installing $pkg..." sudo pacman -S --needed --noconfirm "$pkg" ;;
+        arch)
+            # QUIET_PKG: the caller draws its own progress line, so no spinner here
+            if [ -n "$QUIET_PKG" ]; then
+                run_logged sudo pacman -S --needed --noconfirm "$pkg"
+            else
+                run_logged --title "Installing $pkg..." sudo pacman -S --needed --noconfirm "$pkg"
+            fi ;;
         fedora) run_logged --title "Installing $pkg..." sudo dnf install -y "$pkg" ;;
         opensuse) run_logged --title "Installing $pkg..." sudo zypper --non-interactive install "$pkg" ;;
         ubuntu)

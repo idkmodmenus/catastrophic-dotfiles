@@ -24,8 +24,14 @@ BIN_DIR="$HOME/.local/bin"
 YES=0; DRY_RUN=0; VERBOSE=0
 WORK_DIR=""
 
-bar() { local c=$1 t=$2 w=12 f i b=""; f=$(( c * w / t )); for (( i = 0; i < w; i++ )); do if (( i < f )); then b+="█"; else b+="░"; fi; done; printf '%s %d/%d' "$b" "$c" "$t"; }
-stage() { printf '\n\033[1;36m[%s]\033[0m %s\n' "$(bar "$1" 5)" "$2"; }
+bar() {
+    local c=$1 t=$2 w=12 u f r i b=""; local part=("" "▏" "▎" "▍" "▌" "▋" "▊" "▉")
+    u=$(( c * w * 8 / t )); f=$(( u / 8 )); r=$(( u % 8 ))
+    for (( i = 0; i < f; i++ )); do b+="█"; done
+    if (( f < w )); then b+="${part[r]}"; (( r == 0 )) && b+="░"; for (( i = f + 1; i < w; i++ )); do b+="░"; done; fi
+    printf '%s %d/%d' "$b" "$c" "$t"
+}
+stage() { printf '\n\033[1;36m━━ %s\033[0m  %s\n' "$(bar "$1" 5)" "$2"; }
 say()  { printf '\033[1;32m::\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m:: WARNING:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m:: ERROR:\033[0m %s\n' "$*" >&2; exit 1; }

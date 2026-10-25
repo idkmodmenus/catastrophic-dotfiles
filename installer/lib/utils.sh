@@ -218,21 +218,23 @@ deploy_symlinks() {
 }
 
 # --- Process package list and install packages ---
+# One progress line is redrawn in place; only failures and a summary are printed.
 process_package_file() {
     local file=$1; [ ! -f "$file" ] && return 0
     local distro=$(get_distro_by_bin)
-    info "Processing package list: $(basename "$file")"
+    info "Installing packages from $(basename "$file")"
 
     # Read the list up front so install commands can't consume the loop's stdin
-    local lines; mapfile -t lines < "$file"
-    local pkg total=0 done_count=0 l
-    for l in "${lines[@]}"; do
-        l=$(echo "$l" | sed 's/#.*//' | xargs); [[ -n "$l" ]] && total=$((total + 1))
+    local raw lines=() pkg
+    mapfile -t raw < "$file"
+    for pkg in "${raw[@]}"; do
+        pkg=$(echo "$pkg" | sed 's/#.*//' | xargs); [[ -n "$pkg" ]] && lines+=("$pkg")
     done
+    local total=${#lines[@]} n=0 added=0 present=0 failed=0
+
+    QUIET_PKG=1
     for pkg in "${lines[@]}"; do
-        pkg=$(echo "$pkg" | sed 's/#.*//' | xargs); [[ -z "$pkg" ]] && continue
-        done_count=$((done_count + 1))
-        PROGRESS_PREFIX="[$(progress_bar "$done_count" "$total" 16)] "
+        n=$((n + 1))
 
         local installed=false
         case "$distro" in
@@ -252,15 +254,24 @@ process_package_file() {
         fi
 
         if [ "$installed" = true ]; then
-            info "  ${PROGRESS_PREFIX}$pkg is already installed."
-        elif install_package "$pkg"; then
-            info "  ${PROGRESS_PREFIX}✓ $pkg installed."
+            present=$((present + 1))
+            progress_line "$n" "$total" "$pkg (already installed)"
         else
-            error "  ✗ Failed to install $pkg."
-            FAILED_PACKAGES+=("$pkg")
+            progress_line "$n" "$total" "installing $pkg"
+            if install_package "$pkg"; then
+                added=$((added + 1))
+            else
+                failed=$((failed + 1))
+                FAILED_PACKAGES+=("$pkg")
+                progress_done
+                error "  ✗ Failed to install $pkg"
+            fi
         fi
     done
-    PROGRESS_PREFIX=""
+    QUIET_PKG=""
+    progress_line "$total" "$total" "done"
+    progress_done
+    info "  ✓ $total packages: $added installed, $present already present, $failed failed"
 }
 
 # --- Run setup logic with preflight, dependencies, post-installation and user post script ---

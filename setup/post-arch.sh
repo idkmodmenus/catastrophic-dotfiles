@@ -15,20 +15,28 @@ POST_NOTES=()
 step 1 7 "AUR packages"
 if [ -n "$AUR_HELPER" ] && [ -f "$repo_path/setup/dependencies/packages-aur" ]; then
     mapfile -t aur_pkgs < <(sed 's/#.*//' "$repo_path/setup/dependencies/packages-aur" | xargs -n1)
-    aur_done=0
+    aur_total=0; for pkg in "${aur_pkgs[@]}"; do [ -n "$pkg" ] && aur_total=$((aur_total + 1)); done
+    aur_done=0; aur_added=0; aur_present=0; aur_failed=0
     for pkg in "${aur_pkgs[@]}"; do
         [ -z "$pkg" ] && continue
         aur_done=$((aur_done + 1))
-        bar="[$(progress_bar "$aur_done" "${#aur_pkgs[@]}" 16)]"
         if pacman -Qi "$pkg" &> /dev/null; then
-            info "  $bar $pkg is already installed."
-        elif run_logged --title "$bar Installing $pkg (AUR)..." "$AUR_HELPER" -S --needed --noconfirm "$pkg"; then
-            info "  $bar ✓ $pkg installed."
+            aur_present=$((aur_present + 1))
+            progress_line "$aur_done" "$aur_total" "$pkg (already installed)"
         else
-            error "  ✗ Failed to install $pkg. See $LOG_FILE"
-            POST_NOTES+=("AUR package not installed: $pkg")
+            progress_line "$aur_done" "$aur_total" "building $pkg"
+            if run_logged "$AUR_HELPER" -S --needed --noconfirm "$pkg"; then
+                aur_added=$((aur_added + 1))
+            else
+                aur_failed=$((aur_failed + 1))
+                progress_done
+                error "  ✗ Failed to install $pkg. See $LOG_FILE"
+                POST_NOTES+=("AUR package not installed: $pkg")
+            fi
         fi
     done
+    progress_done
+    info "  ✓ $aur_total AUR packages: $aur_added installed, $aur_present already present, $aur_failed failed"
 fi
 
 # --- 2. pywalfox (Firefox colour theme bridge) ---
