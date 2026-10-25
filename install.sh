@@ -88,7 +88,8 @@ fi
 stage 3 "Preparing"
 # When started through a pipe, take prompts from the terminal
 if [ ! -t 0 ]; then
-    exec < /dev/tty 2> /dev/null || die "No terminal available for prompts. Download install.sh and run it directly."
+    # The braces keep 2>/dev/null temporary; on a bare exec it would silence every prompt and error
+    { exec < /dev/tty; } 2> /dev/null || die "No terminal available for prompts. Download install.sh and run it directly."
 fi
 
 cat <<EOF
