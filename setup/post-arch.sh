@@ -48,6 +48,18 @@ for app in catastrophic-dock catastrophic-statusbar; do
     fi
 done
 
+# --- Packages the desktop no longer uses (asks first) ---
+if [ -f "$repo_path/setup/obsolete-packages" ]; then
+    obsolete_installed=()
+    while IFS= read -r pkg; do
+        [ -n "$pkg" ] && pacman -Qq "$pkg" &> /dev/null && obsolete_installed+=("$pkg")
+    done < <(sed 's/#.*//' "$repo_path/setup/obsolete-packages" | xargs -n1)
+    if [ ${#obsolete_installed[@]} -gt 0 ] && gum confirm "Remove packages the desktop no longer uses: ${obsolete_installed[*]} (sudo)?"; then
+        run_logged --title "Removing ${obsolete_installed[*]}..." sudo pacman -Rs --noconfirm "${obsolete_installed[@]}" \
+            || POST_NOTES+=("Could not remove: ${obsolete_installed[*]}")
+    fi
+fi
+
 # --- 1. AUR packages ---
 step 1 7 "AUR packages"
 if [ -n "$AUR_HELPER" ] && [ -f "$repo_path/setup/dependencies/packages-aur" ]; then
@@ -96,7 +108,9 @@ install_app() {
         return 0
     fi
     mkdir -p "$dest"
-    rsync -a "$APPS_SRC/$name/" "$dest/" || return 1
+    # Mirror the repo so files it dropped disappear. walker keeps downloaded files in its folder.
+    local del=(--delete --exclude=.git); [ "$name" = catastrophic-walker ] && del=()
+    rsync -a "${del[@]}" "$APPS_SRC/$name/" "$dest/" || return 1
     APP_CHANGED=1
 }
 report_app() {

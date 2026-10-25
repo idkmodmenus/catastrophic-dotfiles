@@ -149,6 +149,66 @@ copy_with_blacklist() {
     done
 }
 
+# --- Update: remove what the repo no longer ships ---
+# Run before staging the new files. Removes
+#   1. paths listed in setup/obsolete-paths (installs from before the manifest), and
+#   2. files that the previous update installed (its manifest) and the repo no
+#      longer has.
+# Files the user created themselves are in neither list and are left alone.
+prune_obsolete() {
+    local src_dir=$1 final_target=$2 clone_path=$3 manifest=$4
+    [ -d "$final_target" ] || return 0
+    local removed=0 rel p
+
+    local list="$clone_path/setup/obsolete-paths"
+    if [ -f "$list" ]; then
+        while IFS= read -r rel || [ -n "$rel" ]; do
+            rel=$(echo "$rel" | xargs)
+            [[ -z "$rel" || "$rel" == \#* || "$rel" == /* || "$rel" == *..* ]] && continue
+            for p in "$final_target"/$rel; do
+                if [ -e "$p" ] || [ -L "$p" ]; then
+                    rm -rf -- "$p"; removed=$((removed + 1))
+                    info "  - Removed obsolete: ${p#$final_target/}"
+                fi
+            done
+        done < "$list"
+    fi
+
+    if [ -f "$manifest" ]; then
+        while IFS= read -r rel; do
+            [[ -z "$rel" || "$rel" == /* || "$rel" == *..* ]] && continue
+            if [ ! -e "$src_dir/$rel" ] && [ ! -L "$src_dir/$rel" ] && { [ -e "$final_target/$rel" ] || [ -L "$final_target/$rel" ]; }; then
+                rm -f -- "$final_target/$rel"; removed=$((removed + 1))
+                info "  - Removed (no longer in the repo): $rel"
+            fi
+        done < "$manifest"
+    fi
+
+    # Directories left empty by the removals
+    find "$final_target" -mindepth 1 -type d -empty -delete 2> /dev/null
+    [ "$removed" -gt 0 ] && info "Removed $removed obsolete item(s)." || info "Nothing obsolete to remove."
+    return 0
+}
+
+# Record what this version ships, so the next update knows what to remove.
+write_manifest() {
+    local src_dir=$1 manifest=$2
+    mkdir -p "$(dirname "$manifest")"
+    ( cd "$src_dir" && find . \( -type f -o -type l \) | sed 's|^\./||' | sort ) > "$manifest"
+}
+
+# Links in $HOME and ~/.config that point into the profile but whose target is gone
+remove_dangling_links() {
+    local profile_dir=$1 link
+    for link in "$HOME"/.[!.]* "$HOME"/* "$HOME"/.config/* "$HOME"/.config/.[!.]*; do
+        [ -L "$link" ] && [ ! -e "$link" ] || continue
+        case "$(readlink -m "$link")" in
+            "$profile_dir"/*) rm -f -- "$link"; info "  - Removed dangling link: ${link#$HOME/}" ;;
+        esac
+    done
+    return 0
+}
+
 # --- Symlink Helper ---
 create_symlink() {
     local source=$1; local target=$2; local backup_dir=$3

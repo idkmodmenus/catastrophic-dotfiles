@@ -151,11 +151,18 @@ if [ -n "$CLONE_PATH" ] && [ -d "$CLONE_PATH" ]; then
     fi
 
     if [ -d "$SRC_DIR" ]; then
+        # Update: drop what the repo no longer ships before staging the new files
+        MANIFEST_FILE="$PROFILE_CONFIG/manifest"
+        info "Checking for obsolete files..."
+        prune_obsolete "$SRC_DIR" "$FINAL_TARGET" "$CLONE_PATH" "$MANIFEST_FILE"
+
         if copy_with_blacklist "$SRC_DIR" "$FINAL_TARGET" "$BLACKLIST_FILE"; then
             info "Successfully updated $PROFILE_ID dotfiles in sandbox."
             
             # Step E: Create symlinks
             deploy_symlinks "$FINAL_TARGET" "$DOTFILES_DIR" "$PROFILE_ID" "$BLACKLIST_FILE"
+            remove_dangling_links "$FINAL_TARGET"
+            write_manifest "$SRC_DIR" "$MANIFEST_FILE"
 
             # Step F: Set active profile
             set_active_profile "$PROFILE_ID"

@@ -27,6 +27,19 @@ Run it as your normal user. `sudo` asks for your password when it is needed.
 5. Asks before each system-level change: services, login manager (SDDM),
    NVIDIA driver, system icon and boot splash. `--yes` does not skip these.
 
+## Updating
+
+Run the same command again. It pulls the latest version from GitHub and makes the
+system match it:
+
+- Files that changed in the repo are overwritten with the new version (the old
+  profile is backed up first, in `~/.mydotfiles/backups/`).
+- Files the repo no longer ships are removed, along with their links in `~/.config`.
+  `setup/obsolete-paths` covers installs from before the installer kept a record.
+- Files you created yourself are left alone.
+- Packages the desktop no longer uses (`setup/obsolete-packages`) are offered for
+  removal. It asks first. Other packages are never removed.
+
 Logs are in `~/.local/state/catastrophic-dotfiles-installer/logs/`.
 
 ## Layout
