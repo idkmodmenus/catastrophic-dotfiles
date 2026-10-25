@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+
+# Default variables
+CACHE_FOLDER="$HOME/.cache/catastrophic/hyprland-dotfiles"
+CACHE_FILE="$CACHE_FOLDER/current_wallpaper"
+DEFAULT_WALLPAPER="$HOME/.config/catastrophic/wallpapers/default.jpg"
+
+# Colors for UI
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# --- UI Functions (Redirected to stderr) ---
+info() { echo -e "${GREEN}[INFO]${NC} $1" >&2; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $1" >&2; }
+error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+
+# Ensure that cache folder exists
+mkdir -p $HOME/.cache
+
+# Set Wallpaper
+mkdir -p "$CACHE_FOLDER"
+if [ ! -s "$CACHE_FILE" ]; then
+    echo "$DEFAULT_WALLPAPER" > "$CACHE_FILE"
+    info "Cache file created"
+fi
+
+# Start nmapplet
+nm-applet --indicator &
+
+# Quickshell reads its icon theme from QS_ICON_THEME, not from GTK. Hyprland
+# normally exports it (conf/environment.lua); fall back to reading the GTK
+# settings here so a manual run of this script still themes the dock icons.
+if [ -z "$QS_ICON_THEME" ]; then
+    GTK_SETTINGS="$HOME/.config/gtk-3.0/settings.ini"
+    if [ -f "$GTK_SETTINGS" ]; then
+        ICON_THEME="$(grep 'gtk-icon-theme-name' "$GTK_SETTINGS" | sed 's/.*\s*=\s*//')"
+        [ -n "$ICON_THEME" ] && export QS_ICON_THEME="$ICON_THEME"
+    fi
+fi
+info "Quickshell icon theme: ${QS_ICON_THEME:-<unset>}"
+
+# Kill any existing qs instances
+killall qs 2>/dev/null || true
+
+# Start Quickshell first
+info "Starting Quickshell"
+qs &
+
+# Wait for qs process to be ready, then let IPC initialize
+info "Waiting for Quickshell..."
+timeout=15
+elapsed=0
+until pgrep -x qs >/dev/null 2>&1; do
+    sleep 0.2
+    elapsed=$((elapsed + 1))
+    if [ $elapsed -ge $((timeout * 5)) ]; then
+        warn "Quickshell did not start within ${timeout}s"
+        break
+    fi
+done
+sleep 0.5
+info "Quickshell ready"
+
+# Make sure the saved wallpaper still exists. A stale entry (the file was moved
+# or deleted, or it came from another dotfiles profile such as ML4W) would make
+# the wallpaper script exit and leave a black background.
+WALLPAPER="$(cat "$CACHE_FILE" 2>/dev/null)"
+if [ ! -f "$WALLPAPER" ]; then
+    warn "Saved wallpaper not found: ${WALLPAPER:-<empty>}"
+    WALLPAPER="$DEFAULT_WALLPAPER"
+    if [ ! -f "$WALLPAPER" ]; then
+        WALLPAPER="$(find "$HOME/.config/catastrophic/wallpapers" -maxdepth 1 -type f \
+            \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) 2>/dev/null | sort | head -n 1)"
+    fi
+    echo "$WALLPAPER" > "$CACHE_FILE"
+    info "Using $WALLPAPER instead"
+fi
+
+# Apply wallpaper theming on every start — qs is guaranteed ready for IPC calls.
+# Theming (matugen colors, quickshell reload) must always run.
+# The image is only skipped when awww is already showing it, to avoid a flicker.
+# awww-daemon restores its own cache on start, but that cache can point at a file
+# that no longer exists, which leaves a black screen. So compare with what awww
+# is really displaying instead of trusting that a cache exists.
+# awww reports the resolved path, and ~/.config is symlinked into ~/.mydotfiles
+if awww query 2>/dev/null | grep -qF -- "$(realpath -- "$WALLPAPER")"; then
+    info "awww is already showing the wallpaper, applying theming only for $WALLPAPER"
+    ~/.config/catastrophic/scripts/catastrophic-wallpaper "$WALLPAPER" --skip-wallpaper &
+else
+    info "Set wallpaper to $WALLPAPER"
+    ~/.config/catastrophic/scripts/catastrophic-wallpaper "$WALLPAPER" &
+fi
+
+# Start Catastrophic Settings App
+info "Starting Catastrophic Dotfiles Settings"
+PROFILE="com.catastrophic.dotfiles" qs -p $HOME/.local/share/catastrophic-dotfiles-settings/quickshell &
+info "Catastrophic Dotfiles Settings started"
+
+# Start Quickshell Overview
+info "Starting Quickshell Overview"
+qs -p $HOME/.local/share/quickshell-overview &
+info "Quickshell Overview started"
+
+# Start Catastrophic Dock
+info "Starting Catastrophic Dock"
+catastrophic-dock start &
+info "Catastrophic Dock started"
+
+# Start Catastrophic Power Menu
+info "Starting Catastrophic Power Menu"
+catastrophic-powermenu start &
+info "Catastrophic Power Menu started"
+
+# Start Catastrophic Walker (starts elephant first, then walker -- see
+# catastrophic-walker's own start command)
+info "Starting Catastrophic Walker"
+catastrophic-walker start &
+info "Catastrophic Walker started"
+
+# Start Catastrophic Welcome App
+info "Starting Catastrophic Welcome App"
+if [ ! -f $HOME/.cache/catastrophic-welcome-autostart ]; then
+    timeout=30
+    count=0
+    sleep 1
+    until qs ipc call welcome toggle >/dev/null 2>&1; do
+        (( count++ ))
+        if (( count >= timeout )); then
+            warn "Welcome IPC not available after ${timeout}s"
+            break
+        fi
+        sleep 1
+    done
+    info "Catastrophic Welcome started"
+else
+    info "Catastrophic Welcome disabled"
+fi

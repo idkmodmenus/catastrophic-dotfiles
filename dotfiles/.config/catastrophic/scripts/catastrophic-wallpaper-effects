@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# __        ______    _____  __  __           _
+# \ \      / /  _ \  | ____|/ _|/ _| ___  ___| |_ ___
+#  \ \ /\ / /| |_) | |  _| | |_| |_ / _ \/ __| __/ __|
+#   \ V  V / |  __/  | |___|  _|  _|  __/ (__| |_\__ \
+#    \_/\_/  |_|     |_____|_| |_|  \___|\___|\__|___/
+#
+
+# Notifications
+source "$HOME/.config/catastrophic/scripts/catastrophic-notification-handler"
+APP_NAME="Waypaper"
+NOTIFICATION_ICON="preferences-desktop-wallpaper-symbolic"
+
+catastrophic_cache_folder="$HOME/.cache/catastrophic/hyprland-dotfiles"
+
+# Get current wallpaper
+cache_file="$catastrophic_cache_folder/current_wallpaper"
+
+# Options for the wallpaper effects
+options="$(ls ~/.config/hypr/effects/wallpaper/)\noff"
+
+# Open launcher
+choice=$(echo -e "$options" | $HOME/.config/catastrophic/scripts/catastrophic-launcher dmenu -p "Wallpaper effect" -l 5 --rofi-args "-no-show-icons -width 30")
+if [ ! -z $choice ]; then
+    echo "$choice" > "$HOME/.config/catastrophic/settings/wallpaper-effect"
+    $HOME/.config/catastrophic/scripts/catastrophic-wallpaper "$(cat $cache_file)"
+fi

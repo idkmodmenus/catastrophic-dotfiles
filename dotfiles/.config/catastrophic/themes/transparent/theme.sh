@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Catastrophic Theme Glass
+
+# Set waybar
+echo "/catastrophic-transparent-centered;/catastrophic-transparent-centered/default" > $HOME/.config/catastrophic/settings/waybar-theme.sh
+$HOME/.config/waybar/launch.sh &
+
+# Set swaync
+echo '@import "themes/glass/style.css";' > $HOME/.config/swaync/style.css
+swaync-client -rs
+
+# Set launcher
+echo 'rofi' > $HOME/.config/catastrophic/settings/launcher
+
+# Set walker theme
+echo 'glass' > $HOME/.config/catastrophic/settings/walker-theme
+
+# Set Window Border
+echo -e 'local name = "transparent.lua"\nload_variant(name,"windows")' > $HOME/.config/hypr/conf/window.lua
+
+# Set rofi
+echo '* { border-width: 1px; }' > $HOME/.config/catastrophic/settings/rofi-border.rasi
+
+echo ":: Theme set to Transparent"

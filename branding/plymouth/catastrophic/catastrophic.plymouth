@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Catastrophic
+Description=Catastrophic OS boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/catastrophic
+ScriptFile=/usr/share/plymouth/themes/catastrophic/catastrophic.script

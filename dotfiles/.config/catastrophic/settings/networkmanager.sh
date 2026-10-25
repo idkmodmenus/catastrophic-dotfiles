@@ -1,0 +1,1 @@
+$(cat ~/.config/catastrophic/settings/terminal.sh) --class dotfiles-floating -e ~/.config/catastrophic/scripts/catastrophic-network

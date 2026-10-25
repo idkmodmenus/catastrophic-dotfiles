@@ -1,0 +1,29 @@
+@import "themes/glass/style.css";
+
+/* Clean: flat surfaces, a soft outline and rounding that matches the frame */
+.floating-notifications.background .notification-row .notification-background .notification,
+.floating-notifications.background .notification-row .notification-background .notification.critical {
+  background: @surface;
+  border: 1px solid alpha(@outline_variant, 0.5);
+  border-radius: 18px;
+}
+
+.floating-notifications.background .notification-row .notification-background .notification.critical {
+  border-color: @error;
+}
+
+.control-center {
+  background: @surface;
+  border: 1px solid alpha(@outline_variant, 0.5);
+  border-radius: 24px;
+}
+
+.widget-buttons-grid button {
+  background: @surface_container;
+  border: none;
+  border-radius: 12px;
+}
+
+.widget-buttons-grid button:hover {
+  background: @surface_container_high;
+}
