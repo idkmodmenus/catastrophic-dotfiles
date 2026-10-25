@@ -24,6 +24,8 @@ BIN_DIR="$HOME/.local/bin"
 YES=0; DRY_RUN=0; VERBOSE=0
 WORK_DIR=""
 
+bar() { local c=$1 t=$2 w=12 f i b=""; f=$(( c * w / t )); for (( i = 0; i < w; i++ )); do if (( i < f )); then b+="█"; else b+="░"; fi; done; printf '%s %d/%d' "$b" "$c" "$t"; }
+stage() { printf '\n\033[1;36m[%s]\033[0m %s\n' "$(bar "$1" 5)" "$2"; }
 say()  { printf '\033[1;32m::\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m:: WARNING:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m:: ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
@@ -43,6 +45,7 @@ while [ $# -gt 0 ]; do
 done
 
 # --- 1. Checks ---
+stage 1 "Checking your system"
 [ "$EUID" -ne 0 ] || die "Run this as your normal user, not root. sudo is requested when needed."
 command -v pacman >/dev/null 2>&1 || die "This installer supports Arch Linux and CachyOS (pacman) only."
 . /etc/os-release
@@ -53,6 +56,7 @@ esac
 curl -fsI --max-time 15 https://archlinux.org >/dev/null 2>&1 || die "No internet connection."
 
 # --- 2. Locate the source (a local checkout, or clone the repository) ---
+stage 2 "Downloading Catastrophic OS"
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
 if [ -n "$SELF_DIR" ] && [ -f "$SELF_DIR/catastrophic.dotinst" ] && [ -d "$SELF_DIR/setup" ]; then
     SRC="$SELF_DIR"
@@ -60,7 +64,8 @@ else
     command -v git >/dev/null 2>&1 || { say "git is required. Installing it (sudo)."; sudo pacman -S --needed --noconfirm git; }
     WORK_DIR="$(mktemp -d -t catastrophic-install-XXXXXX)"
     say "Downloading Catastrophic OS ($BRANCH)..."
-    git clone --depth=1 --branch "$BRANCH" "$REPO_URL" "$WORK_DIR/src" >/dev/null 2>&1 || die "Could not clone $REPO_URL"
+    say "This is a one-time download of about 50 MB and can take a few minutes on a slow connection."
+    git clone --depth=1 --progress --branch "$BRANCH" "$REPO_URL" "$WORK_DIR/src" || die "Could not clone $REPO_URL"
     SRC="$WORK_DIR/src"
 fi
 
@@ -80,6 +85,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
 fi
 
 # --- 4. Confirm, then ask for sudo once ---
+stage 3 "Preparing"
 # When started through a pipe, take prompts from the terminal
 if [ ! -t 0 ]; then
     exec < /dev/tty 2> /dev/null || die "No terminal available for prompts. Download install.sh and run it directly."
@@ -117,6 +123,7 @@ fi
 sudo pacman -S --needed --noconfirm base-devel git curl jq gum || die "Could not install the installer's prerequisites."
 
 # --- 5. Install the dotfiles installer and run it ---
+stage 4 "Installing Hyprland, apps and dotfiles"
 mkdir -p "$LIB_DIR" "$BIN_DIR"
 cp "$SRC"/installer/lib/*.sh "$LIB_DIR/"
 install -m755 "$SRC/installer/catastrophic-dotfiles-installer" "$BIN_DIR/catastrophic-dotfiles-installer"
@@ -130,3 +137,4 @@ ARGS=(--install "$PROFILE")
 [ "$VERBOSE" -eq 1 ] && ARGS+=(--verbose)
 CATASTROPHIC_YES="$YES" CATASTROPHIC_SRC="$SRC" catastrophic-dotfiles-installer "${ARGS[@]}"
 rm -f "$PROFILE"
+stage 5 "Done. Reboot, then choose the Hyprland session at the login screen."

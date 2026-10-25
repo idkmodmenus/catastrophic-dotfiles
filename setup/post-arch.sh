@@ -12,14 +12,18 @@ mkdir -p "$SHARE_DIR" "$BIN_DIR"
 POST_NOTES=()
 
 # --- 1. AUR packages ---
+step 1 7 "AUR packages"
 if [ -n "$AUR_HELPER" ] && [ -f "$repo_path/setup/dependencies/packages-aur" ]; then
     mapfile -t aur_pkgs < <(sed 's/#.*//' "$repo_path/setup/dependencies/packages-aur" | xargs -n1)
+    aur_done=0
     for pkg in "${aur_pkgs[@]}"; do
         [ -z "$pkg" ] && continue
+        aur_done=$((aur_done + 1))
+        bar="[$(progress_bar "$aur_done" "${#aur_pkgs[@]}" 16)]"
         if pacman -Qi "$pkg" &> /dev/null; then
-            info "  - $pkg is already installed. Skipping."
-        elif run_logged --title "Installing $pkg (AUR)..." "$AUR_HELPER" -S --needed --noconfirm "$pkg"; then
-            info "  ✓ $pkg installed."
+            info "  $bar $pkg is already installed."
+        elif run_logged --title "$bar Installing $pkg (AUR)..." "$AUR_HELPER" -S --needed --noconfirm "$pkg"; then
+            info "  $bar ✓ $pkg installed."
         else
             error "  ✗ Failed to install $pkg. See $LOG_FILE"
             POST_NOTES+=("AUR package not installed: $pkg")
@@ -28,12 +32,14 @@ if [ -n "$AUR_HELPER" ] && [ -f "$repo_path/setup/dependencies/packages-aur" ]; 
 fi
 
 # --- 2. pywalfox (Firefox colour theme bridge) ---
+step 2 7 "Firefox theme bridge"
 if command -v pipx &> /dev/null && ! command -v pywalfox &> /dev/null; then
     run_logged --title "Installing pywalfox..." pipx install pywalfox \
         || POST_NOTES+=("pywalfox was not installed (pipx install pywalfox)")
 fi
 
 # --- 3. Companion apps: dock, power menu, quickshell overview, walker + elephant ---
+step 3 7 "Desktop apps (dock, power menu, launcher)"
 install_app() {
     local name=$1 dest="$SHARE_DIR/$1"
     [ -d "$APPS_SRC/$name" ] || { warn "App source missing: $name"; return 1; }
@@ -75,6 +81,7 @@ fi
 xdg-user-dirs-update 2> /dev/null || true
 
 # --- 5. System services ---
+step 4 7 "System services"
 if gum confirm "Enable NetworkManager, Bluetooth and power-profiles services (sudo)?"; then
     for svc in NetworkManager bluetooth power-profiles-daemon; do
         if systemctl list-unit-files "$svc.service" &> /dev/null; then
@@ -85,6 +92,7 @@ if gum confirm "Enable NetworkManager, Bluetooth and power-profiles services (su
 fi
 
 # --- 6. NVIDIA driver ---
+step 5 7 "Graphics driver"
 if lspci 2> /dev/null | grep -iE 'vga|3d' | grep -qi nvidia; then
     warn "An NVIDIA GPU was detected."
     if command -v chwd &> /dev/null; then
@@ -107,6 +115,7 @@ if lspci 2> /dev/null | grep -iE 'vga|3d' | grep -qi nvidia; then
 fi
 
 # --- 7. Login manager (SDDM) ---
+step 6 7 "Login manager"
 if ! systemctl is-enabled --quiet sddm 2> /dev/null; then
     if gum confirm "Use SDDM as your login manager (disables the current one, sudo)?"; then
         # --force replaces whichever display manager is currently enabled
@@ -116,6 +125,7 @@ if ! systemctl is-enabled --quiet sddm 2> /dev/null; then
 fi
 
 # --- 8. Branding: system icon and boot splash ---
+step 7 7 "Branding"
 if [ -d "$BRAND_SRC" ] && gum confirm "Install the Catastrophic OS icon and boot splash (sudo)?"; then
     sudo install -Dm644 "$BRAND_SRC/mark.svg" /usr/share/icons/hicolor/scalable/apps/catastrophic.svg
     sudo install -Dm644 "$BRAND_SRC/mark.png" /usr/share/pixmaps/catastrophic.png

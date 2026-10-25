@@ -70,12 +70,31 @@ stop_sudo_keepalive() {
     SUDO_KEEPALIVE_PID=""
 }
 
+# --- Text progress bar ---
+# Usage: progress_bar CURRENT TOTAL [WIDTH]   ->  ████████░░░░░░░░ 12/40
+progress_bar() {
+    local cur=$1 total=$2 width=${3:-20} filled i bar=""
+    (( total > 0 )) || total=1
+    (( cur > total )) && cur=$total
+    filled=$(( cur * width / total ))
+    for (( i = 0; i < width; i++ )); do
+        if (( i < filled )); then bar+="█"; else bar+="░"; fi
+    done
+    printf '%s %d/%d' "$bar" "$cur" "$total"
+}
+
+# --- Overall step counter: step N TOTAL "Message" ---
+step() {
+    echo >&2
+    info "[$(progress_bar "$1" "$2" 12)] $3"
+}
+
 # --- Helper to install a package disto agnostic ---
 install_package() {
     local pkg=$1; local distro=$(get_distro_by_bin)
     ensure_sudo || return 1
     case "$distro" in
-        arch) run_logged --title "Installing $pkg..." sudo pacman -S --needed --noconfirm "$pkg" ;;
+        arch) run_logged --title "${PROGRESS_PREFIX}Installing $pkg..." sudo pacman -S --needed --noconfirm "$pkg" ;;
         fedora) run_logged --title "Installing $pkg..." sudo dnf install -y "$pkg" ;;
         opensuse) run_logged --title "Installing $pkg..." sudo zypper --non-interactive install "$pkg" ;;
         ubuntu)

@@ -225,9 +225,14 @@ process_package_file() {
 
     # Read the list up front so install commands can't consume the loop's stdin
     local lines; mapfile -t lines < "$file"
-    local pkg
+    local pkg total=0 done_count=0 l
+    for l in "${lines[@]}"; do
+        l=$(echo "$l" | sed 's/#.*//' | xargs); [[ -n "$l" ]] && total=$((total + 1))
+    done
     for pkg in "${lines[@]}"; do
         pkg=$(echo "$pkg" | sed 's/#.*//' | xargs); [[ -z "$pkg" ]] && continue
+        done_count=$((done_count + 1))
+        PROGRESS_PREFIX="[$(progress_bar "$done_count" "$total" 16)] "
 
         local installed=false
         case "$distro" in
@@ -247,14 +252,15 @@ process_package_file() {
         fi
 
         if [ "$installed" = true ]; then
-            info "  - $pkg is already installed. Skipping."
+            info "  ${PROGRESS_PREFIX}$pkg is already installed."
         elif install_package "$pkg"; then
-            info "  ✓ $pkg installed."
+            info "  ${PROGRESS_PREFIX}✓ $pkg installed."
         else
             error "  ✗ Failed to install $pkg."
             FAILED_PACKAGES+=("$pkg")
         fi
     done
+    PROGRESS_PREFIX=""
 }
 
 # --- Run setup logic with preflight, dependencies, post-installation and user post script ---
