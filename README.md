@@ -16,6 +16,12 @@ curl -fsSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/m
 
 Run it as your normal user. `sudo` asks for your password when it is needed.
 
+## Before you run it
+
+Arch Linux or CachyOS, your normal user with `sudo`, an internet connection and about 6 GB of free
+disk space. The installer checks these first. If it stops partway it is safe to run the same command
+again: steps that are done are skipped, and your previous setup was backed up in `~/.mydotfiles/backups/`.
+
 ## What it does
 
 1. Checks for Arch or CachyOS and an internet connection.
@@ -29,8 +35,9 @@ Run it as your normal user. `sudo` asks for your password when it is needed.
 
 ## Updating
 
-Run the same command again. It pulls the latest version from GitHub and makes the
-system match it:
+Run the same command again, or `~/.config/catastrophic/scripts/catastrophic-update`, which
+downloads the installer, checks it and runs it. Either pulls the latest version from GitHub
+and makes the system match it:
 
 - Files that changed in the repo are overwritten with the new version (the old
   profile is backed up first, in `~/.mydotfiles/backups/`).

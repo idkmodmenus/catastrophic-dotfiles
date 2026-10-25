@@ -154,6 +154,8 @@ copy_with_blacklist() {
 remove_obsolete_paths() {
     local dir=$1 list=$2 rel p
     [ -f "$list" ] || return 0
+    # Refuse to work on anything but a real folder that is not the root or the home folder
+    { [ -n "$dir" ] && [ -d "$dir" ] && [ "$dir" != "/" ] && [ "$dir" != "$HOME" ]; } || return 0
     while IFS= read -r rel || [ -n "$rel" ]; do
         rel=$(echo "$rel" | xargs)
         [[ -z "$rel" || "$rel" == \#* || "$rel" == /* || "$rel" == *..* ]] && continue
@@ -174,7 +176,7 @@ remove_obsolete_paths() {
 # Files the user created themselves are in neither list and are left alone.
 prune_obsolete() {
     local src_dir=$1 final_target=$2 clone_path=$3 manifest=$4
-    [ -d "$final_target" ] || return 0
+    { [ -n "$final_target" ] && [ -d "$final_target" ] && [ "$final_target" != "/" ] && [ "$final_target" != "$HOME" ]; } || return 0
     local removed=0 rel p
 
     remove_obsolete_paths "$final_target" "$clone_path/setup/obsolete-paths"

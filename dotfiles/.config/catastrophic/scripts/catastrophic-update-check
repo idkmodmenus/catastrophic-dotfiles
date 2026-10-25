@@ -58,6 +58,8 @@ command -v git > /dev/null 2>&1 || exit 0
 # The checks are background work: never compete with what the user is doing
 if command -v ionice > /dev/null 2>&1; then lowprio() { nice -n 19 ionice -c3 "$@"; }; else lowprio() { nice -n 19 "$@"; }; fi
 
+is_commit() { [[ "$1" =~ ^[0-9a-f]{40}$ ]]; }
+
 enabled() {
     ! { [ -f "$SETTING_FILE" ] && [ "$(tr -d '[:space:]' < "$SETTING_FILE")" = "False" ]; }
 }
@@ -76,12 +78,15 @@ else
     INSTALL_URL="https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh"
 fi
 UPDATE_CMD="curl -fsSL $INSTALL_URL | bash"
+# The updater script downloads and checks the installer before running it. Without it, use the plain command.
+UPDATER="$HOME/.config/catastrophic/scripts/catastrophic-update"
+[ -x "$UPDATER" ] || UPDATER="$UPDATE_CMD"
 
 # What changed: the subject of the latest commit, when the repository is on GitHub
 change_summary() {
     [ -n "$GH_OWNER" ] && command -v jq > /dev/null 2>&1 || return 0
     lowprio curl -fsS --max-time 10 "https://api.github.com/repos/$GH_OWNER/$GH_REPO/commits/$BRANCH" 2> /dev/null \
-        | jq -r '.commit.message // empty' 2> /dev/null | head -n 1
+        | jq -r '.commit.message // empty' 2> /dev/null | head -n 1 | tr -d '\000-\037' | cut -c1-200
 }
 
 run_in_terminal() {
@@ -119,7 +124,7 @@ notify_and_act() {
 
     case "$action" in
         update)
-            run_in_terminal "echo 'Updating Catastrophic OS...'; echo; $UPDATE_CMD; status=\$?; echo; read -r -p 'Press Enter to close this window. ' _; exit \$status" \
+            run_in_terminal "$UPDATER; status=\$?; echo; read -r -p 'Press Enter to close this window. ' _; exit \$status" \
                 || notify-send --app-name="Catastrophic OS" "Could not open a terminal" "Run this yourself: $UPDATE_CMD"
             check_once quiet   # refresh the badge now that the update has run
             ;;
@@ -138,9 +143,10 @@ check_once() {
     enabled || { set_ok; return 0; }
     latest="$(remote_commit)"
     [ -n "$latest" ] || return 2     # offline: leave things as they are, and let the watcher retry soon
+    is_commit "$latest" || return 2  # not a commit id (a proxy error page, say): treat it as offline
 
     installed="$(cat "$INSTALLED_FILE" 2> /dev/null)"
-    if [ -z "$installed" ]; then
+    if ! is_commit "$installed"; then
         # Installed before versions were recorded: treat this as the current version
         echo "$latest" > "$INSTALLED_FILE"
         set_ok

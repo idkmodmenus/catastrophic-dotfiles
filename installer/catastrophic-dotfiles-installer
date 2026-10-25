@@ -180,7 +180,7 @@ if [ -n "$CLONE_PATH" ] && [ -d "$CLONE_PATH" ]; then
         else
             echo
             echo "----------------------------------------"
-            error "Failed to deploy dotfiles."
+            error "Failed to deploy dotfiles. Your previous setup is backed up in $DOTFILES_DIR/backups/."
             info "You can find the logfile at: $LOG_FILE"
             echo "----------------------------------------"
             exit 1

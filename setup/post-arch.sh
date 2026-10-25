@@ -61,6 +61,7 @@ for app in catastrophic-dock catastrophic-statusbar; do
     [ "$(cat "$stamp" 2> /dev/null)" = "$sum" ] && continue
     mkdir -p "$(dirname "$cfg")" "$(dirname "$stamp")"
     if [ -s "$cfg" ] && jq empty "$cfg" &> /dev/null; then
+        cp -a "$cfg" "$cfg.bak" 2> /dev/null     # keep the previous version in case the merge is not wanted
         tmp="$(mktemp)"
         if jq -s '.[0] * .[1]' "$cfg" "$shipped" > "$tmp"; then mv "$tmp" "$cfg"; else rm -f "$tmp"; continue; fi
     else

@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Updates Catastrophic OS to the latest version on GitHub: it runs the same installer
+# that installed it. Used by the "Update now" button, and fine to run by hand.
+#
+# The installer is downloaded to a file and checked before it runs. A plain
+# "curl | bash" would report success even if the download failed halfway.
+
+REPO_URL="${CATASTROPHIC_REPO:-https://github.com/idkmodmenus/catastrophic-dotfiles}"
+BRANCH="${CATASTROPHIC_BRANCH:-main}"
+
+if [[ "$REPO_URL" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
+    INSTALL_URL="https://raw.githubusercontent.com/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}/$BRANCH/install.sh"
+else
+    INSTALL_URL="https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh"
+fi
+
+tmp="$(mktemp -t catastrophic-update-XXXXXX.sh)" || { echo "Could not create a temporary file."; exit 1; }
+trap 'rm -f "$tmp"' EXIT
+
+echo "Updating Catastrophic OS from $INSTALL_URL"
+echo
+
+if ! curl -fsSL --retry 3 --connect-timeout 15 "$INSTALL_URL" -o "$tmp"; then
+    echo "Could not download the installer. Check your internet connection and try again."
+    exit 1
+fi
+# A real installer is a bash script. Anything else (an error page, an empty file) is not run.
+if [ ! -s "$tmp" ] || ! head -n 1 "$tmp" | grep -q '^#!.*bash'; then
+    echo "What was downloaded is not the installer, so it was not run. Try again in a few minutes."
+    exit 1
+fi
+
+bash "$tmp" "$@"
+status=$?
+echo
+if [ "$status" -eq 0 ]; then
+    echo "The update finished. Log out and back in, or reboot, to use the new version."
+else
+    echo "The update did not finish (exit code $status)."
+    echo "Nothing is lost: the installer backed up your setup first, in ~/.mydotfiles/backups/."
+    echo "It is safe to run the update again."
+fi
+exit "$status"

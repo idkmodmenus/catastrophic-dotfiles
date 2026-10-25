@@ -37,7 +37,18 @@ warn() { printf '\033[1;33m:: WARNING:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m:: ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
 PROFILE=""
-cleanup() { if [ -n "$WORK_DIR" ]; then rm -rf "$WORK_DIR"; fi; if [ -n "$PROFILE" ]; then rm -f "$PROFILE"; fi; }
+INSTALL_STARTED=0
+cleanup() {
+    local rc=$?
+    if [ -n "$WORK_DIR" ]; then rm -rf "$WORK_DIR"; fi
+    if [ -n "$PROFILE" ]; then rm -f "$PROFILE"; fi
+    if [ "$rc" -ne 0 ] && [ "$INSTALL_STARTED" -eq 1 ]; then
+        printf '\n\033[1;33m:: The install stopped before it finished.\033[0m\n' >&2
+        printf '   It is safe to run the same command again: steps that are done are skipped.\n' >&2
+        printf '   If you had a setup before, it was backed up in ~/.mydotfiles/backups/.\n' >&2
+        printf '   The log is in ~/.local/state/catastrophic-dotfiles-installer/logs/.\n' >&2
+    fi
+}
 trap cleanup EXIT
 
 # Everything below lives in main() so bash has read the whole script before it runs
@@ -91,6 +102,13 @@ else
     SRC="$WORK_DIR/src"
 fi
 
+# A cut-off download or a wrong branch must stop here, not halfway through the install
+for f in catastrophic.dotinst setup/post-arch.sh setup/preflight-arch.sh setup/dependencies/packages-arch setup/dependencies/packages-aur \
+         installer/catastrophic-dotfiles-installer installer/lib/utils.sh installer/lib/helpers.sh installer/lib/colors.sh dotfiles/.config/hypr/hyprland.lua; do
+    [ -f "$SRC/$f" ] || die "The download is incomplete ($f is missing). Run the command again."
+done
+jq empty "$SRC/catastrophic.dotinst" 2>/dev/null || die "The download is damaged (catastrophic.dotinst is not valid). Run the command again."
+
 # --- 3. Dry run ---
 if [ "$DRY_RUN" -eq 1 ]; then
     say "Dry run. Nothing will be changed. Installing would:"
@@ -108,6 +126,27 @@ fi
 
 # --- 4. Confirm, then ask for sudo once ---
 stage 3 "Preparing"
+
+# Free disk space: the packages need a few GB, and building AUR packages needs room too
+free_kb() { df --output=avail -k "$1" 2>/dev/null | tail -n 1 | tr -d ' '; }
+root_free="$(free_kb /)"
+if [ -n "$root_free" ] && [ "$root_free" -lt 2097152 ]; then
+    die "Not enough free disk space: $(( root_free / 1048576 )) GB free on /, and at least 6 GB are needed."
+elif [ -n "$root_free" ] && [ "$root_free" -lt 6291456 ]; then
+    warn "Only $(( root_free / 1048576 )) GB free on /. About 6 GB are recommended, so the install may run out of space."
+fi
+home_free="$(free_kb "$HOME")"
+if [ -n "$home_free" ] && [ "$home_free" -lt 1048576 ]; then
+    die "Not enough free disk space in your home folder: less than 1 GB free."
+fi
+
+# pacman refuses to run while another package manager holds its lock
+if [ -e /var/lib/pacman/db.lck ]; then
+    if pgrep -x pacman > /dev/null 2>&1 || pgrep -x yay > /dev/null 2>&1 || pgrep -x paru > /dev/null 2>&1; then
+        die "Another package manager is running. Wait for it to finish, then run this again."
+    fi
+    die "pacman is locked (/var/lib/pacman/db.lck) but nothing is using it. If no update is running, remove the lock with: sudo rm /var/lib/pacman/db.lck"
+fi
 # When started through a pipe, take prompts from the terminal
 if [ ! -t 0 ]; then
     # The braces keep 2>/dev/null temporary; on a bare exec it would silence every prompt and error
@@ -127,6 +166,7 @@ if [ "$YES" -ne 1 ]; then
     read -r -p "Continue? [Y/n] " ans
     case "${ans:-Y}" in [Yy]*) ;; *) echo "Cancelled."; exit 0 ;; esac
 fi
+INSTALL_STARTED=1
 say "Administrator access is needed to install packages."
 sudo -v || die "sudo authentication failed."
 
