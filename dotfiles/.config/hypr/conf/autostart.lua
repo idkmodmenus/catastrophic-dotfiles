@@ -25,9 +25,6 @@ hl.on("hyprland.start", function ()
     -- Start listeners
     hl.exec_cmd("~/.config/catastrophic/listeners.sh --startall")
 
-    -- Start waybar
-    hl.exec_cmd(HOME .. "/.config/waybar/launch.sh")
-
     -- Start polkit agent: prefer hyprpolkitagent.service (Ubuntu, via
     -- packages-ubuntu -- its unit is WantedBy=graphical-session.target,
     -- which Hyprland never activates, so start it explicitly), falling

@@ -11,6 +11,43 @@ BIN_DIR="$HOME/.local/bin"
 mkdir -p "$SHARE_DIR" "$BIN_DIR"
 POST_NOTES=()
 
+# --- Default apps: use what the system already has, install one only if missing ---
+# Each line: category | candidates (first one found wins) | package to install if none | launch command template
+DEFAULT_APPS_FILE="$HOME/.cache/catastrophic-default-apps"
+mkdir -p "$(dirname "$DEFAULT_APPS_FILE")"; : > "$DEFAULT_APPS_FILE"
+pick_default_app() {
+    local category="$1" candidates="$2" fallback_pkg="$3" fallback_cmd="$4" cmd="" c
+    for c in $candidates; do
+        if command -v "$c" &> /dev/null; then cmd="$c"; break; fi
+    done
+    if [ -z "$cmd" ]; then
+        info "No $category found, installing $fallback_pkg..."
+        if run_logged --title "Installing $fallback_pkg..." sudo pacman -S --needed --noconfirm "$fallback_pkg"; then
+            cmd="${fallback_cmd:-$fallback_pkg}"
+        else
+            POST_NOTES+=("No $category installed: $fallback_pkg failed to install")
+            return 0
+        fi
+    else
+        info "  ✓ $category: using $cmd (already installed)"
+    fi
+    echo "$category=$cmd" >> "$DEFAULT_APPS_FILE"
+}
+pick_default_app terminal     "kitty konsole alacritty foot wezterm gnome-terminal xfce4-terminal xterm" kitty kitty
+pick_default_app browser      "firefox librewolf zen-browser brave chromium google-chrome-stable vivaldi-stable qutebrowser" firefox firefox
+pick_default_app filemanager  "nautilus dolphin thunar nemo pcmanfm" nautilus nautilus
+pick_default_app editor       "gnome-text-editor kate kwrite gedit mousepad" gnome-text-editor gnome-text-editor
+
+# --- Dock and status bar look: seed the shipped settings, never overwrite the user's own ---
+for app in catastrophic-dock catastrophic-statusbar; do
+    cfg="$HOME/.config/$app/config.json"
+    if [ ! -s "$cfg" ] && [ -f "$repo_path/setup/defaults/$app/config.json" ]; then
+        mkdir -p "$(dirname "$cfg")"
+        cp "$repo_path/setup/defaults/$app/config.json" "$cfg"
+        info "  ✓ $app: default look applied"
+    fi
+done
+
 # --- 1. AUR packages ---
 step 1 7 "AUR packages"
 if [ -n "$AUR_HELPER" ] && [ -f "$repo_path/setup/dependencies/packages-aur" ]; then

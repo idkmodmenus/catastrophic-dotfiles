@@ -148,19 +148,6 @@ run_matugen() {
     info "Matugen updated"
 }
 
-reload_waybar() {
-    if pgrep -x waybar >/dev/null; then
-        info "Waybar is currently running."
-        killall waybar || true
-        sleep 0.5
-    else
-        info "Waybar not running"
-    fi
-    nohup bash -c "$HOME/.config/waybar/launch.sh" > /dev/null 2>&1 &
-    disown
-    info "Waybar restarted"
-}
-
 reload_quickshell() {
     if pgrep -x qs >/dev/null; then
         qs ipc call theme-manager reload
@@ -270,7 +257,6 @@ if "$SKIP_THEMING"; then
     info "Updating theming skipped"
 else
     run_matugen
-    reload_waybar
     reload_quickshell
     reload_pywalfox
     reload_swaync

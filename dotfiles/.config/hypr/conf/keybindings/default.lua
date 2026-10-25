@@ -104,7 +104,6 @@ hl.bind(mainMod .. " + CTRL + D", hl.dsp.exec_cmd("~/.config/catastrophic/script
 hl.bind(mainMod .. " + ALT + D", hl.dsp.exec_cmd("~/.config/catastrophic/scripts/catastrophic-toggle-dock-autohide"), { description = "Toggle Dock Autohide" })
 hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("~/.config/hypr/scripts/loadconfig.sh"), { description = "Reload hyprland config" })
 hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("~/.config/catastrophic/scripts/catastrophic-cliphist"), { description = "Open clipboard manager" })
-hl.bind(mainMod .. " + CTRL + T", hl.dsp.exec_cmd("~/.config/waybar/themeswitcher.sh"), { description = "Open waybar theme switcher" })
 hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("~/.config/catastrophic/scripts/catastrophic-toggle-theme"), { description = "Toggle between light and dark mode" })
 hl.bind(mainMod .. " + CTRL + S", hl.dsp.exec_cmd("qs ipc call sidebar toggle"), { description = "Open Catastrophic Sidebar widget" })
 hl.bind(mainMod .. " + CTRL + C", hl.dsp.exec_cmd("qs ipc call calendar toggle"), { description = "Open Catastrophic Calendar widget" })

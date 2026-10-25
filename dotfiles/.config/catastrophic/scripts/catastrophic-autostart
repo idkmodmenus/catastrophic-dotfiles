@@ -64,7 +64,7 @@ sleep 0.5
 info "Quickshell ready"
 
 # Make sure the saved wallpaper still exists. A stale entry (the file was moved
-# or deleted, or it came from another dotfiles profile such as ML4W) would make
+# or deleted, or it came from a previous dotfiles setup) would make
 # the wallpaper script exit and leave a black background.
 WALLPAPER="$(cat "$CACHE_FILE" 2>/dev/null)"
 if [ ! -f "$WALLPAPER" ]; then

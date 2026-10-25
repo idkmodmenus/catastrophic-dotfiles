@@ -1,0 +1,18 @@
+{
+    "dock": {
+        "enabled": true,
+        "collapsible": true,
+        "reserveSpace": false,
+        "marginBottom": 0
+    },
+    "pill": {
+        "radius": 14,
+        "tabEdge": 10
+    },
+    "border": {
+        "width": 0
+    },
+    "opacity": {
+        "normal": 0.92
+    }
+}

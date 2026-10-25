@@ -58,10 +58,6 @@ apply_theme() {
         qs -p $HOME/.local/share/catastrophic-dotfiles-settings/quickshell ipc call theme-manager reload
         echo "Catastrophic Dotfiles Settings Theme updated"
 
-        # Reload Waybar
-        nohup bash -c "$HOME/.config/waybar/launch.sh" > /dev/null 2>&1 &
-        disown
-
         $HOME/.config/hypr/scripts/gtk.sh &
 
         swaync-client -rs
@@ -72,10 +68,6 @@ apply_theme() {
         # Update Quickshell theme
         qs ipc call theme-manager reload
         echo "Quickshell Theme updated"
-
-        # Reload Waybar
-        nohup bash -c "$HOME/.config/waybar/launch.sh" > /dev/null 2>&1 &
-        disown
 
         $HOME/.config/hypr/scripts/gtk.sh &
 

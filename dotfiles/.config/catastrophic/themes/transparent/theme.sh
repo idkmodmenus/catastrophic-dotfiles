@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # Catastrophic Theme Glass
 
-# Set waybar
-echo "/catastrophic-transparent-centered;/catastrophic-transparent-centered/default" > $HOME/.config/catastrophic/settings/waybar-theme.sh
-$HOME/.config/waybar/launch.sh &
-
 # Set swaync
 echo '@import "themes/glass/style.css";' > $HOME/.config/swaync/style.css
 swaync-client -rs

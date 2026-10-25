@@ -17,7 +17,7 @@ BarButton {
         Quickshell.execDetached(["swaync-client", "-t", "-sw"])
     }
 
-    // Live notification count via swaync's waybar subscription, which emits a
+    // Live notification count via swaync's subscription, which emits a
     // JSON line (e.g. {"text": "3", ...}) on every add/close event.
     Process {
         id: swayncProc

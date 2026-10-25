@@ -56,6 +56,4 @@ systemctl --user start wireplumber
 systemctl --user start xdg-desktop-portal
 systemctl --user start xdg-desktop-portal-hyprland
 
-# Run waybar
 sleep $_sleep3
-# ~/.config/waybar/launch.sh

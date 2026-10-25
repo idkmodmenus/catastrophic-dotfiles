@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # Catastrophic Theme Modern
 
-# Set waybar
-echo "/catastrophic-modern;/catastrophic-modern/default" > $HOME/.config/catastrophic/settings/waybar-theme.sh
-$HOME/.config/waybar/launch.sh &
-
 # Set swaync
 echo '@import "themes/modern/style.css";' > $HOME/.config/swaync/style.css
 swaync-client -rs

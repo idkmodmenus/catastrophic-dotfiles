@@ -3,7 +3,7 @@
     "id": "com.catastrophic.dotfiles.stable",
     "author": "Catastrophic OS",
     "homepage": "https://github.com/idkmodmenus/catastrophic-dotfiles",
-    "description": "Dotfiles for Hyprland on Arch Linux and CachyOS: Hyprland, Quickshell status bar and dock, Waybar, matugen themes, walker launcher and more.",
+    "description": "Dotfiles for Hyprland on Arch Linux and CachyOS: Hyprland, Quickshell status bar and dock, matugen themes, walker launcher and more.",
     "version": "2.16.1",
     "source": "https://github.com/idkmodmenus/catastrophic-dotfiles",
     "subfolder": "dotfiles"

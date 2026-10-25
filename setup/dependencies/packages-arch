@@ -1,5 +1,7 @@
 # Packages from the official Arch repositories (also available on CachyOS).
 # One per line. AUR packages go in packages-aur.
+# Only what the desktop itself needs. Personal tools and apps the system
+# already ships (editors, shells, browsers, runtimes) are deliberately left out.
 
 # --- Base tooling ---
 base-devel
@@ -12,15 +14,9 @@ fzf
 gum
 socat
 rsync
-openssh
 dbus
-inetutils
 xdg-utils
-figlet
-xclip
 lm_sensors
-htop
-pciutils
 
 # --- Hyprland and Wayland session ---
 hyprland
@@ -44,7 +40,6 @@ qt6-5compat
 
 # --- Desktop shell ---
 quickshell
-waybar
 rofi
 swaync
 awww
@@ -86,30 +81,15 @@ ffmpegthumbnailer
 tumbler
 
 # --- Apps ---
-kitty
-alacritty
+# Terminal, browser, file manager and text editor are not listed here. The
+# installer uses the ones already on the system and only installs a default
+# when none is found (see "Default apps" in setup/post-arch.sh).
 fastfetch
 btop
-cava
-eza
-bat
-fish
-zsh
-neovim
-vim
-nautilus
-loupe
-gnome-text-editor
-firefox
-flatpak
 pacman-contrib
 
 # --- Runtimes used by scripts and the launcher ---
 python
-python-pipx
-npm
-nodejs
-go
 
 # --- Themes, icons, fonts ---
 gnome-themes-extra
@@ -118,15 +98,10 @@ breeze-icons
 breeze-gtk
 kde-gtk-config
 ttf-jetbrains-mono-nerd
-ttf-firacode-nerd
-ttf-meslo-nerd
 ttf-nerd-fonts-symbols
 noto-fonts
 noto-fonts-emoji
-noto-fonts-cjk
 otf-font-awesome
-ttf-opensans
-cantarell-fonts
 
 # --- Login manager (enabled only if you agree) ---
 sddm

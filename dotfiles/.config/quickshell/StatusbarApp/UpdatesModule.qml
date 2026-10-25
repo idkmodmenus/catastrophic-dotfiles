@@ -6,8 +6,8 @@ import QtQuick.Layouts
 import qs.CustomTheme
 
 // Shows the number of pending system updates next to a package icon. The count
-// comes from catastrophic-check-system-updates (the same script the Waybar module
-// uses), polled every 30 minutes. The module hides itself completely while no
+// comes from catastrophic-check-system-updates (the same script the
+// update checks use), polled every 30 minutes. The module hides itself completely while no
 // updates are available; clicking it launches the Catastrophic update routine.
 Rectangle {
     id: updates
@@ -115,7 +115,7 @@ Rectangle {
         }
     }
 
-    // Re-check on the same 1800s interval as the Waybar module.
+    // Re-check on the same 1800s interval as the update checks.
     Timer {
         interval: 1800 * 1000
         running: true

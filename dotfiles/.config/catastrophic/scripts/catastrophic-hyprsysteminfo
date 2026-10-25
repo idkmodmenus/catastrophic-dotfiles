@@ -1,3 +1,7 @@
 #!/usr/bin/env bash
 # --- Check for hyprsysteminfo ---
-kitty --class dotfiles-floating -e $HOME/.config/hypr/scripts/systeminfo.sh
+if command -v kitty > /dev/null; then
+    kitty --class dotfiles-floating -e $HOME/.config/hypr/scripts/systeminfo.sh
+else
+    $(cat "$HOME/.config/catastrophic/settings/terminal.sh") -e $HOME/.config/hypr/scripts/systeminfo.sh
+fi

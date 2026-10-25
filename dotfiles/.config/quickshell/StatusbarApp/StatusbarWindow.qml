@@ -249,7 +249,7 @@ PanelWindow {
     //
     // The window also stays mapped while the calendar is open, so the panel
     // remains reachable with the bar switched off — "qs ipc call calendar
-    // toggle" is bound to a key and used by the waybar clock, neither of which
+    // toggle" is bound to a key and used by the clock, neither of which
     // knows or cares whether this bar is the one on screen. The pill itself is
     // hidden in that case (see below).
     visible: (barEnabled || calendarPanel.showPanel) && ready
@@ -531,7 +531,7 @@ PanelWindow {
     // The calendar panel's IPC, kept on the same target and with the same
     // function names it had when the calendar was its own window, so the
     // existing callers keep working: the SUPER + CTRL + C keybinding, the
-    // waybar clock's on-click and the catastrophic-calendar shell alias.
+    // the clock's on-click and the catastrophic-calendar shell alias.
     IpcHandler {
         target: "calendar"
         function toggle(): void { root.calendarOpen = !root.calendarOpen }

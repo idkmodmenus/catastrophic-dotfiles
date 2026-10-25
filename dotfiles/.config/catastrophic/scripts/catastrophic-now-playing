@@ -76,5 +76,5 @@ else
     display_text="${track:scroll_pos}${track:0:wrap_len}"
 fi
 
-# Output JSON for Waybar
+# Output JSON
 echo "{\"text\": \"$display_text\", \"class\": \"${player_status,,}\"}"

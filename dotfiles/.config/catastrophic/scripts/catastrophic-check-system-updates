@@ -84,7 +84,7 @@ else
 fi
 
 # ----------------------------------------------------- 
-# Output in JSON format for Waybar Module custom-updates
+# Output in JSON format for the status bar updates module
 # ----------------------------------------------------- 
 
 css_class="green"
