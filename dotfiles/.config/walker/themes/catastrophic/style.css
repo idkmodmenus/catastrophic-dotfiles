@@ -23,11 +23,11 @@ scrollbar {
 }
 
 .box-wrapper {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   background: @surface;
-  padding: 16px;
-  border-radius: 24px;
-  border: 1px solid alpha(@outline_variant, 0.5);
+  padding: 18px;
+  border-radius: 28px;
+  border: none;
 }
 
 .preview-box,
@@ -40,8 +40,10 @@ scrollbar {
 }
 
 .search-container {
-  border-radius: 14px;
-  background: @surface_container;
+  border-radius: 999px;
+  background: @surface_container_high;
+  padding: 2px 8px;
+  margin-bottom: 6px;
 }
 
 .input placeholder {
@@ -50,7 +52,7 @@ scrollbar {
 
 .input {
   background: transparent;
-  padding: 10px;
+  padding: 10px 14px;
   color: @on_surface;
 }
 
@@ -75,22 +77,33 @@ child {
 }
 
 .item-box {
-  border-radius: 12px;
-  padding: 10px;
+  border-radius: 16px;
+  padding: 10px 14px;
+  margin: 1px 0;
   color:@on_surface;
+  transition: background 150ms ease;
 }
 
 .item-quick-activation {
   margin-left: 10px;
-  background: alpha(@accent_bg_color, 0.25);
-  border-radius: 5px;
-  padding: 10px;
+  background: alpha(@outline_variant, 0.35);
+  color: @on_surface_variant;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
 }
 
-child:hover .item-box,
+child:hover .item-box {
+  background: alpha(@primary, 0.08);
+}
+
 child:selected .item-box {
-  background: @secondary_container;
-  color: @on_secondary_container;
+  background: @primary_container;
+  color: @on_primary_container;
+}
+
+child:selected .item-subtext {
+  opacity: 0.75;
 }
 
 .item-text-box {
@@ -154,7 +167,10 @@ child:selected .item-box {
 .keybinds-wrapper {
   border-top: 0px solid lighter(@primary);
   font-size: 12px;
-  opacity: 0.5;
+  opacity: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
   color: @on_surface;
 }
 

@@ -8,6 +8,7 @@ import "WallpaperApp"
 import "StatusbarApp"
 import "CustomTheme"
 import "FrameApp"
+import "DrawersApp"
 
 ShellRoot {
     // Test IPC tools: qs ipc show
@@ -19,6 +20,12 @@ ShellRoot {
         }
     }
 
+    Dashboard {}
+    Osd {}
+    Launcher {}
+    Session {}
+    NotificationPopups {}
+    NotificationCenter {}
     WelcomeWindow {}
     SidebarWindow {}
     WallpaperWindow {}

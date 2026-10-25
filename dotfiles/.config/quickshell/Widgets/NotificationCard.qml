@@ -1,0 +1,182 @@
+import Quickshell
+import Quickshell.Services.Notifications
+import QtQuick
+import QtQuick.Layouts
+import qs.CustomTheme
+
+// One notification: icon or picture, summary, body and action buttons
+Rectangle {
+    id: card
+
+    required property var notif
+    visible: notif !== null
+    // Called after the card is clicked or closed
+    signal closed()
+
+    readonly property bool critical: notif?.urgency === NotificationUrgency.Critical
+    readonly property var actions: notif?.actions ?? []
+
+    implicitWidth: 340
+    implicitHeight: content.implicitHeight + 28
+    radius: 20
+    color: critical ? Theme.error_container : Theme.surface_container
+
+    // Click anywhere to trigger the default action, if the app has one
+    MouseArea {
+        id: bodyArea
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: {
+            const def = card.actions.find(a => a.identifier === "default")
+            if (def) def.invoke()
+            card.notif?.dismiss()
+            card.closed()
+        }
+    }
+
+    RowLayout {
+        id: content
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: 14
+        spacing: 12
+
+        Rectangle {
+            Layout.alignment: Qt.AlignTop
+            Layout.preferredWidth: 44
+            Layout.preferredHeight: 44
+            radius: 14
+            color: card.critical ? Theme.error : Theme.secondary_container
+            clip: true
+
+            Image {
+                id: picture
+                anchors.fill: parent
+                source: card.notif?.image || Quickshell.iconPath(card.notif?.appIcon ?? "", true)
+                fillMode: Image.PreserveAspectCrop
+                visible: status === Image.Ready
+            }
+            Text {
+                anchors.centerIn: parent
+                visible: !picture.visible
+                text: "󰂚"
+                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: 20
+                color: card.critical ? Theme.on_error : Theme.on_secondary_container
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 2
+
+            RowLayout {
+                Layout.fillWidth: true
+                Text {
+                    Layout.fillWidth: true
+                    text: card.notif?.summary ?? ""
+                    elide: Text.ElideRight
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 14
+                    font.weight: Font.DemiBold
+                    color: card.critical ? Theme.on_error_container : Theme.on_surface
+                }
+                Text {
+                    text: card.notif?.appName ?? ""
+                    font.family: Theme.fontFamilyRegular
+                    font.pixelSize: 11
+                    color: card.critical ? Theme.on_error_container : Theme.on_surface_variant
+                    opacity: 0.8
+                }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                visible: text !== ""
+                text: card.notif?.body ?? ""
+                textFormat: Text.StyledText
+                wrapMode: Text.Wrap
+                maximumLineCount: 3
+                elide: Text.ElideRight
+                font.family: Theme.fontFamilyRegular
+                font.pixelSize: 12
+                color: card.critical ? Theme.on_error_container : Theme.on_surface_variant
+            }
+
+            // Wraps onto a second line when the labels are long
+            Flow {
+                Layout.fillWidth: true
+                Layout.topMargin: 6
+                visible: actionList.count > 0
+                spacing: 6
+
+                Repeater {
+                    id: actionList
+                    model: card.actions.filter(a => a.identifier !== "default")
+
+                    Rectangle {
+                        id: btn
+                        required property var modelData
+                        implicitWidth: label.implicitWidth + 24
+                        implicitHeight: 32
+                        radius: 16
+                        color: btnArea.containsMouse ? Theme.primary_container : Theme.surface_container_highest
+
+                        Text {
+                            id: label
+                            anchors.centerIn: parent
+                            text: btn.modelData.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            color: Theme.on_surface
+                        }
+                        MouseArea {
+                            id: btnArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                btn.modelData.invoke()
+                                card.closed()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Close button, shown on hover
+    Rectangle {
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: 8
+        width: 28
+        height: 28
+        radius: 14
+        color: Theme.surface_container_highest
+        opacity: bodyArea.containsMouse || closeArea.containsMouse ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 120 } }
+
+        Text {
+            anchors.centerIn: parent
+            text: "󰅖"
+            font.family: "JetBrainsMono Nerd Font"
+            font.pixelSize: 13
+            color: Theme.on_surface
+        }
+        MouseArea {
+            id: closeArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                card.notif?.dismiss()
+                card.closed()
+            }
+        }
+    }
+}

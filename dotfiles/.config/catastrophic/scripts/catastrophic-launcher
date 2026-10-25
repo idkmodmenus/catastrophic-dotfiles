@@ -42,6 +42,10 @@ launcher=$(_resolve_launcher)
 # Application Launcher
 # -----------------------------------------------------
 _drun() {
+    # The Quickshell launcher handles this when the shell is running
+    if qs ipc call launcher toggle >/dev/null 2>&1; then
+        return
+    fi
     if [ "$launcher" == "walker" ]; then
         walker -t catastrophic --height 500
     else

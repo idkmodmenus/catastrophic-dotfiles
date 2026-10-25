@@ -3,10 +3,13 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
+import Quickshell.Services.Mpris
 import Quickshell.Services.SystemTray
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 import qs.CustomTheme
+import qs.DrawersApp
 
 // Vertical bar: launcher and workspaces at the top, status and clock at the bottom.
 Item {
@@ -16,6 +19,26 @@ Item {
     readonly property int workspaceCount: Math.max(5,
         Hyprland.focusedWorkspace?.id ?? 0,
         ...Hyprland.workspaces.values.map(w => w.id))
+
+    // Hover popouts: which one is open and the bar-relative height of its icon.
+    // Closing is delayed so the pointer can cross from the icon into the panel.
+    property string popoutKind: ""
+    property real popoutY: 0
+    property bool popoutHovered: false
+
+    function openPopout(kind: string, item: Item): void {
+        popoutCloser.stop()
+        popoutY = item.mapToItem(bar, 0, item.height / 2).y
+        popoutKind = kind
+    }
+    function closePopout(): void { popoutCloser.restart() }
+
+    Timer {
+        id: popoutCloser
+        interval: 350
+        onTriggered: if (!bar.popoutHovered) bar.popoutKind = ""
+    }
+    onPopoutHoveredChanged: if (!popoutHovered) closePopout()
 
     function run(cmd: string): void {
         Quickshell.execDetached(["bash", "-c", cmd])
@@ -42,12 +65,19 @@ Item {
         property alias color: label.color
         property alias font: label.font
         readonly property bool hovered: mouse.containsMouse
+        property string popout: ""
         signal clicked(var mouse)
         signal scrolled(int delta)
 
         Layout.alignment: Qt.AlignHCenter
         implicitWidth: 28
         implicitHeight: 28
+
+        onHoveredChanged: {
+            if (!popout) return
+            if (hovered) bar.openPopout(popout, icon)
+            else bar.closePopout()
+        }
 
         Rectangle {
             anchors.fill: parent
@@ -72,6 +102,7 @@ Item {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onPositionChanged: if (icon.popout && bar.popoutKind !== icon.popout) bar.openPopout(icon.popout, icon)
             onClicked: m => icon.clicked(m)
             onWheel: w => icon.scrolled(w.angleDelta.y)
         }
@@ -105,20 +136,32 @@ Item {
                     readonly property bool occupied: Hyprland.workspaces.values.some(w => w.id === wsId)
 
                     Layout.alignment: Qt.AlignHCenter
-                    implicitWidth: 18
-                    implicitHeight: dot.height + 4
+                    implicitWidth: 22
+                    implicitHeight: dot.height + 2
 
                     Rectangle {
                         id: dot
                         anchors.centerIn: parent
-                        width: 8
-                        height: ws.active ? 24 : 8
-                        radius: 4
-                        color: ws.active ? Theme.primary : Theme.on_surface_variant
-                        opacity: ws.active ? 1 : ws.occupied ? 0.8 : 0.3
+                        width: ws.active ? 22 : ws.occupied ? 8 : 6
+                        height: ws.active ? 30 : width
+                        radius: width / 2
+                        color: ws.active ? Theme.primary
+                            : ws.occupied ? Theme.on_surface_variant : Theme.outline_variant
 
                         Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
-                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                        Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
+                        Behavior on color { ColorAnimation { duration: 150 } }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: ws.wsId
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 12
+                            font.weight: Font.Bold
+                            color: Theme.on_primary
+                            opacity: ws.active ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                        }
                     }
 
                     MouseArea {
@@ -129,6 +172,19 @@ Item {
                 }
             }
         }
+    }
+
+    // Name of the setup, written upwards along the middle of the bar
+    Text {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        rotation: -90
+        text: "Catastrophic"
+        font.family: Theme.fontFamily
+        font.pixelSize: 13
+        font.letterSpacing: 1.5
+        color: Theme.on_surface_variant
+        opacity: 0.7
     }
 
     ColumnLayout {
@@ -149,14 +205,42 @@ Item {
                     implicitWidth: 28
                     implicitHeight: 28
                     cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
 
+                    // Hovering the network and Bluetooth applets opens their popouts
+                    readonly property string popout: modelData.id === "nm-applet" ? "network"
+                        : modelData.id === "blueman" ? "bluetooth" : ""
+                    onPositionChanged: if (popout && bar.popoutKind !== popout) bar.openPopout(popout, trayItem)
+                    onContainsMouseChanged: {
+                        if (!popout) return
+                        if (containsMouse) bar.openPopout(popout, trayItem)
+                        else bar.closePopout()
+                    }
+
+                    // nm-applet's symbolic icon renders blank, so draw a glyph
+                    Text {
+                        anchors.centerIn: parent
+                        visible: trayItem.modelData.id === "nm-applet"
+                        text: "󰤨"
+                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: 16
+                        color: trayItem.containsMouse ? Theme.primary : Theme.on_surface_variant
+                    }
+
                     Image {
+                        visible: trayItem.modelData.id !== "nm-applet"
                         anchors.centerIn: parent
                         width: 16
                         height: 16
                         source: trayItem.modelData.icon
                         sourceSize: Qt.size(16, 16)
+                        // One quiet colour for every tray icon
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            colorization: 1.0
+                            colorizationColor: trayItem.containsMouse ? Theme.primary : Theme.on_surface_variant
+                        }
                     }
 
                     onClicked: mouse => {
@@ -199,9 +283,21 @@ Item {
                 }
             }
 
+            // Media: only while a player exists; hover for the player card
+            Icon {
+                popout: "media"
+                visible: Mpris.players.values.length > 0
+                text: Mpris.players.values.some(p => p.isPlaying) ? "󰝚" : "󰝛"
+                onClicked: mouse => {
+                    const p = Mpris.players.values.find(p => p.isPlaying) ?? Mpris.players.values[0]
+                    if (p) p.isPlaying = !p.isPlaying
+                }
+            }
+
             // Volume: scroll to adjust, right click to mute, click for the mixer
             Icon {
                 id: volume
+                popout: "volume"
                 readonly property PwNode sink: Pipewire.defaultAudioSink
                 readonly property bool ready: !!(sink?.ready && sink?.audio)
                 readonly property real level: ready ? sink.audio.volume : 0
@@ -224,6 +320,7 @@ Item {
 
             // Battery (hidden on machines without one)
             Icon {
+                popout: "battery"
                 readonly property var device: UPower.displayDevice
                 readonly property int percent: device ? Math.round(device.percentage * 100) : 0
                 visible: device?.isLaptopBattery ?? false
@@ -235,30 +332,15 @@ Item {
                     : hovered ? Theme.primary : Theme.on_surface_variant
             }
 
-            // Notifications: filled bell while any are pending
+            // Notifications: filled bell while any are held; right-click for Silent
             Icon {
                 id: bell
-                property bool pending: false
-                text: pending ? "󰂚" : "󰂜"
-                onClicked: bar.run("swaync-client -t -sw")
-
-                // Reconnects if swaync restarts, which ends the subscription
-                Process {
-                    id: bellWatch
-                    command: ["swaync-client", "-swb"]
-                    running: true
-                    onExited: bellRetry.start()
-                    stdout: SplitParser {
-                        onRead: data => {
-                            try { bell.pending = parseInt(JSON.parse(data).text) > 0 } catch (e) {}
-                        }
-                    }
-                }
-
-                Timer {
-                    id: bellRetry
-                    interval: 3000
-                    onTriggered: bellWatch.running = true
+                text: Notifs.dnd ? "󰂛" : Notifs.count > 0 ? "󰂚" : "󰂜"
+                color: Notifs.count > 0 && !Notifs.dnd ? Theme.primary
+                    : hovered ? Theme.primary : Theme.on_surface_variant
+                onClicked: mouse => {
+                    if (mouse.button === Qt.RightButton) Notifs.dnd = !Notifs.dnd
+                    else Notifs.centerRequested()
                 }
             }
         }
@@ -275,10 +357,46 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: modelData === "mm" ? -8 : 0
                     text: Qt.formatDateTime(clock.date, modelData)
-                    font.family: "JetBrainsMono Nerd Font"
-                    font.pixelSize: 13
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 14
                     font.weight: Font.Bold
                     color: modelData === "HH" ? Theme.primary : Theme.on_surface
+                }
+            }
+
+            Rectangle {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 2
+                implicitWidth: 10
+                implicitHeight: 2
+                radius: 1
+                color: Theme.outline_variant
+            }
+
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                text: Qt.formatDateTime(clock.date, "ddd").toUpperCase()
+                font.family: Theme.fontFamily
+                font.pixelSize: 9
+                font.weight: Font.DemiBold
+                color: Theme.on_surface_variant
+            }
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: -6
+                text: Qt.formatDateTime(clock.date, "d")
+                font.family: Theme.fontFamily
+                font.pixelSize: 12
+                font.weight: Font.Bold
+                color: Theme.on_surface
+            }
+
+            HoverHandler {
+                parent: clockSection
+                onPointChanged: if (hovered && bar.popoutKind !== "clock") bar.openPopout("clock", clockSection)
+                onHoveredChanged: {
+                    if (hovered) bar.openPopout("clock", clockSection)
+                    else bar.closePopout()
                 }
             }
 
@@ -294,7 +412,8 @@ Item {
             implicitWidth: 34
             implicitHeight: 34
             text: "󰐥"
-            onClicked: bar.run("catastrophic-powermenu toggle")
+            color: hovered ? Theme.error : Theme.on_surface_variant
+            onClicked: bar.run("qs ipc call session toggle")
         }
     }
 }

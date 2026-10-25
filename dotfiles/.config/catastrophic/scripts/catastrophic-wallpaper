@@ -205,6 +205,8 @@ reload_pywalfox() {
 }
 
 reload_swaync() {
+    # swaync was replaced by the Quickshell notification server; do not wake it
+    pgrep -x swaync >/dev/null || return 0
     sleep 0.1
     swaync-client -rs
     info "SwayNC refreshed"

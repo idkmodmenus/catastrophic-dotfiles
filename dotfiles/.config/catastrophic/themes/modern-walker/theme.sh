@@ -3,7 +3,8 @@
 
 # Set swaync
 echo '@import "themes/modern/style.css";' > $HOME/.config/swaync/style.css
-swaync-client -rs
+# swaync was replaced by the Quickshell notification server; only reload it if it is running
+pgrep -x swaync >/dev/null && swaync-client -rs || true
 
 # Set launcher
 echo 'walker' > $HOME/.config/catastrophic/settings/launcher

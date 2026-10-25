@@ -60,7 +60,8 @@ apply_theme() {
 
         $HOME/.config/hypr/scripts/gtk.sh &
 
-        swaync-client -rs
+        # swaync was replaced by the Quickshell notification server; only reload it if it is running
+        pgrep -x swaync >/dev/null && swaync-client -rs || true
     elif [[ "$THEME_PREF" == "0" || "$THEME_PREF" == "false" ]]; then
         echo "Detected light theme preference (gtk-application-prefer-dark-theme=0/false). Applying light matugen theme..."
         $MATUGEN_BIN image $(cat ~/.cache/catastrophic/hyprland-dotfiles/current_wallpaper) --source-color-index 0 -m "light"
@@ -71,7 +72,8 @@ apply_theme() {
 
         $HOME/.config/hypr/scripts/gtk.sh &
 
-        swaync-client -rs
+        # swaync was replaced by the Quickshell notification server; only reload it if it is running
+        pgrep -x swaync >/dev/null && swaync-client -rs || true
     else
         echo "Warning: Unexpected value for gtk-application-prefer-dark-theme: $THEME_PREF. Expected 0/1/true/false. Skipping theme application."
     fi

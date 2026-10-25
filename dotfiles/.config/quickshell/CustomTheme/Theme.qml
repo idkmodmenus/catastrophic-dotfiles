@@ -8,6 +8,8 @@ QtObject {
     
     // Static properties
     readonly property string fontFamily: "Fira Sans Semibold"
+    // Body and secondary text, so titles in the semibold family stand out
+    readonly property string fontFamilyRegular: "Fira Sans"
     
     // True while the loaded palette is a light one. Derived from the palette
     // itself rather than read from the GTK preference, so it updates atomically

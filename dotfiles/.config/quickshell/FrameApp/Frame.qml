@@ -3,6 +3,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Shapes
 import qs.CustomTheme
+import qs.DrawersApp
 
 // Caelestia-style screen frame: a slim vertical bar on the left that runs into
 // a thin border around the screen, with rounded inner corners where the windows
@@ -66,7 +67,38 @@ Scope {
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "frame"
         // Only the bar takes input; the rest of the surface is click-through
-        mask: Region { item: bar }
+        mask: Region {
+            item: sideBar
+            regions: [Region { item: popoutMask }, Region { item: topEdge }]
+        }
+
+        // Follows the popout only while it is showing, so a hidden popout never
+        // blocks the windows beside the bar
+        Item {
+            id: popoutMask
+            x: popout.x
+            y: popout.y
+            width: popout.visible ? popout.width : 0
+            height: popout.visible ? popout.height : 0
+        }
+
+        // The frame's top border opens the dashboard when the pointer rests on it
+        Item {
+            id: topEdge
+            x: frame.barWidth + 120
+            y: 0
+            width: win.width - frame.barWidth - 240
+            height: frame.thickness
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.NoButton
+                onEntered: DrawerState.topEdgeActivity()
+                onPositionChanged: DrawerState.topEdgeActivity()
+                onContainsMouseChanged: DrawerState.topEdgeInside = containsMouse
+            }
+        }
 
         Shape {
             anchors.fill: parent
@@ -91,10 +123,19 @@ Scope {
             }
         }
 
+        // Below the bar so the join is hidden behind its icons
+        Popout {
+            id: popout
+            bar: sideBar
+            winHeight: win.height
+        }
+
         Bar {
-            id: bar
+            id: sideBar
             width: frame.barWidth
             height: win.height
         }
+
+        Binding { target: sideBar; property: "popoutHovered"; value: popout.hovered }
     }
 }

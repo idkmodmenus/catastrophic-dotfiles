@@ -52,7 +52,9 @@ hl.on("hyprland.start", function ()
     -- Start swaync -- skipped where D-Bus activation is already set up
     -- (marker written by post-ubuntu.sh), since an explicit exec-once
     -- there raced with it and lost with "already running!".
-    hl.exec_cmd("[ -f ~/.config/catastrophic/.swaync-dbus-activated ] || swaync")
+    -- Notifications are now served by the Quickshell shell (DrawersApp/Notifs.qml).
+    -- Re-enable swaync here to switch back:
+    -- hl.exec_cmd("[ -f ~/.config/catastrophic/.swaync-dbus-activated ] || swaync")
 
     -- Start hypridle
     hl.exec_cmd("hypridle")

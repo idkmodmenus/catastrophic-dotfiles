@@ -29,7 +29,7 @@ PanelWindow {
     }
 
     margins {
-        top: 52
+        top: 0
         bottom: 0
     }
 
@@ -121,16 +121,22 @@ PanelWindow {
     component CatastrophicButton: Button {
         Layout.fillWidth: true
         background: Rectangle {
-            color: "transparent"
-            border.color: Theme.primary
-            border.width: 1
-            radius: 10
+            radius: height / 2
+            color: Theme.secondary_container
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: Theme.on_secondary_container
+                opacity: parent.parent.pressed ? 0.16 : parent.parent.hovered ? 0.08 : 0
+                Behavior on opacity { NumberAnimation { duration: 120 } }
+            }
         }
         contentItem: Text {
             text: parent.text
             font.family: Theme.fontFamily
-            font.pixelSize: 16
-            color: Theme.primary
+            font.pixelSize: 14
+            font.weight: Font.Medium
+            color: Theme.on_secondary_container
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             padding: 8
@@ -145,17 +151,18 @@ PanelWindow {
             implicitWidth: 48
             implicitHeight: 26
             radius: 13
-            color: parent.checked ? Theme.primary : Theme.background
-            border.color: Theme.primary
-            border.width: 1
+            color: parent.checked ? Theme.primary : Theme.surface_container_highest
+            Behavior on color { ColorAnimation { duration: 150 } }
             Rectangle {
-                x: parent.parent.checked ? parent.width - width - 2 : 2
-                y: 2
-                implicitWidth: 22
-                implicitHeight: 22
-                radius: 11
-                color: parent.parent.checked ? Theme.background : Theme.on_primary
-                Behavior on x { NumberAnimation { duration: 150 } }
+                readonly property bool on: parent.parent.checked
+                x: on ? parent.width - width - 3 : 3
+                anchors.verticalCenter: parent.verticalCenter
+                implicitWidth: on ? 20 : 14
+                implicitHeight: implicitWidth
+                radius: width / 2
+                color: on ? Theme.on_primary : Theme.outline
+                Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                Behavior on implicitWidth { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
             }
         }
     }
@@ -176,7 +183,7 @@ PanelWindow {
                 layer.enabled: true
                 layer.effect: MultiEffect {
                     colorization: 1.0
-                    colorizationColor: Theme.primary
+                    colorizationColor: Theme.on_surface_variant
                 }
             }
         }
@@ -194,8 +201,8 @@ PanelWindow {
                 anchors.centerIn: parent
                 text: iconTxt
                 visible: iconSrc === ""
-                color: Theme.primary
-                font.family: "monospace"
+                color: Theme.on_surface_variant
+                font.family: "JetBrainsMono Nerd Font"
                 font.pixelSize: 18
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
@@ -212,7 +219,7 @@ PanelWindow {
                 layer.enabled: iconSrc !== ""
                 layer.effect: MultiEffect {
                     colorization: 1.0
-                    colorizationColor: Theme.primary
+                    colorizationColor: Theme.on_surface_variant
                 }
             }
         }
@@ -223,7 +230,7 @@ PanelWindow {
     // ==========================================
     Item {
         anchors.fill: parent
-        anchors.margins: 20
+        anchors.margins: 24
 
         RectangularShadow {
             id: shadow
@@ -236,29 +243,14 @@ PanelWindow {
         Rectangle {
             id: mainBgRect
             anchors.fill: parent
-            radius: 10
-            opacity: 0.95 // Only the background is transparent
-
-            // Gradient border (outer)
-            gradient: Gradient {
-                orientation: Gradient.Vertical
-                GradientStop { position: 0.0; color: Theme.primary }
-                GradientStop { position: 1.0; color: Theme.on_primary }
-            }
-
-            // Background fill (inner), inset by the border thickness
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: 2
-                radius: parent.radius - anchors.margins
-                color: Theme.background
-            }
+            radius: 24
+            color: Theme.surface
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 20
-            spacing: 20
+            anchors.margins: 22
+            spacing: 18
 
             // --- TOP BAR (Light/Dark, Screenshot, Color Picker & Keybinds) ---
             RowLayout {
@@ -300,7 +292,7 @@ PanelWindow {
                 }
             }
 
-            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3 }
+            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; visible: false }
 
             // --- THREE BUTTONS ROW ---
             RowLayout {
@@ -332,7 +324,7 @@ PanelWindow {
                 }
             }
 
-            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3 }
+            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; visible: false }
 
             // --- SCROLLABLE CONTENT ---
             ScrollView {
@@ -377,7 +369,7 @@ PanelWindow {
                                 layer.enabled: true
                                 layer.effect: MultiEffect {
                                     colorization: 1.0
-                                    colorizationColor: Theme.primary
+                                    colorizationColor: Theme.on_surface_variant
                                 }
                             }
 
@@ -407,31 +399,28 @@ PanelWindow {
                                     x: volumeSlider.leftPadding
                                     y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
                                     implicitWidth: 200
-                                    implicitHeight: 6
+                                    implicitHeight: 14
                                     width: volumeSlider.availableWidth
                                     height: implicitHeight
-                                    radius: 3
-                                    color: Theme.background
-                                    border.color: Theme.primary
-                                    border.width: 1
+                                    radius: 7
+                                    color: Theme.surface_container_highest
 
                                     Rectangle {
-                                        width: volumeSlider.visualPosition * parent.width
+                                        width: Math.max(parent.height, volumeSlider.visualPosition * parent.width - 6)
                                         height: parent.height
                                         color: Theme.primary
-                                        radius: 3
+                                        radius: 7
                                     }
                                 }
 
                                 handle: Rectangle {
                                     x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
                                     y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 16
-                                    implicitHeight: 16
-                                    radius: 8
-                                    color: volumeSlider.pressed ? Theme.background : Theme.primary
-                                    border.color: Theme.primary
-                                    border.width: 1
+                                    implicitWidth: 4
+                                    implicitHeight: volumeSlider.pressed ? 28 : 24
+                                    radius: 2
+                                    color: Theme.primary
+                                    Behavior on implicitHeight { NumberAnimation { duration: 100 } }
                                 }
                             }
                         }
@@ -452,7 +441,7 @@ PanelWindow {
                                 layer.enabled: true
                                 layer.effect: MultiEffect {
                                     colorization: 1.0
-                                    colorizationColor: Theme.primary
+                                    colorizationColor: Theme.on_surface_variant
                                 }
                             }
 
@@ -482,31 +471,28 @@ PanelWindow {
                                     x: brightnessSlider.leftPadding
                                     y: brightnessSlider.topPadding + brightnessSlider.availableHeight / 2 - height / 2
                                     implicitWidth: 200
-                                    implicitHeight: 6
+                                    implicitHeight: 14
                                     width: brightnessSlider.availableWidth
                                     height: implicitHeight
-                                    radius: 3
-                                    color: Theme.background
-                                    border.color: Theme.primary
-                                    border.width: 1
+                                    radius: 7
+                                    color: Theme.surface_container_highest
 
                                     Rectangle {
-                                        width: brightnessSlider.visualPosition * parent.width
+                                        width: Math.max(parent.height, brightnessSlider.visualPosition * parent.width - 6)
                                         height: parent.height
                                         color: Theme.primary
-                                        radius: 3
+                                        radius: 7
                                     }
                                 }
 
                                 handle: Rectangle {
                                     x: brightnessSlider.leftPadding + brightnessSlider.visualPosition * (brightnessSlider.availableWidth - width)
                                     y: brightnessSlider.topPadding + brightnessSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 16
-                                    implicitHeight: 16
-                                    radius: 8
-                                    color: brightnessSlider.pressed ? Theme.background : Theme.primary
-                                    border.color: Theme.primary
-                                    border.width: 1
+                                    implicitWidth: 4
+                                    implicitHeight: brightnessSlider.pressed ? 28 : 24
+                                    radius: 2
+                                    color: Theme.primary
+                                    Behavior on implicitHeight { NumberAnimation { duration: 100 } }
                                 }
                             }
                         }
@@ -521,7 +507,7 @@ PanelWindow {
 
                             Text {
                                 text: "Blue Light Filter"
-                                color: Theme.primary
+                                color: Theme.on_surface
                                 font.family: Theme.fontFamily
                                 font.pixelSize: 16
                             }
@@ -564,7 +550,7 @@ PanelWindow {
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; Layout.topMargin: 5; Layout.bottomMargin: 5 }
+                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; Layout.topMargin: 5; Layout.bottomMargin: 5; visible: false }
 
                     // --- MPRIS PLAYERS (Scrollable ListView) ---
                     ListView {
@@ -601,10 +587,8 @@ PanelWindow {
                             width: mprisListView.width - 16
                             implicitHeight: 100
 
-                            radius: 10
-                            color: Theme.background
-                            border.color: Theme.primary
-                            border.width: 1
+                            radius: 20
+                            color: Theme.surface_container
                             clip: true
 
                             RowLayout {
@@ -616,10 +600,8 @@ PanelWindow {
                                 Rectangle {
                                     implicitWidth: 80
                                     implicitHeight: 80
-                                    radius: 8
-                                    color: "transparent"
-                                    border.color: Theme.primary
-                                    border.width: 1
+                                    radius: 14
+                                    color: Theme.surface_container_highest
                                     clip: true
 
                                     Image {
@@ -647,7 +629,7 @@ PanelWindow {
                                     Text {
                                         Layout.fillWidth: true
                                         text: player.trackTitle ? player.trackTitle : (player.identity ? player.identity : "No Media Playing")
-                                        color: Theme.primary
+                                        color: Theme.on_surface
                                         font.family: Theme.fontFamily
                                         font.pixelSize: 16
                                         font.bold: true
@@ -711,7 +693,7 @@ PanelWindow {
                         opacity: 0.3;
                         Layout.topMargin: 5;
                         Layout.bottomMargin: 5;
-                        visible: Mpris.players.values.length > 0
+                        visible: false
                     }
 
                     // --- STATUS BAR ---
@@ -719,7 +701,7 @@ PanelWindow {
                     // reflects/flips its state.
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Status Bar"; color: Theme.primary; font.family: Theme.fontFamily; font.pixelSize: 16 }
+                        Text { text: "Status Bar"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
                         Item { Layout.fillWidth: true }
                         CatastrophicSwitch {
                             id: statusbarSwitch
@@ -790,7 +772,7 @@ PanelWindow {
                     // --- STATUSBAR ALWAYS EXPANDED (Quickshell) ---
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Statusbar Expanded"; color: Theme.primary; font.family: Theme.fontFamily; font.pixelSize: 16 }
+                        Text { text: "Statusbar Expanded"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
                         Item { Layout.fillWidth: true }
                         CatastrophicSwitch {
                             id: statusbarExpandedSwitch
@@ -829,7 +811,7 @@ PanelWindow {
                     // --- STATUSBAR AUTOHIDE (Quickshell) ---
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Statusbar Autohide"; color: Theme.primary; font.family: Theme.fontFamily; font.pixelSize: 16 }
+                        Text { text: "Statusbar Autohide"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
                         Item { Layout.fillWidth: true }
                         CatastrophicSwitch {
                             id: statusbarAutohideSwitch
@@ -879,7 +861,7 @@ PanelWindow {
                     // On = Walker, Off = Rofi.
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Launcher"; color: Theme.primary; font.family: Theme.fontFamily; font.pixelSize: 16 }
+                        Text { text: "Launcher"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
                         Item { Layout.fillWidth: true }
                         Text {
                             text: launcherSwitch.checked ? "Walker" : "Rofi"
@@ -918,7 +900,7 @@ PanelWindow {
                     // --- DOCK ---
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Dock"; color: Theme.primary; font.family: Theme.fontFamily; font.pixelSize: 16 }
+                        Text { text: "Dock"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
                         Item { Layout.fillWidth: true }
                         CatastrophicSwitch {
                             id: dockSwitch
@@ -1002,7 +984,7 @@ PanelWindow {
                     // --- GAMEMODE ---
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Gamemode"; color: Theme.primary; font.family: Theme.fontFamily; font.pixelSize: 16 }
+                        Text { text: "Gamemode"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
                         Item { Layout.fillWidth: true }
                         CatastrophicSwitch {
                             id: gamemodeSwitch
@@ -1029,7 +1011,7 @@ PanelWindow {
                     // --- HYPRIDLE ---
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Hypridle"; color: Theme.primary; font.family: Theme.fontFamily; font.pixelSize: 16 }
+                        Text { text: "Hypridle"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
                         Item { Layout.fillWidth: true }
                         CatastrophicSwitch {
                             id: hypridleSwitch
@@ -1070,7 +1052,7 @@ PanelWindow {
                     // --- FASTFETCH ---
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Fastfetch"; color: Theme.primary; font.family: Theme.fontFamily; font.pixelSize: 16 }
+                        Text { text: "Fastfetch"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
                         Item { Layout.fillWidth: true }
                         CatastrophicSwitch {
                             id: fastfetchSwitch
@@ -1094,12 +1076,12 @@ PanelWindow {
                         Item { implicitWidth: 28 }
                     }
 
-                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; Layout.topMargin: 5; Layout.bottomMargin: 5 }
+                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; Layout.topMargin: 5; Layout.bottomMargin: 5; visible: false }
 
                     // --- WALLPAPER ---
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Wallpaper"; color: Theme.primary; font.family: Theme.fontFamily; font.pixelSize: 16 }
+                        Text { text: "Wallpaper"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
                         Item { Layout.fillWidth: true }
                         ActionIcon {
                             iconSrc: "../shared/icons/wallpaper.svg"
@@ -1113,7 +1095,7 @@ PanelWindow {
                     // --- THEME ---
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Theme"; color: Theme.primary; font.family: Theme.fontFamily; font.pixelSize: 16 }
+                        Text { text: "Theme"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
                         Item { Layout.fillWidth: true }
                         SettingsWheel {
                             onClicked: themeMenu.open()
