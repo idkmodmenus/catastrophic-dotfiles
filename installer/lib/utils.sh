@@ -14,7 +14,10 @@ backup_existing_profile() {
     if cp -a "$profile_dir" "$backup_path"; then
         info "  - Backup completed successfully."
     else
-        warn "  - Backup failed! Proceeding with caution..."
+        # Nothing is changed without a backup: the caller stops the update
+        rm -rf "$backup_path"
+        error "  - The backup failed (is the disk full?). Nothing has been changed."
+        return 1
     fi
 }
 
@@ -97,10 +100,22 @@ is_blacklisted() {
 }
 
 # --- RECURSIVE Blacklist-Aware Copy ---
+# A file is left alone when the update does not change it (its shipped checksum is the
+# same as in the manifest of the previous install), so edits you made to it are kept.
+# Files the update does change are replaced; the previous profile is backed up first.
 copy_with_blacklist() {
     local source=$1
     local target=$2
     local blacklist=$3
+    local manifest=${4:-}
+
+    local -A old_sum=()
+    local mline
+    if [ -n "$manifest" ] && [ -f "$manifest" ]; then
+        while IFS= read -r mline; do
+            [[ "$mline" =~ ^([0-9a-f]{64})\ \ (.*)$ ]] && old_sum["${BASH_REMATCH[2]}"]="${BASH_REMATCH[1]}"
+        done < "$manifest"
+    fi
 
     mkdir -p "$target"
     info "Staging files to $target..."
@@ -144,6 +159,10 @@ copy_with_blacklist() {
             mkdir -p "$target_path"
         elif [ -f "$item" ]; then
             mkdir -p "$(dirname "$target_path")"
+            if [ -n "${old_sum[$rel_path]:-}" ] && [ ! -L "$item" ] && { [ -e "$target_path" ] || [ -L "$target_path" ]; } \
+                && [ "${old_sum[$rel_path]}" = "$(sha256sum -- "$item" | cut -d' ' -f1)" ]; then
+                continue    # unchanged by this update: keep what is there
+            fi
             cp -a "$item" "$target_path"
         fi
     done
@@ -177,31 +196,51 @@ remove_obsolete_paths() {
 prune_obsolete() {
     local src_dir=$1 final_target=$2 clone_path=$3 manifest=$4
     { [ -n "$final_target" ] && [ -d "$final_target" ] && [ "$final_target" != "/" ] && [ "$final_target" != "$HOME" ]; } || return 0
-    local removed=0 rel p
+    local removed=0 rel line d
+    local touched=()
 
     remove_obsolete_paths "$final_target" "$clone_path/setup/obsolete-paths"
 
     if [ -f "$manifest" ]; then
-        while IFS= read -r rel; do
+        while IFS= read -r line; do
+            rel=$(manifest_path "$line")
             [[ -z "$rel" || "$rel" == /* || "$rel" == *..* ]] && continue
             if [ ! -e "$src_dir/$rel" ] && [ ! -L "$src_dir/$rel" ] && { [ -e "$final_target/$rel" ] || [ -L "$final_target/$rel" ]; }; then
                 rm -f -- "$final_target/$rel"; removed=$((removed + 1))
+                touched+=("$(dirname "$final_target/$rel")")
                 info "  - Removed (no longer in the repo): $rel"
             fi
         done < "$manifest"
     fi
 
-    # Directories left empty by the removals
-    find "$final_target" -mindepth 1 -type d -empty -delete 2> /dev/null
+    # Folders that the removals left empty, and only those: an empty folder the
+    # user made themselves is never touched
+    if [ "${#touched[@]}" -gt 0 ]; then
+        while IFS= read -r d; do
+            while [ "$d" != "$final_target" ] && [ "${d#"$final_target"/}" != "$d" ] && rmdir -- "$d" 2> /dev/null; do
+                d=$(dirname "$d")
+            done
+        done < <(printf '%s\n' "${touched[@]}" | sort -u | awk '{print length($0) "\t" $0}' | sort -rn | cut -f2-)
+    fi
     info "Obsolete file check done."
     return 0
 }
 
 # Record what this version ships, so the next update knows what to remove.
+# One line per file: "<sha256>  <path>" (a link has "-" instead of a checksum).
+# Older versions wrote just the path; both forms are read.
 write_manifest() {
-    local src_dir=$1 manifest=$2
+    local src_dir=$1 manifest=$2 rel
     mkdir -p "$(dirname "$manifest")"
-    ( cd "$src_dir" && find . \( -type f -o -type l \) | sed 's|^\./||' | sort ) > "$manifest"
+    ( cd "$src_dir" && find . \( -type f -o -type l \) | sed 's|^\./||' | sort | while IFS= read -r rel; do
+        if [ -L "$rel" ]; then printf -- '-  %s\n' "$rel"; else printf '%s  %s\n' "$(sha256sum -- "$rel" | cut -d' ' -f1)" "$rel"; fi
+    done ) > "$manifest"
+}
+
+# The path part of a manifest line (either form)
+manifest_path() {
+    local line=$1
+    if [[ "$line" =~ ^([0-9a-f]{64}|-)\ \ (.*)$ ]]; then echo "${BASH_REMATCH[2]}"; else echo "$line"; fi
 }
 
 # Links in $HOME and ~/.config that point into the profile but whose target is gone
@@ -227,7 +266,10 @@ create_symlink() {
             info "  - Link already correct for $(basename "$target"). Skipping."
             return 0
         else
-            warn "  - Link $(basename "$target") points elsewhere. Recreating..."
+            warn "  - Link $(basename "$target") points elsewhere ($(readlink "$target")). Recreating..."
+            # Keep the old link itself (what it pointed to) before replacing it
+            mkdir -p "$backup_dir"
+            cp -a "$target" "$backup_dir/" || { error "  - Could not back up the link $target. Leaving it as it is."; return 1; }
             rm "$target"
         fi
     fi
@@ -235,8 +277,13 @@ create_symlink() {
     if [ -e "$target" ]; then
         warn "  - Existing file/folder found at $target. Creating backup..."
         mkdir -p "$backup_dir"
-        cp -a "$target" "$backup_dir/"
-        rm -rf "$target"
+        # Only remove the original once the copy succeeded
+        if cp -a "$target" "$backup_dir/"; then
+            rm -rf "$target"
+        else
+            error "  - Could not back up $target. Leaving it as it is."
+            return 1
+        fi
     fi
 
     info "  - Linking $target -> $source"

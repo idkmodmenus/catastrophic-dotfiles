@@ -67,16 +67,26 @@ Run the same command again, or `~/.config/catastrophic/scripts/catastrophic-upda
 downloads the installer, checks it and runs it. Either pulls the latest version from GitHub
 and makes the system match it:
 
-- Files that changed in the repo are overwritten with the new version (the old
-  profile is backed up first, in `~/.mydotfiles/backups/`).
+- Before anything is changed the current profile is copied to `~/.mydotfiles/backups/`. If that
+  copy fails (for example the disk is full) the update stops and nothing is touched.
+- Only files the update itself changes are replaced. Each install records a checksum of every
+  file it ships, so a file that is the same in the new version is left exactly as it is, and
+  edits you made to it are kept. (The first update after installing an older version has no
+  checksums yet, so it replaces the shipped files that differ; your copies are in the backup.)
 - Your settings are kept: the default apps, theme, launcher and the other choices in
   `~/.config/catastrophic/settings`. The installer asks "Keep my Catastrophic settings"
   and keeps them by default. New settings from the repo are added next to them.
-- Files the repo no longer ships are removed, along with their links in `~/.config`.
-  `setup/obsolete-paths` covers installs from before the installer kept a record.
-- Files you created yourself are left alone.
-- The default terminal, browser, file manager and editor are chosen on the first install
-  only. Updates never change them.
+- A file is removed only if an earlier install shipped it and the new version no longer does
+  (`setup/obsolete-paths` covers installs from before the installer kept a record). Its link
+  in `~/.config` goes with it, and the folder it was in is removed only if that left it empty.
+  Anything removed is in the backup.
+- Files and folders you created yourself are never removed, including empty folders and
+  extra files inside the folders the OS ships.
+- When a real folder or a link of yours sits where the OS puts a link (for example
+  `~/.config/btop`), it is copied into the backup first and only then replaced. The backup
+  of a link keeps where it pointed.
+- The dock, power menu and overview folders in `~/.local/share` are mirrored from the repo.
+  Anything the mirror removes or replaces is kept in `~/.mydotfiles/backups/apps/`.
 - Packages the desktop no longer uses (`setup/obsolete-packages`) are offered for
   removal. It asks first. Other packages are never removed.
 

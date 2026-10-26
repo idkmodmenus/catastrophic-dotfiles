@@ -132,8 +132,12 @@ install_app() {
     fi
     mkdir -p "$dest"
     # Mirror the repo so files it dropped disappear. walker keeps downloaded files in its folder.
+    # Anything removed or replaced is kept in ~/.mydotfiles/backups/apps/<app>/<time>, so
+    # a file you added to an app folder is never lost.
     local del=(--delete --exclude=.git); [ "$name" = catastrophic-walker ] && del=()
-    rsync -a "${del[@]}" "$APPS_SRC/$name/" "$dest/" || return 1
+    local keep="$HOME/.mydotfiles/backups/apps/$name/$(date +%Y%m%d_%H%M%S)"
+    rsync -a --backup --backup-dir="$keep" "${del[@]}" "$APPS_SRC/$name/" "$dest/" || return 1
+    rmdir "$keep" 2> /dev/null; rmdir "$HOME/.mydotfiles/backups/apps/$name" "$HOME/.mydotfiles/backups/apps" 2> /dev/null
     APP_CHANGED=1
 }
 report_app() {
