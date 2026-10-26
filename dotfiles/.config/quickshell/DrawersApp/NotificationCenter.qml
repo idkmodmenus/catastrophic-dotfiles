@@ -1,12 +1,31 @@
 import Quickshell
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import qs.CustomTheme
 import qs.Widgets
 
 // Right drawer with every notification still held, plus Do Not Disturb
 Scope {
     id: root
+
+    property string query: ""
+
+    // Newest first, with each app's notifications together (apps ordered by
+    // their newest notification) so the list can show one header per app
+    readonly property var rows: {
+        const q = query.trim().toLowerCase()
+        const order = []
+        const byApp = {}
+        for (const n of Notifs.all.slice().reverse()) {
+            if (q !== "" && !((n.summary ?? "") + " " + (n.body ?? "") + " " + (n.appName ?? "")).toLowerCase().includes(q))
+                continue
+            const app = n.appName ?? ""
+            if (!byApp[app]) { byApp[app] = []; order.push(app) }
+            byApp[app].push({ app: app, n: n })
+        }
+        return order.reduce((acc, a) => acc.concat(byApp[a]), [])
+    }
 
     Connections {
         target: Notifs
@@ -17,7 +36,10 @@ Scope {
         id: win
         edge: "right"
         padding: 16
-        onOpenChanged: Notifs.centerOpen = open
+        onOpenChanged: {
+            Notifs.centerOpen = open
+            if (!open) search.text = ""
+        }
 
         ColumnLayout {
             spacing: 12
@@ -87,10 +109,82 @@ Scope {
                 }
             }
 
+            // Search box, shown once there is enough to search through
+            Rectangle {
+                Layout.preferredWidth: 340
+                visible: Notifs.count > 3 || root.query !== ""
+                implicitHeight: 36
+                radius: 18
+                color: Theme.surface_container
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 14
+                    anchors.rightMargin: 14
+                    spacing: 8
+                    Text {
+                        text: "󰍉"
+                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: 15
+                        color: Theme.primary
+                    }
+                    TextInput {
+                        id: search
+                        Layout.fillWidth: true
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 13
+                        color: Theme.on_surface
+                        selectionColor: Theme.primary
+                        selectedTextColor: Theme.on_primary
+                        clip: true
+                        onTextChanged: root.query = text
+                        Text {
+                            visible: search.text === ""
+                            text: "Search notifications"
+                            font: search.font
+                            color: Theme.on_surface_variant
+                        }
+                    }
+                }
+            }
+
+            // Apps muted from toasts; click one to let it through again
+            Flow {
+                Layout.preferredWidth: 340
+                visible: Notifs.muted.length > 0
+                spacing: 6
+                Repeater {
+                    model: Notifs.muted
+                    Rectangle {
+                        id: mchip
+                        required property string modelData
+                        implicitWidth: mlabel.implicitWidth + 24
+                        implicitHeight: 28
+                        radius: 14
+                        color: marea.containsMouse ? Theme.error_container : Theme.surface_container
+                        Text {
+                            id: mlabel
+                            anchors.centerIn: parent
+                            text: "󰂛 " + mchip.modelData
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 11
+                            color: marea.containsMouse ? Theme.on_error_container : Theme.on_surface_variant
+                        }
+                        MouseArea {
+                            id: marea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Notifs.setMuted(mchip.modelData, false)
+                        }
+                    }
+                }
+            }
+
             Item {
                 Layout.preferredWidth: 340
                 Layout.preferredHeight: Math.min(list.contentHeight, 520)
-                visible: Notifs.count > 0
+                visible: root.rows.length > 0
                 Behavior on Layout.preferredHeight { NumberAnimation { duration: 200; easing.type: Easing.OutQuint } }
 
                 ListView {
@@ -99,14 +193,69 @@ Scope {
                     clip: true
                     spacing: 8
                     boundsBehavior: Flickable.StopAtBounds
-                    model: Notifs.all.slice().reverse()
+                    model: root.rows
+
+                    // One header per app, with its count and quick actions
+                    section.property: "app"
+                    section.criteria: ViewSection.FullString
+                    section.delegate: RowLayout {
+                        id: head
+                        required property string section
+                        width: list.width
+                        height: 30
+                        spacing: 6
+                        Text {
+                            Layout.fillWidth: true
+                            text: head.section || "Unknown"
+                            elide: Text.ElideRight
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                            color: Theme.primary
+                        }
+                        Text {
+                            text: Notifs.isMuted(head.section) ? "󰂛" : "󰂚"
+                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: 15
+                            color: Notifs.isMuted(head.section) ? Theme.error : Theme.on_surface_variant
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -5
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Notifs.setMuted(head.section, !Notifs.isMuted(head.section))
+                            }
+                        }
+                        Text {
+                            text: "󰆴"
+                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: 15
+                            color: Theme.on_surface_variant
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -5
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Notifs.clearApp(head.section)
+                            }
+                        }
+                    }
 
                     delegate: NotificationCard {
                         required property var modelData
-                        notif: modelData
+                        notif: modelData.n
+                        canType: true
                         width: list.width
                     }
                 }
+            }
+
+            Text {
+                Layout.preferredWidth: 340
+                visible: Notifs.count > 0 && root.rows.length === 0
+                horizontalAlignment: Text.AlignHCenter
+                text: "No matches"
+                font.family: Theme.fontFamilyRegular
+                font.pixelSize: 13
+                color: Theme.on_surface_variant
             }
 
             Text {

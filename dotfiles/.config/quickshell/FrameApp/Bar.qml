@@ -283,6 +283,22 @@ Item {
                 }
             }
 
+            // Screen recording: red dot while recording, click to stop
+            Icon {
+                id: rec
+                visible: Recorder.active
+                text: "󰑊"
+                color: Theme.error
+                onClicked: Recorder.stop()
+                // Slow pulse so it is noticed without being distracting
+                SequentialAnimation on opacity {
+                    running: Recorder.active
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.35; duration: 900; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 1; duration: 900; easing.type: Easing.InOutSine }
+                }
+            }
+
             // Media: only while a player exists; hover for the player card
             Icon {
                 popout: "media"

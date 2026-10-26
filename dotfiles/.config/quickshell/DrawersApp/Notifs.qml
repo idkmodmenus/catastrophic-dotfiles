@@ -17,7 +17,38 @@ Singleton {
     readonly property var all: server.trackedNotifications.values
     readonly property int count: all.length
 
+    // Apps whose toasts are suppressed; their notifications still reach the
+    // centre. Saved one name per line.
+    property var muted: []
+    readonly property string mutedPath: Quickshell.env("HOME") + "/.config/catastrophic/settings/notif-muted"
+
     signal centerRequested()
+
+    function isMuted(app: string): bool {
+        return app !== "" && muted.indexOf(app) >= 0
+    }
+    function setMuted(app: string, on: bool): void {
+        if (app === "") return
+        const rest = muted.filter(a => a !== app)
+        muted = on ? [...rest, app].sort() : rest
+        mutedFile.setText(muted.join("\n") + (muted.length ? "\n" : ""))
+        if (on)
+            popups = popups.filter(p => p.appName !== app)
+    }
+    function clearApp(app: string): void {
+        for (const n of all.slice())
+            if (n.appName === app) n.dismiss()
+    }
+
+    FileView {
+        id: mutedFile
+        path: root.mutedPath
+        // A missing file just means nothing is muted yet
+        printErrors: false
+        onLoaded: root.muted = text().split("\n").map(l => l.trim()).filter(l => l !== "")
+        // First run: no file yet, nothing is muted
+        onLoadFailed: root.muted = []
+    }
 
     function showPopup(n): void {
         if (popups.indexOf(n) < 0)
@@ -47,12 +78,13 @@ Singleton {
         bodySupported: true
         bodyMarkupSupported: true
         imageSupported: true
+        inlineReplySupported: true
         persistenceSupported: true
 
         onNotification: n => {
             n.tracked = true
             const critical = n.urgency === NotificationUrgency.Critical
-            if (!root.dnd || critical)
+            if (critical || (!root.dnd && !root.isMuted(n.appName)))
                 root.showPopup(n)
         }
     }
@@ -70,6 +102,9 @@ Singleton {
         function center(): void { root.centerRequested() }
         function clear(): void { root.clearAll() }
         function toggleDnd(): void { root.dnd = !root.dnd }
+        function mute(app: string): void { root.setMuted(app, true) }
+        function unmute(app: string): void { root.setMuted(app, false) }
+        function muted(): string { return root.muted.join(",") }
         function dnd(): bool { return root.dnd }
         function count(): int { return root.count }
     }

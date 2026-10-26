@@ -26,6 +26,10 @@ ShellRoot {
     Osd {}
     Launcher {}
     Session {}
+    WifiPrompt {}
+    Clipboard {}
+    EmojiPicker {}
+    Monitor {}
     NotificationPopups {}
     NotificationCenter {}
     LazyWindow { name: "welcome"; openProperty: "visible"; window: Component { WelcomeWindow {} } }

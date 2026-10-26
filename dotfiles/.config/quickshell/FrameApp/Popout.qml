@@ -10,6 +10,7 @@ import QtQuick.Layouts
 import QtQuick.Shapes
 import qs.CustomTheme
 import qs.Widgets
+import qs.DrawersApp
 
 // Caelestia-style hover popout: a panel in the frame's colour that grows out of
 // the bar next to the hovered icon, joined to it by concave corners.
@@ -171,18 +172,55 @@ Item {
             readonly property real level: ready ? sink.audio.volume : 0
             readonly property bool muted: ready ? sink.audio.muted : false
 
+            // Real output devices (not app streams) and apps currently playing
+            readonly property var outputs: Pipewire.nodes.values.filter(n => n.isSink && !n.isStream && n.audio)
+            readonly property var apps: Pipewire.nodes.values.filter(n => n.isSink && n.isStream && n.audio)
+            property bool pickOutput: false
+
             spacing: 10
-            implicitWidth: 240
+            implicitWidth: 280
 
-            PwObjectTracker { objects: [vol.sink] }
+            PwObjectTracker { objects: [vol.sink].concat(vol.apps) }
 
-            Text {
+            RowLayout {
                 Layout.fillWidth: true
-                text: vol.sink ? (vol.sink.description || vol.sink.name) : "No output"
-                elide: Text.ElideRight
-                font.family: Theme.fontFamilyRegular
-                font.pixelSize: 13
-                color: Theme.on_surface_variant
+                spacing: 6
+                Text {
+                    Layout.fillWidth: true
+                    text: vol.sink ? (vol.sink.description || vol.sink.name) : "No output"
+                    elide: Text.ElideRight
+                    font.family: Theme.fontFamilyRegular
+                    font.pixelSize: 13
+                    color: Theme.on_surface_variant
+                }
+                Text {
+                    visible: vol.outputs.length > 1
+                    text: vol.pickOutput ? "󰅃" : "󰅀"
+                    font.family: "JetBrainsMono Nerd Font"
+                    font.pixelSize: 16
+                    color: Theme.primary
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -6
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: vol.pickOutput = !vol.pickOutput
+                    }
+                }
+            }
+
+            // Output device picker
+            Repeater {
+                model: vol.pickOutput ? vol.outputs : []
+                ListRow {
+                    required property var modelData
+                    glyph: modelData === vol.sink ? "󰄬" : "󰓃"
+                    label: modelData.description || modelData.name
+                    accent: modelData === vol.sink
+                    onClicked: {
+                        Pipewire.preferredDefaultAudioSink = modelData
+                        vol.pickOutput = false
+                    }
+                }
             }
 
             RowLayout {
@@ -224,6 +262,53 @@ Item {
                     font.pixelSize: 14
                     font.weight: Font.Medium
                     color: Theme.on_surface
+                }
+            }
+
+            // Per-app volume
+            Text {
+                visible: vol.apps.length > 0
+                Layout.topMargin: 4
+                text: "Applications"
+                font.family: Theme.fontFamilyRegular
+                font.pixelSize: 12
+                color: Theme.on_surface_variant
+            }
+
+            Repeater {
+                model: vol.apps.slice(0, 5)
+
+                RowLayout {
+                    id: appRow
+                    required property var modelData
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Text {
+                        Layout.preferredWidth: 90
+                        text: appRow.modelData.properties["application.name"] || appRow.modelData.description || appRow.modelData.name
+                        elide: Text.ElideRight
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                        color: Theme.on_surface
+                    }
+                    Slider {
+                        Layout.fillWidth: true
+                        value: appRow.modelData.audio ? appRow.modelData.audio.volume : 0
+                        onMoved: v => { if (appRow.modelData.audio) appRow.modelData.audio.volume = v }
+                    }
+                    Text {
+                        text: appRow.modelData.audio?.muted ? "󰝟" : "󰕾"
+                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: 15
+                        color: appRow.modelData.audio?.muted ? Theme.error : Theme.on_surface_variant
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -4
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: if (appRow.modelData.audio) appRow.modelData.audio.muted = !appRow.modelData.audio.muted
+                        }
+                    }
                 }
             }
         }
@@ -447,7 +532,12 @@ Item {
                     accent: modelData.connected
                     onClicked: {
                         if (modelData.connected) modelData.disconnect()
-                        else if (modelData.known) modelData.connect()
+                        else if (modelData.known || modelData.security === WifiSecurityType.Open
+                                 || modelData.security === WifiSecurityType.Owe) modelData.connect()
+                        else if (modelData.security !== WifiSecurityType.Wpa2Eap
+                                 && modelData.security !== WifiSecurityType.WpaEap
+                                 && modelData.security !== WifiSecurityType.Wpa3SuiteB192)
+                            WifiPromptState.request(modelData)
                     }
                 }
             }
@@ -463,6 +553,22 @@ Item {
             readonly property var devices: Bluetooth.devices.values
                 .filter(d => d.paired || d.connected)
                 .sort((a, b) => b.connected - a.connected)
+            // Discovered but not yet paired; unnamed ones are only an address
+            readonly property var nearby: Bluetooth.devices.values
+                .filter(d => !d.paired && !d.connected && d.name && d.name !== d.address)
+
+            // Pair, then trust and connect so it reconnects by itself next time
+            function pairAndConnect(dev): void {
+                if (dev.pairing) { dev.cancelPair(); return }
+                dev.pair()
+                const done = () => {
+                    if (!dev.paired) return
+                    dev.pairedChanged.disconnect(done)
+                    dev.trusted = true
+                    dev.connect()
+                }
+                dev.pairedChanged.connect(done)
+            }
 
             spacing: 4
             implicitWidth: 264
@@ -488,10 +594,18 @@ Item {
                 }
             }
 
+            // Look for nearby devices only while the panel is showing
+            Binding {
+                target: bt.adapter
+                property: "discovering"
+                value: root.shown && root.kind === "bluetooth"
+                when: bt.adapter !== null && bt.adapter.enabled
+            }
+
             Text {
-                visible: !bt.adapter || !bt.adapter.enabled || bt.devices.length === 0
+                visible: !bt.adapter || !bt.adapter.enabled || (bt.devices.length === 0 && bt.nearby.length === 0)
                 Layout.margins: 10
-                text: !bt.adapter ? "No Bluetooth adapter" : !bt.adapter.enabled ? "Bluetooth is off" : "No paired devices"
+                text: !bt.adapter ? "No Bluetooth adapter" : !bt.adapter.enabled ? "Bluetooth is off" : "Searching for devices…"
                 font.family: Theme.fontFamilyRegular
                 font.pixelSize: 13
                 color: Theme.on_surface_variant
@@ -509,6 +623,28 @@ Item {
                         : ""
                     accent: modelData.connected
                     onClicked: modelData.connected ? modelData.disconnect() : modelData.connect()
+                }
+            }
+
+            Text {
+                visible: bt.adapter?.enabled && bt.nearby.length > 0
+                Layout.topMargin: 6
+                Layout.leftMargin: 10
+                text: "Nearby"
+                font.family: Theme.fontFamilyRegular
+                font.pixelSize: 12
+                color: Theme.on_surface_variant
+            }
+
+            Repeater {
+                model: bt.adapter?.enabled ? bt.nearby.slice(0, 5) : []
+
+                ListRow {
+                    required property var modelData
+                    glyph: "󰂲"
+                    label: modelData.name
+                    trailing: modelData.pairing ? "Pairing…" : "Pair"
+                    onClicked: bt.pairAndConnect(modelData)
                 }
             }
         }

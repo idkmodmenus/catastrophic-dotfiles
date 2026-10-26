@@ -12,6 +12,11 @@ Rectangle {
     visible: notif !== null
     // Called after the card is clicked or closed
     signal closed()
+    // Typing needs keyboard focus, which toasts never take: they ask for the centre instead
+    property bool canType: false
+    signal replyRequested()
+
+    readonly property bool replyable: notif?.hasInlineReply ?? false
 
     readonly property bool critical: notif?.urgency === NotificationUrgency.Critical
     readonly property var actions: notif?.actions ?? []
@@ -109,12 +114,91 @@ Rectangle {
                 color: card.critical ? Theme.on_error_container : Theme.on_surface_variant
             }
 
+            // Inline reply: a field in the centre, a button on toasts
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.topMargin: 6
+                visible: card.replyable && card.canType
+                implicitHeight: 36
+                radius: 18
+                color: Theme.surface_container_highest
+
+                TextInput {
+                    id: replyInput
+                    anchors.fill: parent
+                    anchors.leftMargin: 14
+                    anchors.rightMargin: 40
+                    verticalAlignment: TextInput.AlignVCenter
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 12
+                    color: Theme.on_surface
+                    selectionColor: Theme.primary
+                    selectedTextColor: Theme.on_primary
+                    clip: true
+                    function send() {
+                        const t = text.trim()
+                        if (t === "" || !card.notif) return
+                        card.notif.sendInlineReply(t)
+                        text = ""
+                        card.closed()
+                    }
+                    Keys.onReturnPressed: send()
+                    Keys.onEnterPressed: send()
+
+                    Text {
+                        visible: replyInput.text === ""
+                        text: card.notif?.inlineReplyPlaceholder || "Reply"
+                        font: replyInput.font
+                        color: Theme.on_surface_variant
+                    }
+                }
+                Text {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "󰒊"
+                    font.family: "JetBrainsMono Nerd Font"
+                    font.pixelSize: 16
+                    color: replyInput.text.trim() !== "" ? Theme.primary : Theme.on_surface_variant
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -6
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: replyInput.send()
+                    }
+                }
+            }
+
             // Wraps onto a second line when the labels are long
             Flow {
                 Layout.fillWidth: true
                 Layout.topMargin: 6
-                visible: actionList.count > 0
+                visible: actionList.count > 0 || (card.replyable && !card.canType)
                 spacing: 6
+
+                Rectangle {
+                    visible: card.replyable && !card.canType
+                    implicitWidth: replyLabel.implicitWidth + 24
+                    implicitHeight: 32
+                    radius: 16
+                    color: replyBtn.containsMouse ? Theme.primary_container : Theme.surface_container_highest
+                    Text {
+                        id: replyLabel
+                        anchors.centerIn: parent
+                        text: "Reply"
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        color: Theme.on_surface
+                    }
+                    MouseArea {
+                        id: replyBtn
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: card.replyRequested()
+                    }
+                }
 
                 Repeater {
                     id: actionList

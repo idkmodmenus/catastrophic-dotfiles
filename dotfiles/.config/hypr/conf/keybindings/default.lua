@@ -5,7 +5,7 @@ local mainMod = "SUPER" -- Sets "Windows" key as main modifier
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd("~/.config/catastrophic/settings/terminal.sh"), { description = "Open the terminal" })
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("~/.config/catastrophic/settings/browser.sh"), { description = "Open the browser" })
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("~/.config/catastrophic/settings/filemanager"), { description = "Open the filemanager" })
-hl.bind(mainMod .. " + CTRL + E", hl.dsp.exec_cmd("~/.config/catastrophic/settings/emojipicker.sh"), { description = "Open the emoji picker" })
+hl.bind(mainMod .. " + CTRL + E", hl.dsp.exec_cmd("qs ipc call emoji toggle"), { description = "Open the emoji picker" })
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("~/.config/catastrophic/settings/calculator.sh"), { description = "Open the calculator" })
 
 -- AZERTY keyboard layout setup
@@ -90,6 +90,9 @@ hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd("~/.config/hypr/scripts/screensho
 hl.bind(mainMod .. " + ALT + F", hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh --instant"), { description = "Take an instant full-screen screenshot" })
 hl.bind(mainMod .. " + ALT + S", hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot.sh --instant-area"), { description = "Take an instant area screenshot" })
 hl.bind(mainMod .. " + ALT + A", hl.dsp.exec_cmd("~/.config/hypr/scripts/text-extractor.sh"), { description = "Extract text from an area" })
+hl.bind(mainMod .. " + SHIFT + PRINT", hl.dsp.exec_cmd("qs ipc call record screen"), { description = "Start or stop recording the screen" })
+hl.bind(mainMod .. " + CTRL + PRINT", hl.dsp.exec_cmd("qs ipc call record area"), { description = "Start or stop recording an area" })
+hl.bind(mainMod .. " + SHIFT + ESCAPE", hl.dsp.exec_cmd("qs ipc call monitor toggle"), { description = "Open the system monitor" })
 hl.bind(mainMod .. " + CTRL + P", hl.dsp.exec_cmd("qs ipc call session toggle"), { description = "Start Power Menu" })
 hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("~/.config/catastrophic/scripts/catastrophic-wallpaper-app --random"), { description = "Change the wallpaper" })
 hl.bind(mainMod .. " + CTRL + W", hl.dsp.exec_cmd("~/.config/catastrophic/scripts/catastrophic-wallpaper-app"), { description = "Open wallpaper selector" })
@@ -103,7 +106,7 @@ hl.bind(mainMod .. " + SHIFT + D", hl.dsp.exec_cmd("~/.config/catastrophic/scrip
 hl.bind(mainMod .. " + CTRL + D", hl.dsp.exec_cmd("~/.config/catastrophic/scripts/catastrophic-toggle-dock"), { description = "Toggle Dock" })
 hl.bind(mainMod .. " + ALT + D", hl.dsp.exec_cmd("~/.config/catastrophic/scripts/catastrophic-toggle-dock-autohide"), { description = "Toggle Dock Autohide" })
 hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("~/.config/hypr/scripts/loadconfig.sh"), { description = "Reload hyprland config" })
-hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("~/.config/catastrophic/scripts/catastrophic-cliphist"), { description = "Open clipboard manager" })
+hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("qs ipc call clipboard toggle"), { description = "Open clipboard history" })
 hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("~/.config/catastrophic/scripts/catastrophic-toggle-theme"), { description = "Toggle between light and dark mode" })
 hl.bind(mainMod .. " + CTRL + S", hl.dsp.exec_cmd("qs ipc call sidebar toggle"), { description = "Open Catastrophic Sidebar widget" })
 hl.bind(mainMod .. " + CTRL + C", hl.dsp.exec_cmd("qs ipc call calendar toggle"), { description = "Open Catastrophic Calendar widget" })

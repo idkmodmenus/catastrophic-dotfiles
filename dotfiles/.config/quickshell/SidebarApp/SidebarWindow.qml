@@ -8,6 +8,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Effects
 import qs.CustomTheme
+import qs.Widgets
 
 PanelWindow {
     id: root
@@ -494,52 +495,14 @@ PanelWindow {
                         // Temporary status switch mirroring the SUPER+SHIFT+H
                         // keybinding: it just starts/kills hyprsunset, nothing
                         // is persisted, so the state is gone after a restart.
-                        RowLayout {
-                            Layout.fillWidth: true
+                        ToggleRow {
+                            active: root.isOpen
                             visible: root.isHyprsunsetInstalled
-
-                            Text {
-                                text: "Blue Light Filter"
-                                color: Theme.on_surface
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 16
-                            }
-                            Item { Layout.fillWidth: true }
-                            CatastrophicSwitch {
-                                id: hyprsunsetSwitch
-                                property bool ready: false
-                                // The running process is the only state there is.
-                                Process {
-                                    id: hyprsunsetStateProc
-                                    command: ["bash", "-c", "pgrep -x hyprsunset > /dev/null && echo 1 || echo 0"]
-                                    stdout: StdioCollector {
-                                        onStreamFinished: {
-                                            hyprsunsetSwitch.checked = (this.text.trim() === "1")
-                                            hyprsunsetSwitch.ready = true
-                                        }
-                                    }
-                                }
-                                // Re-read while the sidebar is open so the switch
-                                // tracks external toggles (the keybinding) live.
-                                Timer {
-                                    interval: 1000
-                                    repeat: true
-                                    running: root.isOpen
-                                    triggeredOnStart: true
-                                    onTriggered: hyprsunsetStateProc.running = true
-                                }
-                                onClicked: {
-                                    if (!ready) return;
-                                    // Absolute command matching the switch's
-                                    // post-click position instead of a blind
-                                    // toggle, so it can't get out of sync.
-                                    let cmd = checked
-                                        ? "pgrep -x hyprsunset > /dev/null || setsid -f hyprsunset > /dev/null 2>&1"
-                                        : "pkill -x hyprsunset"
-                                    Quickshell.execDetached(["bash", "-c", cmd])
-                                }
-                            }
-                            Item { implicitWidth: 28 }
+                            label: "Blue Light Filter"
+                            probe: "pgrep -x hyprsunset > /dev/null && echo 1 || echo 0"
+                            poll: true
+                            cmdOn: "pgrep -x hyprsunset > /dev/null || setsid -f hyprsunset > /dev/null 2>&1"
+                            cmdOff: "pkill -x hyprsunset"
                         }
                     }
 
@@ -690,52 +653,16 @@ PanelWindow {
                     }
 
                     // --- STATUS BAR ---
-                    // Single toggle for the Quickshell status bar; this row only
-                    // reflects/flips its state.
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "Status Bar"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
-                        Item { Layout.fillWidth: true }
-                        CatastrophicSwitch {
-                            id: statusbarSwitch
-                            property bool ready: false
-                            // Read the bar's on/off state from the "enabled" flag in
-                            // its config.json.
-                            Process {
-                                id: statusbarStateProc
-                                command: ["bash", "-c", "grep -q '\"enabled\"[[:space:]]*:[[:space:]]*false' ~/.config/catastrophic-statusbar/config.json 2>/dev/null && echo 0 || echo 1"]
-                                stdout: StdioCollector {
-                                    onStreamFinished: {
-                                        statusbarSwitch.checked = (this.text.trim() === "1")
-                                        statusbarSwitch.ready = true
-                                    }
-                                }
-                            }
-                            // Re-read the state periodically while the sidebar is
-                            // open so the switch tracks external toggles (e.g. the
-                            // SUPER+CTRL+B keybinding) live, not just on reopen.
-                            // triggeredOnStart gives the initial read on open.
-                            Timer {
-                                interval: 1000
-                                repeat: true
-                                running: root.isOpen
-                                triggeredOnStart: true
-                                onTriggered: statusbarStateProc.running = true
-                            }
-                            onClicked: {
-                                if (!ready) return;
-                                // Send an absolute command matching the switch's
-                                // post-click position (rather than a blind toggle)
-                                // so the switch always reflects the real bar state,
-                                // even if the bar was toggled elsewhere meanwhile.
-                                let cmd = checked ? "qs ipc call statusbar enable"
-                                                  : "qs ipc call statusbar disable"
-                                console.log("Status Bar cmd: " + cmd)
-                                Quickshell.execDetached(["bash", "-c", cmd])
-                            }
-                        }
+                    ToggleRow {
+                        active: root.isOpen
+                        label: "Status Bar"
+                        probe: "grep -q '\"enabled\"[[:space:]]*:[[:space:]]*false' ~/.config/catastrophic-statusbar/config.json 2>/dev/null && echo 0 || echo 1"
+                        poll: true
+                        endPad: false
+                        cmdOn: "qs ipc call statusbar enable"
+                        cmdOff: "qs ipc call statusbar disable"
 
-                        SettingsWheel {
+                        after: SettingsWheel {
                             onClicked: statusbarMenu.open()
                             Menu {
                                 id: statusbarMenu
@@ -750,9 +677,6 @@ PanelWindow {
                                 }
                                 CatastrophicMenuItem {
                                     text: "Edit configuration"
-                                    // The statusbar's own settings file, created
-                                    // on its first start, is meant to be edited
-                                    // directly.
                                     onClicked: {
                                         root.isOpen = false
                                         Quickshell.execDetached(["bash", "-c", "~/.config/catastrophic/settings/editor.sh ~/.config/catastrophic-statusbar/config.json"])
@@ -762,181 +686,57 @@ PanelWindow {
                         }
                     }
 
-                    // --- STATUSBAR ALWAYS EXPANDED (Quickshell) ---
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "Statusbar Expanded"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
-                        Item { Layout.fillWidth: true }
-                        CatastrophicSwitch {
-                            id: statusbarExpandedSwitch
-                            property bool ready: false
-                            // Read the current state from the "alwaysExpanded" flag
-                            // in the statusbar's settings file. The test is for the
-                            // flag being *false* so a missing file or flag counts as
-                            // on, matching the statusbar's own default — the file
-                            // starts out empty and only carries what was changed.
-                            Process {
-                                command: ["bash", "-c", "grep -q '\"alwaysExpanded\"[[:space:]]*:[[:space:]]*false' ~/.config/catastrophic-statusbar/config.json 2>/dev/null && echo 0 || echo 1"]
-                                running: root.isOpen
-                                stdout: StdioCollector {
-                                    onStreamFinished: {
-                                        console.log("Test for Statusbar Expanded: " + this.text.trim())
-                                        statusbarExpandedSwitch.checked = (this.text.trim() === "1")
-                                        statusbarExpandedSwitch.ready = true
-                                    }
-                                }
-                            }
-                            onClicked: {
-                                if (!ready) return;
-                                // The statusbar owns the file write; just tell it
-                                // the new state via IPC. `checked` already
-                                // reflects the post-click position.
-                                let ipcCmd = checked
-                                ? "qs ipc call statusbar alwaysExpand"
-                                : "qs ipc call statusbar autoCollapse"
-                                console.log("Statusbar Expanded cmd: " + ipcCmd)
-                                Quickshell.execDetached(["bash", "-c", ipcCmd])
-                            }
-                        }
-                        Item { implicitWidth: 28 }
+                    // A missing file or flag counts as on, the bar's own default
+                    ToggleRow {
+                        active: root.isOpen
+                        label: "Statusbar Expanded"
+                        probe: "grep -q '\"alwaysExpanded\"[[:space:]]*:[[:space:]]*false' ~/.config/catastrophic-statusbar/config.json 2>/dev/null && echo 0 || echo 1"
+                        cmdOn: "qs ipc call statusbar alwaysExpand"
+                        cmdOff: "qs ipc call statusbar autoCollapse"
                     }
 
-                    // --- STATUSBAR AUTOHIDE (Quickshell) ---
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "Statusbar Autohide"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
-                        Item { Layout.fillWidth: true }
-                        CatastrophicSwitch {
-                            id: statusbarAutohideSwitch
-                            property bool ready: false
-                            // Read the current state from the "autohide" flag in
-                            // the statusbar's settings file. A missing file or flag
-                            // counts as off, matching the statusbar's own default.
-                            Process {
-                                id: statusbarAutohideProc
-                                command: ["bash", "-c", "grep -q '\"autohide\"[[:space:]]*:[[:space:]]*true' ~/.config/catastrophic-statusbar/config.json 2>/dev/null && echo 1 || echo 0"]
-                                stdout: StdioCollector {
-                                    onStreamFinished: {
-                                        console.log("Test for Statusbar Autohide: " + this.text.trim())
-                                        statusbarAutohideSwitch.checked = (this.text.trim() === "1")
-                                        statusbarAutohideSwitch.ready = true
-                                    }
-                                }
-                            }
-                            // Polled like the Dock switch below, so the
-                            // state tracks changes made outside the sidebar (the
-                            // SUPER + ALT + B keybinding).
-                            Timer {
-                                interval: 1000
-                                repeat: true
-                                running: root.isOpen
-                                triggeredOnStart: true
-                                onTriggered: statusbarAutohideProc.running = true
-                            }
-                            onClicked: {
-                                if (!ready) return;
-                                // The statusbar owns the file write; just tell it
-                                // the new state via IPC. `checked` already
-                                // reflects the post-click position.
-                                let ipcCmd = checked
-                                ? "qs ipc call statusbar autohideOn"
-                                : "qs ipc call statusbar autohideOff"
-                                console.log("Statusbar Autohide cmd: " + ipcCmd)
-                                Quickshell.execDetached(["bash", "-c", ipcCmd])
-                            }
-                        }
-                        Item { implicitWidth: 28 }
+                    ToggleRow {
+                        active: root.isOpen
+                        label: "Statusbar Autohide"
+                        probe: "grep -q '\"autohide\"[[:space:]]*:[[:space:]]*true' ~/.config/catastrophic-statusbar/config.json 2>/dev/null && echo 1 || echo 0"
+                        poll: true
+                        cmdOn: "qs ipc call statusbar autohideOn"
+                        cmdOff: "qs ipc call statusbar autohideOff"
                     }
 
                     // --- LAUNCHER ---
-                    // Select which launcher Catastrophic OS uses. The choice is persisted
-                    // to ~/.config/catastrophic/settings/launcher (read by catastrophic-launcher).
-                    // On = Walker, Off = Rofi.
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "Launcher"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
-                        Item { Layout.fillWidth: true }
+                    // On = Walker, Off = Rofi, persisted to ~/.config/catastrophic/settings/launcher
+                    ToggleRow {
+                        id: launcherRow
+                        active: root.isOpen
+                        label: "Launcher"
+                        probe: "l=$(tr -d '[:space:]' < ~/.config/catastrophic/settings/launcher 2>/dev/null); [ \"$l\" = walker ] && echo 1 || echo 0"
+                        cmdOn: "echo walker > ~/.config/catastrophic/settings/launcher"
+                        cmdOff: "echo rofi > ~/.config/catastrophic/settings/launcher"
+
                         Text {
-                            text: launcherSwitch.checked ? "Walker" : "Rofi"
+                            id: launcherName
+                            // Follows the switch right after it in the row
+                            text: launcherRow.checked ? "Walker" : "Rofi"
                             color: Theme.primary
                             opacity: 0.7
                             font.family: Theme.fontFamily
                             font.pixelSize: 14
                             Layout.rightMargin: 8
                         }
-                        CatastrophicSwitch {
-                            id: launcherSwitch
-                            property bool ready: false
-                            // Read the configured launcher (defaults to rofi).
-                            Process {
-                                command: ["bash", "-c", "l=$(tr -d '[:space:]' < ~/.config/catastrophic/settings/launcher 2>/dev/null); [ \"$l\" = walker ] && echo 1 || echo 0"]
-                                running: root.isOpen
-                                stdout: StdioCollector {
-                                    onStreamFinished: {
-                                        launcherSwitch.checked = (this.text.trim() === "1")
-                                        launcherSwitch.ready = true
-                                    }
-                                }
-                            }
-                            onClicked: {
-                                if (!ready) return;
-                                let cmd = checked
-                                    ? "echo walker > ~/.config/catastrophic/settings/launcher"
-                                    : "echo rofi > ~/.config/catastrophic/settings/launcher"
-                                console.log("Launcher cmd: " + cmd)
-                                Quickshell.execDetached(["bash", "-c", cmd])
-                            }
-                        }
-                        Item { implicitWidth: 28 }
                     }
 
                     // --- DOCK ---
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "Dock"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
-                        Item { Layout.fillWidth: true }
-                        CatastrophicSwitch {
-                            id: dockSwitch
-                            property bool ready: false
-                            // Read the current state from the "enabled" flag in
-                            // the dock's settings file. A missing file or flag
-                            // counts as on, matching the dock's own default.
-                            Process {
-                                id: dockStateProc
-                                command: ["bash", "-c", "grep -q '\"enabled\"[[:space:]]*:[[:space:]]*false' ~/.config/catastrophic-dock/config.json 2>/dev/null && echo 0 || echo 1"]
-                                stdout: StdioCollector {
-                                    onStreamFinished: {
-                                        console.log("Test for Dock: " + this.text.trim())
-                                        dockSwitch.checked = (this.text.trim() === "1")
-                                        dockSwitch.ready = true
-                                    }
-                                }
-                            }
-                            // Re-read the state periodically while the sidebar is
-                            // open so the switch tracks external toggles (e.g. the
-                            // SUPER+CTRL+D keybinding) live, not just on reopen.
-                            // triggeredOnStart gives the initial read on open.
-                            Timer {
-                                interval: 1000
-                                repeat: true
-                                running: root.isOpen
-                                triggeredOnStart: true
-                                onTriggered: dockStateProc.running = true
-                            }
-                            onClicked: {
-                                if (!ready) return;
-                                // The dock owns the file write; just tell it the
-                                // new state via IPC. `checked` already reflects
-                                // the post-click position.
-                                let ipcCmd = checked
-                                ? "catastrophic-dock enable"
-                                : "catastrophic-dock disable"
-                                console.log("Dock cmd: " + ipcCmd)
-                                Quickshell.execDetached(["bash", "-c", ipcCmd])
-                            }
-                        }
+                    ToggleRow {
+                        active: root.isOpen
+                        label: "Dock"
+                        probe: "grep -q '\"enabled\"[[:space:]]*:[[:space:]]*false' ~/.config/catastrophic-dock/config.json 2>/dev/null && echo 0 || echo 1"
+                        poll: true
+                        endPad: false
+                        cmdOn: "catastrophic-dock enable"
+                        cmdOff: "catastrophic-dock disable"
 
-                        SettingsWheel {
+                        after: SettingsWheel {
                             onClicked: dockMenu.open()
                             Menu {
                                 id: dockMenu
@@ -946,15 +746,11 @@ PanelWindow {
 
                                 background: Rectangle { color: Theme.background; border.color: Theme.primary; border.width: 1; radius: 8 }
                                 CatastrophicMenuItem { text: "Reload Dock"; onClicked: {
-                                        // Tells the running dock to re-read its
-                                        // settings files and apply them live.
                                         Quickshell.execDetached(["bash", "-c", "~/.config/catastrophic/scripts/catastrophic-reload-dock"])
                                     }
                                 }
                                 CatastrophicMenuItem {
                                     text: "Settings"
-                                    // Opens the dock's own settings dialog
-                                    // (autohide lives there now).
                                     onClicked: {
                                         root.isOpen = false
                                         Quickshell.execDetached(["bash", "-c", "catastrophic-dock settings"])
@@ -962,9 +758,6 @@ PanelWindow {
                                 }
                                 CatastrophicMenuItem {
                                     text: "Edit configuration"
-                                    // The dock opens its own settings file in
-                                    // dock.editorCommand (xdg-open without one),
-                                    // the same as its menu's entry.
                                     onClicked: {
                                         root.isOpen = false
                                         Quickshell.execDetached(["bash", "-c", "catastrophic-dock edit"])
@@ -975,98 +768,28 @@ PanelWindow {
                     }
 
                     // --- GAMEMODE ---
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "Gamemode"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
-                        Item { Layout.fillWidth: true }
-                        CatastrophicSwitch {
-                            id: gamemodeSwitch
-                            property bool ready: false
-                            Process {
-                                command: ["bash", "-c", "test -f ~/.config/catastrophic/settings/gamemode-enabled && echo 0 || echo 1"]
-                                running: root.isOpen
-                                stdout: StdioCollector {
-                                    onStreamFinished: {
-                                        console.log("Test for Gamemode: " + this.text.trim())
-                                        gamemodeSwitch.checked = (this.text.trim() === "0")
-                                        gamemodeSwitch.ready = true
-                                    }
-                                }
-                            }
-                            onClicked: {
-                                if (!ready) return;
-                                Quickshell.execDetached(["bash", "-c", Quickshell.env("HOME") + "/.config/hypr/scripts/gamemode.sh"])
-                            }
-                        }
-                        Item { implicitWidth: 28 }
+                    ToggleRow {
+                        active: root.isOpen
+                        label: "Gamemode"
+                        probe: "test -f ~/.config/catastrophic/settings/gamemode-enabled && echo 1 || echo 0"
+                        cmdOn: "$HOME/.config/hypr/scripts/gamemode.sh"
                     }
 
-                    // --- HYPRIDLE ---
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "Hypridle"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
-                        Item { Layout.fillWidth: true }
-                        CatastrophicSwitch {
-                            id: hypridleSwitch
-                            property bool ready: false
-                            // Purely a runtime toggle: hypridle is started by
-                            // Hyprland's autostart, so a reboot always brings it
-                            // back. Nothing is persisted here.
-                            Process {
-                                id: hypridleStateProc
-                                command: ["bash", "-c", "pgrep -x hypridle >/dev/null && echo 1 || echo 0"]
-                                stdout: StdioCollector {
-                                    onStreamFinished: {
-                                        console.log("Test for Hypridle: " + this.text.trim())
-                                        hypridleSwitch.checked = (this.text.trim() === "1")
-                                        hypridleSwitch.ready = true
-                                    }
-                                }
-                            }
-                            // Re-read while the sidebar is open so the switch
-                            // tracks external toggles (hypridle toggles)
-                            // live. triggeredOnStart gives the initial read.
-                            Timer {
-                                interval: 1000
-                                repeat: true
-                                running: root.isOpen
-                                triggeredOnStart: true
-                                onTriggered: hypridleStateProc.running = true
-                            }
-                            onClicked: {
-                                if (!ready) return;
-                                // Same script the keybinding uses, so both stay in sync.
-                                Quickshell.execDetached(["bash", "-c", Quickshell.env("HOME") + "/.config/hypr/scripts/hypridle.sh toggle"])
-                            }
-                        }
-                        Item { implicitWidth: 28 }
+                    // --- HYPRIDLE --- (runtime only: Hyprland's autostart brings it back)
+                    ToggleRow {
+                        active: root.isOpen
+                        label: "Hypridle"
+                        probe: "pgrep -x hypridle >/dev/null && echo 1 || echo 0"
+                        poll: true
+                        cmdOn: "$HOME/.config/hypr/scripts/hypridle.sh toggle"
                     }
 
                     // --- FASTFETCH ---
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "Fastfetch"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
-                        Item { Layout.fillWidth: true }
-                        CatastrophicSwitch {
-                            id: fastfetchSwitch
-                            property bool ready: false
-                            Process {
-                                command: ["bash", "-c", "test -f ~/.config/catastrophic/settings/hide-fastfetch && echo 1 || echo 0"]
-                                running: root.isOpen
-                                stdout: StdioCollector {
-                                    onStreamFinished: {
-                                        console.log("Test for Fastfetch: " + this.text.trim())
-                                        fastfetchSwitch.checked = (this.text.trim() === "0")
-                                        fastfetchSwitch.ready = true
-                                    }
-                                }
-                            }
-                            onClicked: {
-                                if (!ready) return;
-                                Quickshell.execDetached(["bash", "-c", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-toggle-fastfetch"])
-                            }
-                        }
-                        Item { implicitWidth: 28 }
+                    ToggleRow {
+                        active: root.isOpen
+                        label: "Fastfetch"
+                        probe: "test -f ~/.config/catastrophic/settings/hide-fastfetch && echo 0 || echo 1"
+                        cmdOn: "$HOME/.config/catastrophic/scripts/catastrophic-toggle-fastfetch"
                     }
 
                     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; Layout.topMargin: 5; Layout.bottomMargin: 5; visible: false }

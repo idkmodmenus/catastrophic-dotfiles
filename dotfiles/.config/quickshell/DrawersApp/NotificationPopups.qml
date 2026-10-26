@@ -38,6 +38,10 @@ Scope {
                     notif: modelData
                     Layout.preferredWidth: 340
                     onClosed: Notifs.hidePopup(modelData)
+                    onReplyRequested: {
+                        Notifs.hidePopup(modelData)
+                        Notifs.centerRequested()
+                    }
 
                     Timer {
                         // Critical notifications stay until dismissed
