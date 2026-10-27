@@ -8,8 +8,27 @@
 -- FUNCTIONS
 require("functions")
 
+-- THIS MACHINE
+-- machine.lua is written by catastrophic-hypr-tune (run by the installer, and by hand with
+-- `catastrophic-hypr-tune`). It holds what depends on the hardware: the GPU setup and the
+-- environment variant. It is not part of the repository, so updates never overwrite it, and
+-- a missing or broken file simply means defaults. Put your own changes in custom.lua instead.
+local machine_ok, machine = pcall(require, "machine")
+if not machine_ok then
+    if not tostring(machine):find("module 'machine' not found", 1, true) then
+        print("catastrophic: machine.lua ignored: " .. tostring(machine))
+    end
+    machine = nil
+end
+if type(machine) ~= "table" then machine = {} end
+_G.machine = machine
+
 -- MONITORS
-require("monitors")
+-- monitors.lua is written by nwg-displays. Without it (or if it is broken) every monitor
+-- is used at its preferred mode, so a missing file can never leave the session without a screen.
+if not pcall(require, "monitors") then
+    hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
+end
 require("conf.monitor")
 
 -- INPUT

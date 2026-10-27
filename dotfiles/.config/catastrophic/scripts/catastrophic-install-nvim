@@ -23,16 +23,18 @@ fi
 if gum confirm "Do you really want to proceed?"; then
 
     # Create backup
-    if [ -L $NVIM_DIR ]; then
-        local current_link_target=$(realpath -m "$NVIM_DIR")
-        cp -rf $current_link_target $BACKUP_DIR/
-        rm $NVIM_DIR
+    # (not "local": this is not inside a function, and bash rejects that, leaving the path empty)
+    if [ -L "$NVIM_DIR" ]; then
+        current_link_target=$(realpath -m "$NVIM_DIR")
+        mkdir -p "$BACKUP_DIR"
+        cp -rf "$current_link_target" "$BACKUP_DIR/"
+        rm "$NVIM_DIR"
         info "Backup created in folder $BACKUP_DIR"
     fi
 
-    if [ -d $NVIM_DIR ] && [ ! -L $NVIM_DIR ]; then
-        mkdir -p $BACKUP_DIR
-        cp -rf $NVIM_DIR $BACKUP_DIR/
+    if [ -d "$NVIM_DIR" ] && [ ! -L "$NVIM_DIR" ]; then
+        mkdir -p "$BACKUP_DIR"
+        cp -rf "$NVIM_DIR" "$BACKUP_DIR/"
         info "Backup created in folder $BACKUP_DIR"
     fi
 
@@ -40,7 +42,7 @@ if gum confirm "Do you really want to proceed?"; then
     TEMP_DIR=$(mktemp -d -t catastrophic-nvim-XXXXXX)
     info "Cloning Catastrophic nvim configuration into $TEMP_DIR..."
     git clone --depth=1 https://github.com/catastrophic-os/catastrophic-nvim.git "$TEMP_DIR"
-    cd "$TEMP_DIR"
+    cd "$TEMP_DIR" || exit 1
     
     info "Installing Catastrophic nvim configuration to ~/.config..."
     make install    

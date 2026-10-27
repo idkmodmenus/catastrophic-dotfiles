@@ -1,0 +1,380 @@
+#!/usr/bin/env bash
+#
+# catastrophic-hypr-tune: fit the Hyprland config to this computer.
+#
+# Run by the installer (after every install and update) and by hand. It looks at the
+# hardware and writes ~/.config/hypr/machine.lua, which hyprland.lua reads. The file is
+# generated, is not part of the repository, and is rewritten only when something changed,
+# so updates never overwrite your own edits: put those in ~/.config/hypr/custom.lua.
+#
+# What it decides
+#   environment  default, nvidia (NVIDIA is the only GPU) or kvm (virtual machine)
+#   gpu          hybrid laptops only, and only when you choose it: run the desktop on the
+#                integrated GPU so the NVIDIA GPU can power down. Hyprland opens its GPUs
+#                before it reads its config, so this goes where the session manager (uwsm)
+#                sets the environment: ~/.config/uwsm/env-hyprland.d/50-catastrophic-gpu.
+#                It applies to the uwsm session ("Hyprland (uwsm-managed)" at the login screen).
+# What it fills in
+#   monitors     a neutral monitors.lua if there is none (nwg-displays overwrites it later)
+#   keyboard     only with --keyboard (the installer passes it on a fresh install, never on an
+#                update): the layout your system uses (from localectl) into input.lua, and only
+#                where input.lua still has the shipped default
+#
+# Usage: catastrophic-hypr-tune [--install] [--ask] [--keyboard] [--print]
+#                               [--gpu auto|igpu|all] [--check] [--help]
+#   --install      detect and write the files (default)
+#   --ask          also ask about the GPU question, when a hybrid laptop is found
+#   --keyboard     also take the keyboard layout from the system settings
+#   --print        show what was detected and what would be written; change nothing
+#   --gpu MODE     igpu: desktop on the integrated GPU only (saves battery, but a monitor
+#                  wired to the NVIDIA GPU, often the HDMI port, will not work)
+#                  all/auto: Hyprland's default; then write the files
+#   --check        after logging in again: is the NVIDIA GPU asleep?
+#
+# Testing: SYSFS, DRI_ROOT, HYPR_DIR, CATASTROPHIC_SETTINGS and TUNE_VIRT=0|1 override
+# the places and facts it looks at.
+
+set -u
+
+SYSFS="${SYSFS:-/sys}"
+DRI_ROOT="${DRI_ROOT:-/dev/dri}"
+HYPR_DIR="${HYPR_DIR:-$HOME/.config/hypr}"
+SETTINGS_DIR="${CATASTROPHIC_SETTINGS:-$HOME/.config/catastrophic/settings}"
+UWSM_DIR="${UWSM_ENV_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/uwsm/env-hyprland.d}"
+GPU_FRAGMENT="$UWSM_DIR/50-catastrophic-gpu"
+STAMP_DIR="${CATASTROPHIC_STAMPS:-$HOME/.cache/catastrophic-applied}"
+GPU_MODE_FILE="$SETTINGS_DIR/gpu-mode"
+
+# A test run (fake SYSFS) must never write into the real config: demand that the places it
+# writes to are given too.
+if [ "$SYSFS" != /sys ] && { [ "$HYPR_DIR" = "$HOME/.config/hypr" ] || [ -z "${UWSM_ENV_DIR:-}" ]; }; then
+    echo "catastrophic-hypr-tune: SYSFS is overridden but HYPR_DIR/UWSM_ENV_DIR are not; refusing to touch the real config" >&2
+    exit 2
+fi
+
+say()  { printf ':: %s\n' "$*"; }
+warn() { printf ':: WARNING: %s\n' "$*" >&2; }
+
+ACTION=install ASK=0 KEYBOARD=0 PRINT_ONLY=0 SET_GPU=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --install) ACTION=install ;;
+        --ask)     ASK=1 ;;
+        --keyboard) KEYBOARD=1 ;;
+        --print)   PRINT_ONLY=1 ;;
+        --check)   ACTION=check ;;
+        --gpu)     [ $# -ge 2 ] || { warn "--gpu needs auto, igpu or all"; exit 2; }
+                   SET_GPU="$2"; shift ;;
+        --help|-h) sed -n '3,32p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *)         warn "Unknown option: $1 (try --help)"; exit 2 ;;
+    esac
+    shift
+done
+case "$SET_GPU" in ""|auto|igpu|all) ;; *) warn "--gpu must be auto, igpu or all"; exit 2 ;; esac
+
+# ---------------------------------------------------------------- detection
+
+# One line per GPU: "<card> <vendor> <pci address>"; vendor is nvidia, amd, intel or other
+GPUS=()
+detect_gpus() {
+    local card name vendor id pci
+    GPUS=()
+    for card in "$SYSFS"/class/drm/card[0-9]*; do
+        [ -e "$card" ] || continue
+        name="${card##*/}"
+        case "$name" in *-*) continue ;; esac            # connectors are card0-eDP-1 and so on
+        id="$(cat "$card/device/vendor" 2> /dev/null)" || continue
+        case "$id" in
+            0x10de) vendor=nvidia ;; 0x1002) vendor=amd ;; 0x8086) vendor=intel ;; *) vendor=other ;;
+        esac
+        pci="$(basename "$(readlink -f "$card/device" 2> /dev/null)" 2> /dev/null)"
+        GPUS+=("$name $vendor ${pci:-unknown}")
+    done
+}
+
+# Connected outputs, one "<card> <connector>" per line
+connected_outputs() {
+    local c name
+    for c in "$SYSFS"/class/drm/card[0-9]*-*; do
+        [ -e "$c/status" ] || continue
+        [ "$(cat "$c/status" 2> /dev/null)" = connected ] || continue
+        name="${c##*/}"
+        printf '%s %s\n' "${name%%-*}" "${name#*-}"
+    done
+}
+
+is_vm() {
+    case "${TUNE_VIRT:-}" in 1) return 0 ;; 0) return 1 ;; esac
+    if command -v systemd-detect-virt > /dev/null 2>&1; then
+        systemd-detect-virt --vm --quiet 2> /dev/null && return 0
+        return 1
+    fi
+    grep -qiE 'kvm|qemu|virtualbox|vmware|virtual machine|bochs' "$SYSFS/class/dmi/id/product_name" 2> /dev/null
+}
+
+is_laptop() {
+    local b ct
+    for b in "$SYSFS"/class/power_supply/BAT*; do [ -e "$b" ] && return 0; done
+    ct="$(cat "$SYSFS/class/dmi/id/chassis_type" 2> /dev/null)"
+    case "$ct" in 8|9|10|14) return 0 ;; esac
+    return 1
+}
+
+# Facts, set by analyse
+VM=0 LAPTOP=0 N_NVIDIA=0 N_IGPU=0 HYBRID=0 PANEL_CARD="" PANEL_VENDOR="" PANEL_PCI="" EXT_ON_NVIDIA=0
+ENVIRONMENT=default
+
+analyse() {
+    local line card vendor pci conn
+    detect_gpus
+    is_vm && VM=1
+    is_laptop && LAPTOP=1
+    for line in "${GPUS[@]}"; do
+        set -- $line
+        case "$2" in nvidia) N_NVIDIA=$((N_NVIDIA + 1)) ;; amd|intel) N_IGPU=$((N_IGPU + 1)) ;; esac
+    done
+    [ "$N_NVIDIA" -gt 0 ] && [ "$N_IGPU" -gt 0 ] && HYBRID=1
+
+    # The card with the laptop's own screen (eDP, LVDS or DSI) is the one that has to stay
+    while read -r card conn; do
+        [ -n "$card" ] || continue
+        case "$conn" in
+            eDP-*|LVDS-*|DSI-*)
+                [ -z "$PANEL_CARD" ] && PANEL_CARD="$card" ;;
+        esac
+    done < <(connected_outputs)
+    if [ -n "$PANEL_CARD" ]; then
+        for line in "${GPUS[@]}"; do
+            set -- $line
+            if [ "$1" = "$PANEL_CARD" ]; then PANEL_VENDOR="$2"; PANEL_PCI="$3"; fi
+        done
+    fi
+    while read -r card conn; do
+        [ -n "$card" ] || continue
+        for line in "${GPUS[@]}"; do
+            set -- $line
+            [ "$1" = "$card" ] && [ "$2" = nvidia ] && EXT_ON_NVIDIA=1
+        done
+    done < <(connected_outputs)
+
+    if [ "$VM" -eq 1 ]; then
+        ENVIRONMENT=kvm
+    elif [ "$N_NVIDIA" -gt 0 ] && [ "$HYBRID" -eq 0 ] && [ "$N_IGPU" -eq 0 ]; then
+        ENVIRONMENT=nvidia
+    fi
+}
+
+gpu_mode() {   # the saved choice: auto, igpu or all
+    local m
+    m="$(2> /dev/null tr -d '[:space:]' < "$GPU_MODE_FILE")"
+    case "$m" in igpu|all) echo "$m" ;; *) echo auto ;; esac
+}
+
+# AQ_DRM_DEVICES for igpu mode, or nothing (and a reason on fd 3) when it is not possible
+# AQ_DRM_DEVICES is a colon-separated list, and the stable name of a GPU (pci-0000:05:00.0-card)
+# has colons in it, so it cannot be used directly. The tuner makes a symlink without colons
+# (gpu-igpu, next to machine.lua) that points at it, and the config uses the link.
+GPU_LINK_NAME=gpu-igpu
+GPU_DEVICES="" GPU_NOTE=""
+decide_gpu() {
+    local mode="$1" dev
+    GPU_DEVICES="" GPU_NOTE=""
+    [ "$mode" = igpu ] || return 0
+    if [ "$HYBRID" -ne 1 ]; then GPU_NOTE="not a hybrid NVIDIA laptop, nothing to do"; return 0; fi
+    if [ -z "$PANEL_CARD" ] || { [ "$PANEL_VENDOR" != amd ] && [ "$PANEL_VENDOR" != intel ]; }; then
+        GPU_NOTE="the laptop screen is not on the integrated GPU (or was not found); keeping all GPUs"; return 0
+    fi
+    if [ "$EXT_ON_NVIDIA" -eq 1 ]; then
+        GPU_NOTE="a monitor is connected to the NVIDIA GPU right now; keeping all GPUs. Unplug it and run: catastrophic-hypr-tune --gpu igpu"; return 0
+    fi
+    dev="$DRI_ROOT/by-path/pci-$PANEL_PCI-card"
+    if [ ! -e "$dev" ]; then GPU_NOTE="$dev does not exist; keeping all GPUs"; return 0; fi
+    GPU_DEVICES="$dev"
+}
+
+# ---------------------------------------------------------------- output
+
+render_machine_lua() {
+    local gpus="" line vendor
+    for line in "${GPUS[@]}"; do set -- $line; gpus="$gpus\"$2\", "; done
+    gpus="${gpus%, }"
+    cat <<EOF
+-- Written by catastrophic-hypr-tune. Rewritten when the hardware or your choice changes, so
+-- do not edit it: put your own changes in custom.lua. Delete it to go back to the defaults.
+return {
+    environment = "$ENVIRONMENT",
+EOF
+    if [ -n "$GPU_DEVICES" ]; then
+        cat <<EOF
+    -- Informational: the desktop runs on the integrated GPU only (set in the uwsm environment,
+    -- see ~/.config/uwsm/env-hyprland.d/50-catastrophic-gpu). Undo: catastrophic-hypr-tune --gpu all
+    gpu = { mode = "igpu", target = "$GPU_DEVICES" },
+EOF
+    fi
+    cat <<EOF
+    detected = { vm = $([ "$VM" -eq 1 ] && echo true || echo false), laptop = $([ "$LAPTOP" -eq 1 ] && echo true || echo false), gpus = { $gpus } },
+}
+EOF
+}
+
+# Replace a file only when its content changed
+write_if_changed() {   # write_if_changed <dest> <content-from-stdin>
+    local dest="$1" tmp
+    tmp="$(mktemp "$dest.XXXXXX")" || return 1
+    cat > "$tmp"
+    if [ -f "$dest" ] && cmp -s "$tmp" "$dest"; then rm -f -- "${tmp:?}"; return 2; fi
+    mv -f "$tmp" "$dest"
+}
+
+stamp_done()  { [ -e "$STAMP_DIR/$1" ]; }
+stamp_set()   { mkdir -p "$STAMP_DIR" && echo "done" > "$STAMP_DIR/$1"; }
+
+# Keyboard layout: only on the first run, and only if input.lua still has the shipped default
+tune_keyboard() {
+    local f="$HYPR_DIR/input.lua" ls lay var
+    [ -f "$f" ] || return 0
+    stamp_done hypr-keyboard && return 0
+    command -v localectl > /dev/null 2>&1 || { stamp_set hypr-keyboard; return 0; }
+    ls="$(localectl status 2> /dev/null)"
+    lay="$(printf '%s\n' "$ls" | sed -n 's/^ *X11 Layout: *//p' | head -1 | tr -d ' ')"
+    var="$(printf '%s\n' "$ls" | sed -n 's/^ *X11 Variant: *//p' | head -1 | tr -d ' ')"
+    # What localectl prints for "not set" is "(unset)" or "n/a"
+    case "$lay" in ""|"(unset)"|"n/a") stamp_set hypr-keyboard; return 0 ;; esac
+    case "$var" in "(unset)"|"n/a") var="" ;; esac
+    if ! [[ "$lay" =~ ^[a-z0-9,_-]+$ ]] || ! [[ "$var" =~ ^[a-zA-Z0-9_,-]*$ ]]; then
+        warn "Unexpected keyboard layout '$lay' '$var'; leaving input.lua alone."; stamp_set hypr-keyboard; return 0
+    fi
+    if [ "$lay" = us ] && [ -z "$var" ]; then stamp_set hypr-keyboard; return 0; fi
+    # Only the untouched shipped default is replaced
+    if grep -qE '^[[:space:]]*kb_layout[[:space:]]*=[[:space:]]*"us",' "$f" \
+        && grep -qE '^[[:space:]]*kb_variant[[:space:]]*=[[:space:]]*"",' "$f"; then
+        sed -i -E "s|^([[:space:]]*kb_layout[[:space:]]*=[[:space:]]*)\"us\",|\1\"$lay\",|; s|^([[:space:]]*kb_variant[[:space:]]*=[[:space:]]*)\"\",|\1\"$var\",|" "$f"
+        say "Keyboard layout set to '$lay'${var:+ ($var)} from your system settings."
+    fi
+    stamp_set hypr-keyboard
+}
+
+tune_monitors() {
+    local f="$HYPR_DIR/monitors.lua"
+    [ -e "$f" ] && return 0
+    cat > "$f" <<'EOF'
+-- Monitor layout. nwg-displays rewrites this file when you apply a layout, and updates keep
+-- your version. Until then every monitor runs at its preferred mode, placed side by side,
+-- with the scale Hyprland picks for its pixel density.
+hl.monitor({
+    output = "",
+    mode = "preferred",
+    position = "auto",
+    scale = "auto"
+})
+EOF
+    say "Created a default monitors.lua."
+}
+
+# ---------------------------------------------------------------- check (after re-login)
+
+do_check() {
+    local pid st dev
+    analyse
+    say "GPUs: ${GPUS[*]:-none found}"
+    if [ "$HYBRID" -ne 1 ]; then say "This is not a hybrid NVIDIA laptop; nothing to check."; return 0; fi
+    pid="$(pgrep -x Hyprland | head -1)"
+    if [ -n "$pid" ] && [ -r "/proc/$pid/environ" ]; then
+        dev="$(tr '\0' '\n' < "/proc/$pid/environ" | sed -n 's/^AQ_DRM_DEVICES=//p')"
+        say "AQ_DRM_DEVICES seen by Hyprland: ${dev:-(not set)}"
+        if [ -z "$dev" ] && [ -f "$GPU_FRAGMENT" ]; then
+            if tr '\0' '\n' < "/proc/$pid/environ" | grep -q '^UWSM_'; then
+                say "This is a uwsm session, so it applies after the next login."
+            else
+                say "This session was not started by uwsm, which is what applies the GPU setting. Choose the uwsm session at the login screen."
+            fi
+        fi
+    fi
+    for line in "${GPUS[@]}"; do
+        set -- $line
+        [ "$2" = nvidia ] || continue
+        st="$(cat "$SYSFS/bus/pci/devices/$3/power/runtime_status" 2> /dev/null)"
+        say "NVIDIA GPU $3 power state: ${st:-unknown} (suspended = asleep, active = awake)"
+        [ "$st" = suspended ] && say "The NVIDIA GPU is asleep. Battery saving is working."
+        [ "$st" = active ] && say "The NVIDIA GPU is awake. If you chose igpu, log out and back in once; otherwise something is using it."
+    done
+}
+
+# ---------------------------------------------------------------- main
+
+[ "$ACTION" = check ] && { do_check; exit 0; }
+
+analyse
+
+MODE="$(gpu_mode)"
+if [ -n "$SET_GPU" ]; then
+    MODE="$SET_GPU"
+    if [ "$PRINT_ONLY" -eq 0 ]; then
+        mkdir -p "$SETTINGS_DIR" && printf '%s\n' "$SET_GPU" > "$GPU_MODE_FILE"
+    fi
+elif [ "$ASK" -eq 1 ] && [ ! -f "$GPU_MODE_FILE" ] && [ "$HYBRID" -eq 1 ] && [ "$LAPTOP" -eq 1 ] \
+    && [ -n "$PANEL_CARD" ] && [ "$EXT_ON_NVIDIA" -eq 0 ] && [ -t 0 ] && [ "$PRINT_ONLY" -eq 0 ]; then
+    cat <<'EOF'
+
+  This laptop has an NVIDIA GPU next to its integrated GPU. Hyprland keeps the NVIDIA GPU
+  awake all the time, which costs about 4 W (battery life and heat) for nothing.
+
+  Running the desktop on the integrated GPU only lets the NVIDIA GPU power down. The catch:
+  a monitor plugged into a port that is wired to the NVIDIA GPU (often HDMI) will not work.
+  You can switch back any time with: catastrophic-hypr-tune --gpu all
+
+EOF
+    ans=n
+    if command -v gum > /dev/null 2>&1; then
+        gum confirm "Save battery by running the desktop on the integrated GPU only?" --default=No && ans=y
+    else
+        read -r -p "Save battery by running the desktop on the integrated GPU only? [y/N] " ans
+    fi
+    case "$ans" in [Yy]*) MODE=igpu ;; *) MODE=all ;; esac
+    mkdir -p "$SETTINGS_DIR" && printf '%s\n' "$MODE" > "$GPU_MODE_FILE"
+fi
+decide_gpu "$MODE"
+
+if [ "$PRINT_ONLY" -eq 1 ]; then
+    say "GPUs: ${GPUS[*]:-none}"
+    say "Virtual machine: $VM   Laptop: $LAPTOP   Hybrid NVIDIA: $HYBRID   Screen on: ${PANEL_CARD:-n/a} (${PANEL_VENDOR:-n/a})"
+    say "GPU mode: $MODE${GPU_NOTE:+ ($GPU_NOTE)}"
+    say "machine.lua would be:"
+    render_machine_lua
+    exit 0
+fi
+
+if [ ! -d "$HYPR_DIR" ]; then
+    warn "$HYPR_DIR does not exist; nothing to tune."
+    exit 0
+fi
+
+[ -n "$GPU_NOTE" ] && say "GPU: $GPU_NOTE"
+if [ -n "$GPU_DEVICES" ]; then
+    # The link first, then the fragment that uses it. The fragment checks at every login that
+    # the link still leads to a GPU, so a changed or removed GPU can never leave the session
+    # without a screen: it then simply uses all GPUs.
+    ln -sfn "$GPU_DEVICES" "$HYPR_DIR/$GPU_LINK_NAME" || warn "Could not create $HYPR_DIR/$GPU_LINK_NAME"
+    mkdir -p "$UWSM_DIR" && write_if_changed "$GPU_FRAGMENT" <<EOF
+# Written by catastrophic-hypr-tune (--gpu igpu): run the desktop on the integrated GPU only, so
+# the NVIDIA GPU can power down. Remove with: catastrophic-hypr-tune --gpu all
+# The path has no colons (AQ_DRM_DEVICES is colon-separated); it is a link to the GPU's stable name.
+if [ -e "\$HOME/.config/hypr/$GPU_LINK_NAME" ]; then
+    export AQ_DRM_DEVICES="\$HOME/.config/hypr/$GPU_LINK_NAME"
+fi
+EOF
+    command -v uwsm > /dev/null 2>&1 || warn "uwsm is not installed; the GPU setting only applies in a uwsm session."
+else
+    # Only our own files are removed, and only by exact name (the :? makes the shell stop if a name is empty)
+    [ -L "${HYPR_DIR:?}/${GPU_LINK_NAME:?}" ] && rm -f -- "${HYPR_DIR:?}/${GPU_LINK_NAME:?}"
+    if [ -f "$GPU_FRAGMENT" ] && grep -q "catastrophic-hypr-tune" "$GPU_FRAGMENT"; then rm -f -- "${GPU_FRAGMENT:?}"; fi
+fi
+render_machine_lua | write_if_changed "$HYPR_DIR/machine.lua"
+case $? in
+    0) say "Hyprland tuned for this machine (environment: $ENVIRONMENT${GPU_DEVICES:+, desktop on the integrated GPU}). Log out and back in to apply${GPU_DEVICES:+ (the GPU setting needs the uwsm session at the login screen)}." ;;
+    2) say "Hyprland is already tuned for this machine." ;;
+    *) warn "Could not write $HYPR_DIR/machine.lua" ;;
+esac
+tune_monitors
+[ "$KEYBOARD" -eq 1 ] && tune_keyboard
+exit 0

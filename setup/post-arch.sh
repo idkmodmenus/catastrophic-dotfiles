@@ -44,7 +44,7 @@ else
     pick_default_app browser      "firefox librewolf zen-browser brave chromium google-chrome-stable vivaldi-stable qutebrowser" firefox firefox
     pick_default_app filemanager  "nautilus dolphin thunar nemo pcmanfm" nautilus nautilus
     pick_default_app editor       "gnome-text-editor kate kwrite gedit mousepad" gnome-text-editor gnome-text-editor
-    echo done > "$DEFAULT_APPS_STAMP"
+    echo "done" > "$DEFAULT_APPS_STAMP"
 fi
 
 # --- Dock and status bar look ---

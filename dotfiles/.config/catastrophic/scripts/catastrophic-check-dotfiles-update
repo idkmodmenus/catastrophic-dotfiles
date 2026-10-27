@@ -4,7 +4,7 @@
 # ------------------------------------------------------
 
 vercomp() {
-    if [[ $1 == $2 ]]; then
+    if [[ "$1" == "$2" ]]; then
         return 0
     fi
     local IFS=.
@@ -31,7 +31,7 @@ testvercomp() {
         1) op='>' ;;
         2) op='<' ;;
     esac
-    if [[ $op != $3 ]]; then
+    if [[ "$op" != "$3" ]]; then
         # No update available
         echo "1"
     else

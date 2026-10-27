@@ -3,8 +3,14 @@
 -- startup files do, so add it for everything Hyprland launches.
 local home = os.getenv("HOME")
 local path = os.getenv("PATH") or "/usr/local/bin:/usr/bin"
-if not path:find(home .. "/.local/bin", 1, true) then
-    hl.env("PATH", home .. "/.local/bin:" .. home .. "/.cargo/bin:" .. path)
+local wanted = ""
+for _, dir in ipairs({ home .. "/.local/bin", home .. "/.cargo/bin" }) do
+    if not (":" .. path .. ":"):find(":" .. dir .. ":", 1, true) then
+        wanted = wanted .. dir .. ":"
+    end
+end
+if wanted ~= "" then
+    hl.env("PATH", wanted .. path)
 end
 
 -- Quickshell resolves app icons through Qt's icon theme, which does not follow
@@ -24,5 +30,15 @@ if settings then
     settings:close()
 end
 
-local name = "default.lua"
-load_variant(name,"environments")
+-- Environment variant for this computer, chosen by catastrophic-hypr-tune: "default",
+-- "nvidia" (NVIDIA is the only GPU) or "kvm" (virtual machine). Anything unknown or
+-- broken falls back to the default, so a bad value can never stop the session.
+local variant = machine.environment
+if type(variant) ~= "string" or not variant:match("^[%w_-]+$") then variant = "default" end
+if not pcall(load_variant, variant .. ".lua", "environments") then
+    load_variant("default.lua", "environments")
+end
+
+-- The GPU choice for hybrid laptops is NOT made here: Hyprland opens its GPUs before this file
+-- runs, so it has to be in the environment before the session starts. catastrophic-hypr-tune
+-- puts it in ~/.config/uwsm/env-hyprland.d/ for that (see `catastrophic-hypr-tune --help`).

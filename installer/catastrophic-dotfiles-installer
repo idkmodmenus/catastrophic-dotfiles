@@ -118,6 +118,11 @@ if [ -n "$CLONE_PATH" ] && [ -d "$CLONE_PATH" ]; then
 
     FINAL_TARGET="$DOTFILES_DIR/$PROFILE_ID"
 
+    # A fresh install may fill in machine-specific defaults (such as the keyboard layout);
+    # an update must never change what is already set up
+    FRESH_INSTALL=1
+    [ -d "$FINAL_TARGET" ] && FRESH_INSTALL=0
+
     # --- Step B.5: Update-specific Logic (Backup & Restore) ---
     if [ -d "$FINAL_TARGET" ] && [ "$TEST_MODE" = false ]; then
         backup_existing_profile "$FINAL_TARGET" "$PROFILE_ID" "$DOTFILES_DIR" || {
