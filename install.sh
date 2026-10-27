@@ -104,8 +104,7 @@ fi
 
 # A cut-off download or a wrong branch must stop here, not halfway through the install
 for f in catastrophic.dotinst setup/post-arch.sh setup/preflight-arch.sh setup/dependencies/packages-arch setup/dependencies/packages-aur \
-         installer/catastrophic-dotfiles-installer installer/lib/utils.sh installer/lib/helpers.sh installer/lib/colors.sh dotfiles/.config/hypr/hyprland.lua \
-         dotfiles/.config/catastrophic/scripts/catastrophic-hypr-tune; do
+         installer/catastrophic-dotfiles-installer installer/lib/utils.sh installer/lib/helpers.sh installer/lib/colors.sh dotfiles/.config/hypr/hyprland.lua; do
     [ -f "$SRC/$f" ] || die "The download is incomplete ($f is missing). Run the command again."
 done
 jq empty "$SRC/catastrophic.dotinst" 2>/dev/null || die "The download is damaged (catastrophic.dotinst is not valid). Run the command again."
@@ -121,9 +120,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
     echo "  4. Install the dock, power menu, launcher and window overview"
     echo "  5. Copy the dotfiles to ~/.mydotfiles and symlink them into ~/.config"
     echo "     (existing files are backed up first)"
-    echo "  6. Fit the Hyprland config to this computer: GPU setup, virtual machine, keyboard layout"
-    echo "     (written to ~/.config/hypr/machine.lua only; your own files are not changed)"
-    echo "  7. Ask before each system change: services, login manager, NVIDIA driver, boot splash"
+    echo "  6. Ask before each system change: services, login manager, NVIDIA driver, boot splash"
     exit 0
 fi
 

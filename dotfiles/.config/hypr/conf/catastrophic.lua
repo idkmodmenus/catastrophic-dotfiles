@@ -4,7 +4,16 @@
 -- /_/  /_/____//_/ |__/|__/  \___/\___/_//_/_/
 --
 
--- PATH (~/.local/bin and ~/.cargo/bin) is set once, in environment.lua
+-- HOME directory
+local HOME = os.getenv("HOME")
+
+-- Add .local/bin to PATH
+local current_path = os.getenv("PATH")
+hl.env("PATH", HOME .. "/.local/bin:" .. current_path)
+
+-- Add .cargo/bin to PATH
+local current_path = os.getenv("PATH")
+hl.env("PATH", HOME .. "/.cargo/bin:" .. current_path)
 
 -- Pavucontrol
 hl.window_rule({
@@ -184,6 +193,7 @@ hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
 
 hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
+hl.env("XDG_SESSION_TYPE", "wayland")
 hl.env("XDG_SESSION_DESKTOP", "Hyprland")
 
 -- GDK
@@ -201,8 +211,8 @@ hl.env("XCURSOR_THEME", "Bibata-Modern-Ice")
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 
--- SDL: the video driver is not forced to wayland. SDL picks wayland by itself where it can,
--- and forcing it breaks SDL games that run through XWayland (Steam/Proton).
+-- SDL version
+hl.env("SDL_VIDEODRIVER", "wayland")
 
 -- Quickshell debug
 hl.env("QS_NO_RELOAD_POPUP", "1")

@@ -32,38 +32,8 @@ again: steps that are done are skipped, and your previous setup was backed up in
    (see Memory use).
 4. Copies the dotfiles to `~/.mydotfiles` and symlinks them into `~/.config`.
    Anything it replaces is backed up first.
-5. Fits the Hyprland config to the computer (see Tuned for your computer).
-6. Asks before each system-level change: services, login manager (SDDM),
+5. Asks before each system-level change: services, login manager (SDDM),
    NVIDIA driver, system icon and boot splash. `--yes` does not skip these.
-
-## Tuned for your computer
-
-After the dotfiles are in place, `catastrophic-hypr-tune` looks at the hardware and writes
-`~/.config/hypr/machine.lua`, which `hyprland.lua` reads. The file is generated, is not part of
-the repository, and is only rewritten when something changed, so updates never overwrite it and
-your own edits belong in `~/.config/hypr/custom.lua`. A missing or broken `machine.lua` just
-means the defaults. It decides:
-
-- **Environment:** `nvidia` when NVIDIA is the only GPU, `kvm` inside a virtual machine
-  (software rendering allowed, hardware cursor off), otherwise `default`.
-- **Monitors:** if there is no `monitors.lua`, a neutral one is written (every monitor at its
-  preferred mode, scale chosen by Hyprland). nwg-displays replaces it when you apply a layout.
-  The repository no longer ships the author's own monitor setup.
-- **Keyboard layout:** on a fresh install only, the layout your system uses (from `localectl`)
-  goes into `input.lua`, and only where it still has the shipped default.
-- **Hybrid NVIDIA laptops:** Hyprland opens the NVIDIA GPU even when nothing is shown on it, so
-  it never powers down (about 4 W on a typical laptop). The installer asks once whether to run the
-  desktop on the integrated GPU only. The catch: a monitor wired to the NVIDIA GPU, often the HDMI
-  port, will not work. `catastrophic-hypr-tune --gpu igpu` turns it on and `--gpu all` turns it
-  off, and both take effect after the next login. It has to be set before Hyprland starts, so
-  it is written to `~/.config/uwsm/env-hyprland.d/50-catastrophic-gpu`, which only the uwsm
-  session reads: choose "Hyprland (uwsm-managed)" at the login screen. At every login the file
-  checks that the GPU is still there, and otherwise uses all GPUs, so a changed GPU can never
-  leave you without a screen. After logging in again, `catastrophic-hypr-tune --check` shows
-  whether the NVIDIA GPU is asleep.
-
-`catastrophic-hypr-tune --print` shows what it detected and what it would write, and changes
-nothing.
 
 ## The shell
 
@@ -104,9 +74,8 @@ and makes the system match it:
   edits you made to it are kept. (The first update after installing an older version has no
   checksums yet, so it replaces the shipped files that differ; your copies are in the backup.)
 - Your settings are kept: the default apps, theme, launcher and the other choices in
-  `~/.config/catastrophic/settings`, your monitor layout (`monitors.lua`) and your keyboard and
-  mouse settings (`input.lua`). The installer asks "Keep my ..." for each and keeps them by
-  default. New settings from the repo are added next to them.
+  `~/.config/catastrophic/settings`. The installer asks "Keep my Catastrophic settings"
+  and keeps them by default. New settings from the repo are added next to them.
 - A file is removed only if an earlier install shipped it and the new version no longer does
   (`setup/obsolete-paths` covers installs from before the installer kept a record). Its link
   in `~/.config` goes with it, and the folder it was in is removed only if that left it empty.

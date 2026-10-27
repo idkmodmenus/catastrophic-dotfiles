@@ -4,21 +4,13 @@
     "author": "Catastrophic OS",
     "homepage": "https://github.com/idkmodmenus/catastrophic-dotfiles",
     "description": "Dotfiles for Hyprland on Arch Linux and CachyOS: Hyprland, Quickshell status bar and dock, matugen themes, walker launcher and more.",
-    "version": "2.19.0",
+    "version": "2.18.2",
     "source": "https://github.com/idkmodmenus/catastrophic-dotfiles",
     "subfolder": "dotfiles",
     "restore": [
         {
             "title": "Keep my Catastrophic settings",
             "source": ".config/catastrophic/settings"
-        },
-        {
-            "title": "Keep my monitor layout",
-            "source": ".config/hypr/monitors.lua"
-        },
-        {
-            "title": "Keep my keyboard and mouse settings",
-            "source": ".config/hypr/input.lua"
         }
     ]
 }
