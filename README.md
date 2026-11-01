@@ -29,7 +29,7 @@ again: steps that are done are skipped, and your previous setup was backed up in
    (`setup/dependencies/packages-arch`, plus AUR packages in `packages-aur`).
 3. Installs the dock, window overview, settings app, walker and elephant. The overview, settings
    app, walker and elephant are not started at login; they start the first time you use them
-   (see Memory use).
+   (see Memory use). The separate bottom dock is off by default, since the bar shows the apps.
 4. Copies the dotfiles to `~/.mydotfiles` and symlinks them into `~/.config`.
    Anything it replaces is backed up first.
 5. Asks before each system-level change: services, login manager (SDDM),
@@ -37,10 +37,18 @@ again: steps that are done are skipped, and your previous setup was backed up in
 
 ## The shell
 
-A thin frame runs around the screen and widens at the top into the bar: the logo and
-workspaces on the left, the clock in the middle, status icons and power on the right. Menus
-slide down out of the bar or float in beside the windows, with a light motion blur while
-they move. Keys are on `Super`:
+The bar is three floating glass islands along the top, tinted like the kitty terminal and
+blurred by Hyprland:
+
+- **Left:** the logo (opens the launcher), the workspaces (a dot for an empty one, a paw where
+  windows are open, a cat on the active one), the drop-down terminal and what is playing.
+- **Centre:** the clock and the weather, then your apps: pinned ones first, then anything else
+  that is running, and the app grid at the end. A dot under an app means it is open; click to
+  focus it (again to cycle its windows), middle-click for a new window.
+- **Right:** tray, Wi-Fi, Bluetooth, volume, notifications, battery and power.
+
+Menus and cards drop in below the bar or float in beside the windows, with a light motion
+blur while they move. Keys are on `Super`:
 
 | Keys | Opens |
 | --- | --- |
@@ -52,7 +60,9 @@ they move. Keys are on `Super`:
 | `Super + Ctrl + S` | Sidebar: volume, brightness and toggles |
 | `Super + Tab` | Window overview |
 
-Hover the volume, battery, Wi-Fi, Bluetooth and media icons in the bar for a popout.
+Hover the Wi-Fi, Bluetooth, volume, battery and now-playing items in the bar for a popout.
+Pinned apps are kept in `~/.config/catastrophic-dock/config.json` (`apps.pinned`). The old
+bottom dock can still be switched on in the sidebar; while it is on, the bar hides its apps.
 Notifications are served by the shell itself, with action buttons such as the update prompt.
 
 While an app uses the microphone, camera or screen sharing, a coloured dot appears in the bar;

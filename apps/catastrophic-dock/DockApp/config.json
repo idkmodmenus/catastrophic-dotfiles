@@ -10,6 +10,10 @@ It is created empty on first start and merged over the
 built-in defaults below, so it only needs to carry the values you want to
 change. The dock writes enabled / autohide / the pinned app list back into it.
 
+dock.enabled is off by default: the main shell's top bar shows the apps (and
+the app grid) itself, and hides them while this dock is switched on, so the two
+never show at once. The dock process is only started at login when enabled.
+
 dock.launcherCommand is what a left click on the launcher button runs. It is
 run through bash, so a leading ~, arguments and pipes all work.
 
@@ -24,7 +28,7 @@ dock recolors whenever the file changes.
 */
 {
     "dock": {
-        "enabled": true,
+        "enabled": false,
         "autohide": false,
         "iconSize": 32,
         "spacing": 8,

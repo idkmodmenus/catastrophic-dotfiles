@@ -14,6 +14,8 @@ PanelWindow {
 
     // --- WAYLAND CONFIGURATION ---
     WlrLayershell.layer: WlrLayer.Top
+    // Named so Hyprland can blur behind it (glass, like the shell's bar islands)
+    WlrLayershell.namespace: "catastrophic-dock"
     // The dock claims its strip of the screen so windows tile above it instead
     // of running underneath. Only the pill itself is reserved (the window is
     // taller to leave room for the shadow), see exclusiveZone below.

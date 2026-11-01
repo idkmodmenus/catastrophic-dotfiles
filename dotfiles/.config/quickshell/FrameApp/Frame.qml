@@ -1,53 +1,24 @@
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
-import QtQuick.Shapes
 import qs.CustomTheme
 import qs.DrawersApp
 
-// Screen frame: a thin border around the windows with rounded inner corners,
-// widening at the top into a band that holds three separate island pills.
-// Hover popouts drop below the island they came from as free-standing cards.
+// Floating top bar: three separate glass islands (left, centre, right) set in
+// from the screen edges, with hover popouts dropping below them as cards.
+// Nothing runs down the sides or along the bottom of the screen.
 Scope {
     id: frame
 
     required property var modelData
 
-    // Space is reserved through empty, click-through surfaces so windows tile
+    // Space is reserved through an empty, click-through surface so windows tile
     // below the islands; the drawing surface itself ignores exclusive zones.
     PanelWindow {
         screen: frame.modelData
         anchors { top: true; left: true; right: true }
         implicitHeight: 1
         exclusiveZone: Geometry.barBottom
-        color: "transparent"
-        mask: Region {}
-        WlrLayershell.namespace: "frame-edge"
-    }
-    PanelWindow {
-        screen: frame.modelData
-        anchors { left: true; top: true; bottom: true }
-        implicitWidth: 1
-        exclusiveZone: Geometry.thickness
-        color: "transparent"
-        mask: Region {}
-        WlrLayershell.namespace: "frame-edge"
-    }
-    PanelWindow {
-        screen: frame.modelData
-        anchors { right: true; top: true; bottom: true }
-        implicitWidth: 1
-        exclusiveZone: Geometry.thickness
-        color: "transparent"
-        mask: Region {}
-        WlrLayershell.namespace: "frame-edge"
-    }
-    // Also keeps the dock's dots clear of the windows
-    PanelWindow {
-        screen: frame.modelData
-        anchors { bottom: true; left: true; right: true }
-        implicitHeight: 1
-        exclusiveZone: Geometry.bottomReserve
         color: "transparent"
         mask: Region {}
         WlrLayershell.namespace: "frame-edge"
@@ -85,30 +56,6 @@ Scope {
             y: popout.y
             width: popout.visible ? popout.width : 0
             height: popout.visible ? popout.height : 0
-        }
-
-        // One static shape, redrawn only when the theme changes
-        Shape {
-            anchors.fill: parent
-            preferredRendererType: Shape.CurveRenderer
-
-            ShapePath {
-                fillColor: Theme.surface
-                strokeColor: "transparent"
-                fillRule: ShapePath.OddEvenFill
-
-                PathRectangle {
-                    width: win.width
-                    height: win.height
-                }
-                PathRectangle {
-                    x: Geometry.thickness
-                    y: Geometry.barBottom
-                    width: win.width - 2 * Geometry.thickness
-                    height: win.height - Geometry.barBottom - Geometry.thickness
-                    radius: Geometry.frameRadius
-                }
-            }
         }
 
         Popout {

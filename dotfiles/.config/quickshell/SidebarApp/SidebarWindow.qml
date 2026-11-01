@@ -730,7 +730,7 @@ PanelWindow {
                     ToggleRow {
                         active: root.isOpen
                         label: "Dock"
-                        probe: "grep -q '\"enabled\"[[:space:]]*:[[:space:]]*false' ~/.config/catastrophic-dock/config.json 2>/dev/null && echo 0 || echo 1"
+                        probe: "grep -q '\"enabled\"[[:space:]]*:[[:space:]]*true' ~/.config/catastrophic-dock/config.json 2>/dev/null && echo 1 || echo 0"
                         poll: true
                         endPad: false
                         cmdOn: "catastrophic-dock enable"

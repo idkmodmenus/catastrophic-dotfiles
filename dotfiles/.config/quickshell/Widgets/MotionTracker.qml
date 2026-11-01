@@ -9,14 +9,23 @@ QtObject {
     property real x: 0
     property real y: 0
     // Smear length per pixel moved per 60 Hz frame, and its ceiling
-    property real strength: 1.7
-    property real maxBlur: 70
+    property real strength: 1.3
+    property real maxBlur: 44
 
     property real vx: 0
     property real vy: 0
-    readonly property real blurX: Math.max(-maxBlur, Math.min(maxBlur, vx * strength))
-    readonly property real blurY: Math.max(-maxBlur, Math.min(maxBlur, vy * strength))
-    readonly property bool moving: Math.abs(blurX) > 0.75 || Math.abs(blurY) > 0.75
+    // Speeds below this (px per 60 Hz frame) get no smear, so the slow tail
+    // of an ease-out lands crisp instead of looking like it drags
+    property real deadZone: 1.5
+
+    readonly property real blurX: _smear(vx)
+    readonly property real blurY: _smear(vy)
+    readonly property bool moving: Math.abs(blurX) > 1 || Math.abs(blurY) > 1
+
+    function _smear(v: real): real {
+        const a = Math.max(0, Math.abs(v) - deadZone) * strength
+        return Math.sign(v) * Math.min(maxBlur, a)
+    }
 
     property real _lastX: 0
     property real _lastY: 0
@@ -27,8 +36,9 @@ QtObject {
         const dt = now - _lastT
         if (_lastT > 0 && dt > 0 && dt < 120) {
             // Smoothed, in px per 60 Hz frame
-            vx = vx * 0.4 + (x - _lastX) * 16.7 / dt * 0.6
-            vy = vy * 0.4 + (y - _lastY) * 16.7 / dt * 0.6
+            // Light smoothing only, so the blur keeps up with the motion
+            vx = vx * 0.2 + (x - _lastX) * 16.7 / dt * 0.8
+            vy = vy * 0.2 + (y - _lastY) * 16.7 / dt * 0.8
         }
         _lastX = x
         _lastY = y
@@ -41,7 +51,7 @@ QtObject {
 
     // No movement for a moment means it has stopped
     property Timer settle: Timer {
-        interval: 50
+        interval: 34
         onTriggered: { tracker.vx = 0; tracker.vy = 0 }
     }
 }

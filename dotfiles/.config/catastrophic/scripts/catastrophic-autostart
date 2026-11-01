@@ -101,10 +101,12 @@ fi
 # (catastrophic-app), so they do not hold memory until then. The old power menu is
 # replaced by the session menu in the main shell.
 
-# Start Catastrophic Dock
-info "Starting Catastrophic Dock"
-catastrophic-dock start &
-info "Catastrophic Dock started"
+# The separate bottom dock is optional (the top bar shows the apps). Start it
+# only while it is switched on, so it holds no memory otherwise.
+if grep -q '"enabled"[[:space:]]*:[[:space:]]*true' ~/.config/catastrophic-dock/config.json 2>/dev/null; then
+    info "Starting Catastrophic Dock"
+    catastrophic-dock start &
+fi
 
 # Walker and its backend (elephant) are not started at login: the launcher starts
 # elephant the first time a menu is shown, and walker quits when the menu closes.

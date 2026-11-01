@@ -28,7 +28,7 @@ Singleton {
     // the same file. DockApp/config.json documents these defaults and must be
     // kept in sync with them.
     readonly property var defaultSettings: ({
-        "dock":   { "enabled": true, "autohide": false, "iconSize": 32,
+        "dock":   { "enabled": false, "autohide": false, "iconSize": 32,
                     "spacing": 8, "marginBottom": 16, "reserveSpace": true,
                     "hideDelay": 400, "launcherButton": true, "collapsible": false,
                     "launcherCommand": "~/.config/hypr/scripts/launcher.sh",

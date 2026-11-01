@@ -179,6 +179,23 @@ hl.window_rule({
     workspace = "special:dropdown silent"
 })
 
+-- Shell drawers (dashboard, launcher, notifications...) animate themselves;
+-- Hyprland's own layer fade would leave them see-through while they slide
+hl.layer_rule({
+    name = "catastrophic-drawers",
+    match = { namespace = "^(frame-drawer)$" },
+    no_anim = true
+})
+
+-- Frosted glass behind the bar and its panels (see quickshell CustomTheme/Glass.qml).
+-- ignore_alpha keeps the blur off the fully transparent parts of these layers.
+hl.layer_rule({
+    name = "catastrophic-glass",
+    match = { namespace = "^(frame|frame-drawer|catastrophic-dock)$" },
+    blur = true,
+    ignore_alpha = 0.05
+})
+
 -- XWayland Video Bridge
 hl.window_rule({
     name = "xwaylandvideobridge",

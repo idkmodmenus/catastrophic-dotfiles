@@ -11,8 +11,7 @@ import qs.CustomTheme
 import qs.Widgets
 import qs.DrawersApp
 
-// Hover popout: a panel in the frame's colour that slides down out of the top
-// band below the hovered icon, joined to the band by concave corners.
+// Hover popout: a glass card that drops in just below the hovered bar item.
 Item {
     id: root
 
@@ -20,7 +19,8 @@ Item {
     required property real winWidth
 
     readonly property int pad: 16
-    readonly property int fillet: 18
+    // Transparent margin around the card so the motion blur can spread past it
+    readonly property int blurPad: 32
     readonly property bool shown: bar.popoutKind !== ""
     readonly property alias hovered: hover.hovered
 
@@ -48,32 +48,31 @@ Item {
         }
     }
 
-    // Hang from the band under the hovered icon. The corners keep clear of the
-    // frame's rounded inner corners at either end.
-    readonly property real minX: Geometry.thickness + Geometry.frameRadius + fillet
-    y: Geometry.barBottom
+    // Centred under the hovered item, kept on screen at either end
+    readonly property real minX: Geometry.edgeMargin
+    y: Geometry.barBottom + Geometry.gap
+    opacity: Math.min(1, progress * 1.5)
     x: Math.max(minX, Math.min(winWidth - width - minX, bar.popoutX - width / 2))
     Behavior on x { enabled: root.shown; NumberAnimation { duration: 300; easing.type: Easing.OutQuint } }
 
     HoverHandler { id: hover }
 
-    readonly property real slideY: 2 - (1 - progress) * (height + 2)
+    // Drops the last few pixels into place as it fades in
+    readonly property real slideY: -(1 - progress) * 16
 
-    // Smears the panel while it slides down or glides between icons
+    // Smears the panel while it drops in or glides between icons
     MotionTracker {
         id: motion
         x: root.x
         y: root.slideY
     }
 
-    // Clipped at the band's edge so the panel appears to slide out from behind it
     Item {
         id: body
-        x: -root.fillet
-        y: -2
-        width: root.width + root.fillet * 2
-        height: root.height + 2
-        clip: true
+        x: -root.blurPad
+        y: -root.blurPad
+        width: root.width + root.blurPad * 2
+        height: root.height + root.blurPad * 2
 
         layer.enabled: motion.moving && root.visible
         layer.smooth: true
@@ -85,14 +84,14 @@ Item {
         }
 
         Item {
-            x: root.fillet
-            y: root.slideY
+            x: root.blurPad
+            y: root.blurPad + root.slideY
             width: root.width
             height: root.height
 
-            AttachedShape {
+            Island {
                 anchors.fill: parent
-                fillet: root.fillet
+                radius: Geometry.cardRadius
             }
 
             Loader {

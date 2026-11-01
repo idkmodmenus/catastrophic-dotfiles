@@ -5,6 +5,8 @@ import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 import Quickshell.Services.Mpris
 import Quickshell.Services.SystemTray
+import Quickshell.Networking
+import Quickshell.Bluetooth
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
@@ -12,16 +14,32 @@ import qs.CustomTheme
 import qs.DrawersApp
 import qs.Widgets
 
-// Top band of the frame: launcher, name and workspaces on the left, the clock
-// in the middle (it opens the dashboard), status and power on the right. The
-// groups sit directly on the frame; only the workspace track and the battery
-// chip are filled.
+// Top bar: three floating glass islands.
+//   Left:   logo (launcher), workspaces, drop-down terminal, now playing
+//   Centre: clock and weather (opens the dashboard), then the apps (the dock)
+//   Right:  tray, Wi-Fi, Bluetooth, volume, notifications, battery, power
+// Hovering most status items opens a popout card below it (see Popout.qml).
 Item {
     id: bar
 
     readonly property alias leftIsland: left
     readonly property alias centerIsland: center
     readonly property alias rightIsland: right
+
+    // The whole bar uses one monospace face, terminal style
+    readonly property string mono: "JetBrainsMono Nerd Font"
+
+    // Tray icons not shown: nm-applet and blueman keep running for their password
+    // and pairing prompts, but the Wi-Fi and Bluetooth chips stand in for them
+    readonly property var hiddenTray: ["nm-applet", "blueman"]
+
+    // Player shown in the now-playing chip: the playing one, else the first
+    readonly property var player: Mpris.players.values.find(p => p.isPlaying) ?? Mpris.players.values[0] ?? null
+
+    function fmtTime(sec: real): string {
+        const s = Math.max(0, Math.floor(sec))
+        return Math.floor(s / 60).toString().padStart(2, "0") + ":" + (s % 60).toString().padStart(2, "0")
+    }
 
     // At least 5 workspaces, growing to reach the highest one in use (1-10 have keybinds)
     readonly property int workspaceCount: Math.max(5,
@@ -30,6 +48,8 @@ Item {
 
     // Hover popouts: which one is open and the bar-relative centre of its icon.
     // Closing is delayed so the pointer can cross from the icon into the card.
+    // Only the item whose popout is showing can close it, so leaving one item
+    // just after entering the next never closes the new popout.
     property string popoutKind: ""
     property real popoutX: 0
     property bool popoutHovered: false
@@ -39,14 +59,16 @@ Item {
         popoutX = item.mapToItem(bar, item.width / 2, 0).x
         popoutKind = kind
     }
-    function closePopout(): void { popoutCloser.restart() }
+    function closePopout(kind: string): void {
+        if (kind === popoutKind) popoutCloser.restart()
+    }
 
     Timer {
         id: popoutCloser
         interval: 350
         onTriggered: if (!bar.popoutHovered) bar.popoutKind = ""
     }
-    onPopoutHoveredChanged: if (!popoutHovered) closePopout()
+    onPopoutHoveredChanged: if (!popoutHovered) closePopout(popoutKind)
 
     function run(cmd: string): void {
         Quickshell.execDetached(["bash", "-c", cmd])
@@ -74,13 +96,13 @@ Item {
         signal scrolled(int delta)
 
         Layout.alignment: Qt.AlignVCenter
-        implicitWidth: 28
-        implicitHeight: 28
+        implicitWidth: 30
+        implicitHeight: 30
 
         onHoveredChanged: {
             if (!popout) return
             if (hovered) bar.openPopout(popout, icon)
-            else bar.closePopout()
+            else bar.closePopout(popout)
         }
 
         Rectangle {
@@ -94,9 +116,9 @@ Item {
         Text {
             id: label
             anchors.centerIn: parent
-            font.family: "JetBrainsMono Nerd Font"
-            font.pixelSize: 16
-            color: icon.lit ? Theme.primary : Theme.on_surface_variant
+            font.family: bar.mono
+            font.pixelSize: 17
+            color: icon.lit ? Theme.primary : Theme.on_surface
             Behavior on color { ColorAnimation { duration: 150 } }
         }
 
@@ -112,13 +134,12 @@ Item {
         }
     }
 
-    // --- Left: launcher, name, workspaces ---
+    // --- Left: logo, workspaces, drop-down terminal, now playing ---
     Island {
         id: left
-        raised: false
         x: Geometry.edgeMargin
         y: Geometry.barMargin
-        width: leftRow.implicitWidth + 10
+        width: leftRow.implicitWidth + 20
         height: Geometry.barHeight
 
         Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
@@ -132,83 +153,30 @@ Item {
         RowLayout {
             id: leftRow
             anchors.verticalCenter: parent.verticalCenter
-            x: 5
+            x: 10
             spacing: 6
 
-            // Wordmark: the logo glyph in the accent colour beside the name
-            Item {
-                Layout.alignment: Qt.AlignVCenter
-                implicitWidth: brand.implicitWidth + 12
-                implicitHeight: 28
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: height / 2
-                    color: Theme.surface_container_highest
-                    opacity: logoMouse.containsMouse ? 1 : 0
-                    Behavior on opacity { NumberAnimation { duration: 150 } }
-                }
-
-                RowLayout {
-                    id: brand
-                    anchors.centerIn: parent
-                    spacing: 7
-
-                    Text {
-                        text: "󰣇"
-                        font.family: "JetBrainsMono Nerd Font"
-                        font.pixelSize: 17
-                        color: Theme.primary
-                    }
-                    Text {
-                        text: "Catastrophic"
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                        font.letterSpacing: 0.4
-                        color: Theme.on_surface
-                    }
-                }
-
-                MouseArea {
-                    id: logoMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: bar.run("~/.config/catastrophic/scripts/catastrophic-launcher")
-                }
+            // Logo (opens the launcher)
+            Icon {
+                text: "󰣇"
+                color: Theme.primary
+                onClicked: bar.run("~/.config/catastrophic/scripts/catastrophic-launcher")
             }
 
-            // Workspaces in a recessed track; one accent highlight glides to the
-            // active one. Numbers are bright where windows are open, dim where not.
-            Rectangle {
+            // Workspaces, cat style: a dot for an empty one, a paw print where
+            // windows are open, and a cat face on the active one
+            Item {
                 id: wsTrack
-                readonly property int cell: 24
-                readonly property int pad: 2
-                readonly property int activeIndex: (Hyprland.focusedWorkspace?.id ?? 1) - 1
+                readonly property int cell: 22
 
                 Layout.alignment: Qt.AlignVCenter
-                implicitWidth: wsRow.implicitWidth + pad * 2
-                implicitHeight: cell + pad * 2
-                radius: height / 2
-                color: Theme.surface_container
-
-                // Glides to the active workspace: quick, no bounce and no blur,
-                // so it lands with the switch rather than trailing behind it
-                Rectangle {
-                    x: wsTrack.pad + wsTrack.activeIndex * wsTrack.cell
-                    y: wsTrack.pad
-                    width: wsTrack.cell
-                    height: wsTrack.cell
-                    radius: width / 2
-                    color: Theme.primary
-                    visible: wsTrack.activeIndex >= 0 && wsTrack.activeIndex < bar.workspaceCount
-                    Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                }
+                Layout.leftMargin: 4
+                Layout.rightMargin: 2
+                implicitWidth: bar.workspaceCount * cell
+                implicitHeight: 30
 
                 Row {
-                    id: wsRow
-                    x: wsTrack.pad
-                    y: wsTrack.pad
+                    anchors.verticalCenter: parent.verticalCenter
 
                     Repeater {
                         model: bar.workspaceCount
@@ -221,26 +189,25 @@ Item {
                             readonly property bool occupied: Hyprland.workspaces.values.some(w => w.id === wsId)
 
                             width: wsTrack.cell
-                            height: wsTrack.cell
+                            height: 26
 
                             Rectangle {
-                                anchors.fill: parent
+                                anchors.centerIn: parent
+                                visible: !ws.active && !ws.occupied
+                                width: wsMouse.containsMouse ? 8 : 5
+                                height: width
                                 radius: width / 2
-                                color: Theme.surface_container_highest
-                                opacity: wsMouse.containsMouse && !ws.active ? 1 : 0
-                                Behavior on opacity { NumberAnimation { duration: 150 } }
+                                color: wsMouse.containsMouse ? Theme.primary : Theme.on_surface
+                                opacity: wsMouse.containsMouse ? 1 : 0.45
                             }
 
                             Text {
                                 anchors.centerIn: parent
-                                text: ws.wsId
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 12
-                                font.weight: ws.active || ws.occupied ? Font.Bold : Font.Normal
-                                color: ws.active ? Theme.on_primary
-                                    : ws.occupied ? Theme.on_surface : Theme.outline
-                                opacity: ws.active || ws.occupied ? 1 : 0.6
-                                Behavior on color { ColorAnimation { duration: 200 } }
+                                visible: ws.active || ws.occupied
+                                text: ws.active ? "\u{F011B}" : "\u{F03E9}"
+                                font.family: bar.mono
+                                font.pixelSize: ws.active ? 20 : 15
+                                color: ws.active || wsMouse.containsMouse ? Theme.primary : Theme.on_surface
                             }
 
                             MouseArea {
@@ -255,92 +222,197 @@ Item {
                 }
             }
 
+            BarDivider {}
+
             // Drop-down terminal (also Super+`)
             Icon {
                 text: "󰆍"
                 onClicked: bar.run("~/.config/catastrophic/scripts/catastrophic-dropdown")
             }
+
+            // Now playing: cover, title and position. Only while a player exists;
+            // click to play or pause, hover for the full player card.
+            BarPill {
+                id: nowPlaying
+                bar: bar
+                visible: bar.player !== null
+                popout: "media"
+                padding: 4
+                spacing: 7
+                onClicked: if (bar.player) bar.player.togglePlaying()
+
+                // MPRIS does not push position updates, so ask while playing
+                Timer {
+                    running: nowPlaying.visible && (bar.player?.isPlaying ?? false)
+                    interval: 1000
+                    repeat: true
+                    onTriggered: bar.player?.positionChanged()
+                }
+
+                Rectangle {
+                    Layout.alignment: Qt.AlignVCenter
+                    implicitWidth: 24
+                    implicitHeight: 24
+                    radius: 6
+                    color: Theme.surface_container_highest
+                    clip: true
+
+                    Image {
+                        id: cover
+                        anchors.fill: parent
+                        source: bar.player?.trackArtUrl ?? ""
+                        sourceSize: Qt.size(48, 48)
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        visible: status === Image.Ready
+                    }
+                    Text {
+                        anchors.centerIn: parent
+                        visible: cover.status !== Image.Ready
+                        text: "󰝚"
+                        font.family: bar.mono
+                        font.pixelSize: 12
+                        color: Theme.primary
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: -2
+
+                    Text {
+                        Layout.maximumWidth: 180
+                        text: bar.player?.trackTitle || "Unknown"
+                        elide: Text.ElideRight
+                        font.family: bar.mono
+                        font.pixelSize: 12
+                        font.weight: Font.Bold
+                        color: nowPlaying.lit ? Theme.primary : Theme.on_surface
+                    }
+                    Text {
+                        Layout.maximumWidth: 180
+                        text: bar.player && bar.player.lengthSupported && bar.player.length > 0
+                            ? bar.fmtTime(bar.player.position) + " / " + bar.fmtTime(bar.player.length)
+                            : (bar.player?.trackArtist ?? "")
+                        elide: Text.ElideRight
+                        font.family: bar.mono
+                        font.pixelSize: 10
+                        color: Theme.on_surface_variant
+                    }
+                }
+            }
         }
     }
 
-    // --- Centre: clock; hover or click opens the dashboard below it ---
+    // --- Centre: clock and weather (hover or click opens the dashboard below),
+    // then the apps that used to live in the bottom dock ---
     Island {
         id: center
-        raised: false
         x: (bar.width - width) / 2
         y: Geometry.barMargin
-        width: centerRow.implicitWidth + 32
+        width: centerContent.implicitWidth + 16
         height: Geometry.barHeight
 
-        // Soft highlight on hover, the only sign it opens something
-        Rectangle {
-            anchors.centerIn: parent
-            width: parent.width - 4
-            height: 30
-            radius: height / 2
-            color: Theme.surface_container_high
-            opacity: centerHover.hovered ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: 150 } }
-        }
+        Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
 
-        SystemClock { id: clock; precision: SystemClock.Minutes }
+        SystemClock { id: clock; precision: SystemClock.Seconds }
 
         RowLayout {
-            id: centerRow
+            id: centerContent
             anchors.centerIn: parent
-            spacing: 10
+            spacing: 6
 
-            Text {
+            Item {
+                id: clockArea
                 Layout.alignment: Qt.AlignVCenter
-                text: Qt.formatDateTime(clock.date, "HH:mm")
-                font.family: Theme.fontFamily
-                font.pixelSize: 15
-                font.weight: Font.Bold
-                color: Theme.primary
-            }
-            Rectangle {
-                Layout.alignment: Qt.AlignVCenter
-                implicitWidth: 4
-                implicitHeight: 4
-                radius: 2
-                color: Theme.outline
-            }
-            Text {
-                Layout.alignment: Qt.AlignVCenter
-                text: Qt.formatDateTime(clock.date, "ddd d MMM")
-                font.family: Theme.fontFamilyRegular
-                font.pixelSize: 13
-                color: Theme.on_surface_variant
-            }
-        }
+                implicitWidth: clockRow.implicitWidth + 24
+                implicitHeight: Geometry.barHeight - 10
 
-        // Same hover behaviour the old top border had: the dashboard stays
-        // while the pointer is on the clock or on the dashboard itself
-        HoverHandler {
-            id: centerHover
-            onPointChanged: if (hovered) DrawerState.topEdgeActivity()
-            onHoveredChanged: {
-                DrawerState.topEdgeInside = hovered
-                if (hovered) DrawerState.topEdgeActivity()
-            }
-        }
+                // Soft highlight on hover, the only sign it opens something
+                Rectangle {
+                    anchors.fill: parent
+                    radius: height / 2
+                    color: Theme.surface_container_high
+                    opacity: clockHover.hovered ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                }
 
-        MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            onClicked: m => bar.run(m.button === Qt.RightButton
-                ? "qs ipc call calendar toggle" : "qs ipc call dashboard toggle")
+                RowLayout {
+                    id: clockRow
+                    anchors.centerIn: parent
+                    spacing: 10
+
+                    Text {
+                        Layout.alignment: Qt.AlignVCenter
+                        text: Qt.formatDateTime(clock.date, "HH:mm:ss")
+                        font.family: bar.mono
+                        font.pixelSize: 15
+                        font.weight: Font.Bold
+                        color: Theme.primary
+                    }
+                    // Weather beside the clock (the date is in the dashboard below)
+                    Text {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.leftMargin: 6
+                        visible: Weather.ready
+                        text: Weather.glyph
+                        font.family: bar.mono
+                        font.pixelSize: 17
+                        color: Theme.on_surface
+                    }
+                    Text {
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: Weather.ready
+                        text: Weather.temperature
+                        font.family: bar.mono
+                        font.pixelSize: 14
+                        font.weight: Font.Bold
+                        color: Theme.on_surface
+                    }
+                }
+
+                // Resting on the clock for a moment opens the dashboard (sweeping
+                // across it does not); it stays while the pointer is on the clock
+                // or on the dashboard itself (see Dashboard.qml)
+                HoverHandler {
+                    id: clockHover
+                    onHoveredChanged: {
+                        DrawerState.topEdgeInside = hovered
+                        if (hovered) clockDwell.restart()
+                        else clockDwell.stop()
+                    }
+                }
+                Timer {
+                    id: clockDwell
+                    interval: 250
+                    onTriggered: if (clockHover.hovered) DrawerState.topEdgeActivity()
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    onClicked: m => bar.run(m.button === Qt.RightButton
+                        ? "qs ipc call calendar toggle" : "qs ipc call dashboard toggle")
+                }
+            }
+
+            BarDivider { visible: barApps.visible }
+
+            BarApps {
+                id: barApps
+                Layout.alignment: Qt.AlignVCenter
+                Layout.rightMargin: 2
+            }
         }
     }
 
     // --- Right: tray and status, then power ---
     Island {
         id: right
-        raised: false
         x: bar.width - width - Geometry.edgeMargin
         y: Geometry.barMargin
-        width: rightRow.implicitWidth + 12
+        width: rightRow.implicitWidth + 20
         height: Geometry.barHeight
 
         Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
@@ -348,7 +420,7 @@ Item {
         RowLayout {
             id: rightRow
             anchors.verticalCenter: parent.verticalCenter
-            x: 6
+            x: 10
             spacing: 6
 
             // Privacy: a dot for each of mic, camera and screen sharing while in
@@ -371,8 +443,8 @@ Item {
                         visible: modelData.on
                         text: modelData.glyph
                         color: modelData.tint
-                        font.family: "JetBrainsMono Nerd Font"
-                        font.pixelSize: 13
+                        font.family: bar.mono
+                        font.pixelSize: 14
                     }
                 }
 
@@ -381,21 +453,22 @@ Item {
                     onPointChanged: if (hovered && bar.popoutKind !== "privacy") bar.openPopout("privacy", privacy)
                     onHoveredChanged: {
                         if (hovered) bar.openPopout("privacy", privacy)
-                        else bar.closePopout()
+                        else bar.closePopout("privacy")
                     }
                 }
             }
 
+            // System tray
             RowLayout {
                 spacing: 2
 
-                // System tray
                 Repeater {
                     model: SystemTray.items
 
                     MouseArea {
                         id: trayItem
                         required property var modelData
+                        visible: !bar.hiddenTray.includes(modelData.id)
                         Layout.alignment: Qt.AlignVCenter
                         implicitWidth: 28
                         implicitHeight: 28
@@ -403,46 +476,25 @@ Item {
                         hoverEnabled: true
                         acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-                        // Hovering the network and Bluetooth applets opens their popouts
-                        readonly property string popout: modelData.id === "nm-applet" ? "network"
-                            : modelData.id === "blueman" ? "bluetooth" : ""
-                        onPositionChanged: if (popout && bar.popoutKind !== popout) bar.openPopout(popout, trayItem)
-                        onContainsMouseChanged: {
-                            if (!popout) return
-                            if (containsMouse) bar.openPopout(popout, trayItem)
-                            else bar.closePopout()
-                        }
-
                         Rectangle {
                             anchors.fill: parent
                             radius: width / 2
                             color: Theme.surface_container_highest
-                            opacity: trayItem.containsMouse || (trayItem.popout !== "" && bar.popoutKind === trayItem.popout) ? 1 : 0
+                            opacity: trayItem.containsMouse ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
 
-                        // nm-applet's symbolic icon renders blank, so draw a glyph
-                        Text {
-                            anchors.centerIn: parent
-                            visible: trayItem.modelData.id === "nm-applet"
-                            text: "󰤨"
-                            font.family: "JetBrainsMono Nerd Font"
-                            font.pixelSize: 16
-                            color: trayItem.containsMouse ? Theme.primary : Theme.on_surface_variant
-                        }
-
                         Image {
-                            visible: trayItem.modelData.id !== "nm-applet"
                             anchors.centerIn: parent
-                            width: 16
-                            height: 16
+                            width: 18
+                            height: 18
                             source: trayItem.modelData.icon
-                            sourceSize: Qt.size(16, 16)
-                            // One quiet colour for every tray icon
+                            sourceSize: Qt.size(36, 36)
+                            // One colour for every tray icon
                             layer.enabled: true
                             layer.effect: MultiEffect {
                                 colorization: 1.0
-                                colorizationColor: trayItem.containsMouse ? Theme.primary : Theme.on_surface_variant
+                                colorizationColor: trayItem.containsMouse ? Theme.primary : Theme.on_surface
                             }
                         }
 
@@ -464,65 +516,168 @@ Item {
                 }
             }
 
-            BarDivider { visible: SystemTray.items.values.length > 0 }
+            BarDivider { visible: SystemTray.items.values.some(i => !bar.hiddenTray.includes(i.id)) }
+
+            // Update warning: shown while the installed Catastrophic OS is behind
+            // GitHub. Click for the update notification. catastrophic-update-check
+            // keeps ~/.local/state/catastrophic/update-status.
+            Icon {
+                id: updateWarning
+                property bool outdated: false
+                visible: outdated
+                text: "󰀦"
+                color: "#ffb74d"
+                onClicked: bar.run("~/.config/catastrophic/scripts/catastrophic-update-check --prompt")
+
+                // The file changes only when the checker finds a new state, so this
+                // costs nothing while idle (no polling)
+                FileView {
+                    path: Quickshell.env("HOME") + "/.local/state/catastrophic/update-status"
+                    watchChanges: true
+                    printErrors: false
+                    onFileChanged: reload()
+                    onLoaded: updateWarning.outdated = text().startsWith("outdated")
+                    onLoadFailed: updateWarning.outdated = false
+                }
+            }
+
+            // Screen recording: red dot while recording, click to stop
+            Icon {
+                id: rec
+                visible: Recorder.active
+                text: "󰑊"
+                color: Theme.error
+                onClicked: Recorder.stop()
+                // Slow pulse so it is noticed without being distracting
+                SequentialAnimation on opacity {
+                    running: Recorder.active
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.35; duration: 900; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 1; duration: 900; easing.type: Easing.InOutSine }
+                }
+            }
 
             RowLayout {
-                spacing: 2
+                spacing: 4
 
-                // Update warning: shown while the installed Catastrophic OS is behind GitHub, so
-                // this system may be out of date. Click for the update notification.
-                // catastrophic-update-check keeps ~/.local/state/catastrophic/update-status.
-                Icon {
-                    id: updateWarning
-                    property bool outdated: false
-                    visible: outdated
-                    text: "󰀦"
-                    color: "#ffb74d"
-                    onClicked: bar.run("~/.config/catastrophic/scripts/catastrophic-update-check --prompt")
+                // Keyboard layout as two letters ("EN"), only when there is more
+                // than one layout to switch to. Click cycles the layouts.
+                BarPill {
+                    id: layoutPill
+                    bar: bar
+                    padding: 6
+                    property string layout: ""
+                    property bool several: false
+                    function abbrev(name: string): string {
+                        return name.replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase()
+                    }
+                    visible: layout !== "" && several
+                    color: lit ? Theme.surface_container_highest : Theme.surface_container
+                    onClicked: bar.run("hyprctl switchxkblayout main next")
 
-                    // The file changes only when the checker finds a new state, so this
-                    // costs nothing while idle (no polling).
-                    FileView {
-                        path: Quickshell.env("HOME") + "/.local/state/catastrophic/update-status"
-                        watchChanges: true
-                        printErrors: false
-                        onFileChanged: reload()
-                        onLoaded: updateWarning.outdated = text().startsWith("outdated")
-                        onLoadFailed: updateWarning.outdated = false
+                    Text {
+                        text: layoutPill.layout
+                        font.family: bar.mono
+                        font.pixelSize: 12
+                        font.weight: Font.Bold
+                        color: layoutPill.lit ? Theme.primary : Theme.on_surface
+                    }
+
+                    // Read once at start; Hyprland reports every switch afterwards
+                    Process {
+                        running: true
+                        command: ["hyprctl", "devices", "-j"]
+                        stdout: StdioCollector {
+                            onStreamFinished: {
+                                try {
+                                    const kb = JSON.parse(text).keyboards.find(k => k.main)
+                                    if (!kb) return
+                                    layoutPill.several = `${kb.layout}`.includes(",")
+                                    layoutPill.layout = layoutPill.abbrev(kb.active_keymap)
+                                } catch (e) {}
+                            }
+                        }
+                    }
+                    Connections {
+                        target: Hyprland
+                        function onRawEvent(event) {
+                            if (event.name === "activelayout")
+                                layoutPill.layout = layoutPill.abbrev(event.data.split(",").pop())
+                        }
                     }
                 }
 
-                // Screen recording: red dot while recording, click to stop
-                Icon {
-                    id: rec
-                    visible: Recorder.active
-                    text: "󰑊"
-                    color: Theme.error
-                    onClicked: Recorder.stop()
-                    // Slow pulse so it is noticed without being distracting
-                    SequentialAnimation on opacity {
-                        running: Recorder.active
-                        loops: Animation.Infinite
-                        NumberAnimation { to: 0.35; duration: 900; easing.type: Easing.InOutSine }
-                        NumberAnimation { to: 1; duration: 900; easing.type: Easing.InOutSine }
+                // Wi-Fi: filled accent chip with the network name while connected.
+                // Hover for the network list, click for the connection editor.
+                BarPill {
+                    id: wifiPill
+                    bar: bar
+                    popout: "network"
+                    readonly property var wifi: Networking.devices.values.find(d => d.type === DeviceType.Wifi) ?? null
+                    readonly property var network: wifi ? wifi.networks.values.find(n => n.connected) ?? null : null
+                    readonly property real strength: network?.signalStrength ?? 0
+                    visible: wifi !== null
+                    filled: network !== null
+                    onClicked: bar.run("nm-connection-editor")
+
+                    Text {
+                        text: !Networking.wifiEnabled ? "󰤮"
+                            : !wifiPill.network ? "󰤯"
+                            : wifiPill.strength > 0.75 ? "󰤨" : wifiPill.strength > 0.5 ? "󰤥"
+                            : wifiPill.strength > 0.25 ? "󰤢" : "󰤟"
+                        font.family: bar.mono
+                        font.pixelSize: 15
+                        color: wifiPill.ink
+                    }
+                    Text {
+                        Layout.maximumWidth: 120
+                        text: !Networking.wifiEnabled ? "Off" : wifiPill.network?.name || "Offline"
+                        elide: Text.ElideRight
+                        font.family: bar.mono
+                        font.pixelSize: 12
+                        font.weight: Font.Bold
+                        color: wifiPill.ink
                     }
                 }
 
-                // Media: only while a player exists; hover for the player card
-                Icon {
-                    popout: "media"
-                    visible: Mpris.players.values.length > 0
-                    text: Mpris.players.values.some(p => p.isPlaying) ? "󰝚" : "󰝛"
-                    onClicked: mouse => {
-                        const p = Mpris.players.values.find(p => p.isPlaying) ?? Mpris.players.values[0]
-                        if (p) p.isPlaying = !p.isPlaying
+                // Bluetooth: connected device name, else On/Off. Hover for devices,
+                // click to switch Bluetooth on or off.
+                BarPill {
+                    id: btPill
+                    bar: bar
+                    popout: "bluetooth"
+                    readonly property var adapter: Bluetooth.defaultAdapter
+                    readonly property var connected: Bluetooth.devices.values.filter(d => d.connected)
+                    visible: adapter !== null
+                    spacing: 4
+                    onClicked: if (adapter) adapter.enabled = !adapter.enabled
+
+                    Text {
+                        text: !btPill.adapter?.enabled ? "󰂲" : btPill.connected.length > 0 ? "󰂱" : "󰂯"
+                        font.family: bar.mono
+                        font.pixelSize: 15
+                        color: btPill.ink
+                    }
+                    Text {
+                        Layout.maximumWidth: 100
+                        text: !btPill.adapter?.enabled ? "Off"
+                            : btPill.connected.length > 0 ? btPill.connected[0].name : "On"
+                        elide: Text.ElideRight
+                        font.family: bar.mono
+                        font.pixelSize: 12
+                        font.weight: Font.Bold
+                        color: btPill.ink
                     }
                 }
 
-                // Volume: scroll to adjust, right click to mute, click for the mixer
-                Icon {
+                // Volume: filled square (plain while muted). Scroll to adjust,
+                // right click to mute, click for the mixer.
+                BarPill {
                     id: volume
+                    bar: bar
                     popout: "volume"
+                    filled: !muted
+                    padding: 6
                     readonly property PwNode sink: Pipewire.defaultAudioSink
                     readonly property bool ready: !!(sink?.ready && sink?.audio)
                     readonly property real level: ready ? sink.audio.volume : 0
@@ -530,7 +685,15 @@ Item {
 
                     PwObjectTracker { objects: [volume.sink] }
 
-                    text: muted || level === 0 ? "󰝟" : level < 0.34 ? "󰕿" : level < 0.67 ? "󰖀" : "󰕾"
+                    Text {
+                        Layout.preferredWidth: 18
+                        horizontalAlignment: Text.AlignHCenter
+                        text: volume.muted || volume.level === 0 ? "󰝟"
+                            : volume.level < 0.34 ? "󰕿" : volume.level < 0.67 ? "󰖀" : "󰕾"
+                        font.family: bar.mono
+                        font.pixelSize: 15
+                        color: volume.ink
+                    }
                     onClicked: mouse => {
                         if (mouse.button === Qt.RightButton && ready)
                             sink.audio.muted = !sink.audio.muted
@@ -547,8 +710,7 @@ Item {
                 Icon {
                     id: bell
                     text: Notifs.dnd ? "󰂛" : Notifs.count > 0 ? "󰂚" : "󰂜"
-                    color: Notifs.count > 0 && !Notifs.dnd ? Theme.primary
-                        : hovered ? Theme.primary : Theme.on_surface_variant
+                    color: hovered || (Notifs.count > 0 && !Notifs.dnd) ? Theme.primary : Theme.on_surface
                     onClicked: mouse => {
                         if (mouse.button === Qt.RightButton) Notifs.dnd = !Notifs.dnd
                         else Notifs.centerRequested()
@@ -556,44 +718,37 @@ Item {
                 }
             }
 
-            // Battery as a small chip with its percentage (hidden without one)
-            BarGroup {
+            // Battery: light chip with the percentage, red when low (hidden without one)
+            BarPill {
                 id: battery
+                bar: bar
+                popout: "battery"
                 readonly property var device: UPower.displayDevice
                 readonly property int percent: device ? Math.round(device.percentage * 100) : 0
                 readonly property bool low: UPower.onBattery && percent <= 15
+                readonly property color fg: low ? Theme.on_error : Theme.surface
                 visible: device?.isLaptopBattery ?? false
+                filled: true
+                fill: low ? Theme.error : Theme.on_surface
                 spacing: 3
-                color: low ? Theme.error_container
-                    : batteryHover.hovered || bar.popoutKind === "battery" ? Theme.surface_container_highest : Theme.surface_container
 
                 Text {
-                    text: !UPower.onBattery ? "󰂄"
-                        : battery.percent >= 95 ? "󰁹"
-                        : battery.percent < 5 ? "󰂎"
-                        : String.fromCodePoint(0xF007A + Math.max(0, Math.min(8, Math.round(battery.percent / 10) - 1)))
-                    font.family: "JetBrainsMono Nerd Font"
-                    font.pixelSize: 14
-                    color: battery.low ? Theme.on_error_container : Theme.primary
+                    visible: !UPower.onBattery
+                    text: "󰚥"
+                    font.family: bar.mono
+                    font.pixelSize: 15
+                    color: battery.fg
                 }
                 Text {
                     text: battery.percent + "%"
-                    font.family: Theme.fontFamily
+                    font.family: bar.mono
                     font.pixelSize: 12
-                    color: battery.low ? Theme.on_error_container : Theme.on_surface
-                }
-
-                HoverHandler {
-                    id: batteryHover
-                    onPointChanged: if (hovered && bar.popoutKind !== "battery") bar.openPopout("battery", battery)
-                    onHoveredChanged: {
-                        if (hovered) bar.openPopout("battery", battery)
-                        else bar.closePopout()
-                    }
+                    font.weight: Font.Bold
+                    color: battery.fg
                 }
             }
 
-            // Power: filled circle at the end of the island
+            // Power: opens the session menu, turns red on hover
             Rectangle {
                 Layout.alignment: Qt.AlignVCenter
                 implicitWidth: 28
@@ -605,9 +760,9 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     text: "󰐥"
-                    font.family: "JetBrainsMono Nerd Font"
+                    font.family: bar.mono
                     font.pixelSize: 15
-                    color: powerMouse.containsMouse ? Theme.on_error : Theme.on_surface_variant
+                    color: powerMouse.containsMouse ? Theme.on_error : Theme.on_surface
                 }
 
                 MouseArea {

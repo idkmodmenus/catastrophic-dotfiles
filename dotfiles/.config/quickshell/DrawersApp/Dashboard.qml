@@ -119,7 +119,9 @@ Scope {
                             id: weatherText
                             Layout.fillWidth: true
                             elide: Text.ElideRight
-                            text: weather.line
+                            text: Weather.ready
+                                ? Weather.glyph + "  " + Weather.temperature + "  " + Weather.condition
+                                : "Weather unavailable"
                             font.family: Theme.fontFamilyRegular
                             font.pixelSize: 13
                             color: Theme.on_surface_variant
@@ -185,9 +187,10 @@ Scope {
             Card {
                 Layout.alignment: Qt.AlignTop
                 implicitWidth: 7 * 34 + 28
-                implicitHeight: 168 + 12 + 44
+                // Keeps the usual size, but grows for months that need six rows
+                implicitHeight: Math.max(168 + 12 + 44, calGrid.implicitHeight + padding * 2)
 
-                CalendarGrid { cell: 34 }
+                CalendarGrid { id: calGrid; cell: 34 }
             }
 
             // --- Media and system load ---
@@ -303,34 +306,6 @@ Scope {
             const get = k => parseInt(m.match(new RegExp(k + ":\\s+(\\d+)"))[1])
             perf.mem = 1 - get("MemAvailable") / get("MemTotal")
             diskProc.running = true
-        }
-    }
-
-    // Weather from wttr.in: icon, temperature and conditions
-    QtObject {
-        id: weather
-        property string line: "Weather unavailable"
-        property double fetched: 0
-    }
-
-    Process {
-        id: weatherProc
-        command: ["curl", "-sf", "--max-time", "6", "wttr.in/?format=%c+%t+%C"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const t = text.trim()
-                if (t) weather.line = t
-            }
-        }
-    }
-
-    Connections {
-        target: win
-        function onOpenChanged() {
-            if (win.open && Date.now() - weather.fetched > 30 * 60 * 1000) {
-                weather.fetched = Date.now()
-                weatherProc.running = true
-            }
         }
     }
 }
