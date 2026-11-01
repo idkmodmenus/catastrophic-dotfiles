@@ -1,0 +1,15 @@
+#!/bin/bash
+# Drop-down terminal: a kitty window on its own special workspace that slides
+# in below the bar and away again. Started the first time it is opened, inside
+# the shared "catastrophic" kitty process, so it costs a window, not a whole
+# new terminal process.
+
+class="catastrophic-dropdown"
+
+if ! hyprctl clients -j | jq -e --arg c "$class" '.[] | select(.class == $c)' > /dev/null; then
+    # Its window rule sends it to special:dropdown without showing it yet
+    kitty -1 --instance-group catastrophic --class "$class" > /dev/null 2>&1 &
+    disown
+fi
+
+hyprctl dispatch 'hl.dsp.workspace.toggle_special("dropdown")' > /dev/null

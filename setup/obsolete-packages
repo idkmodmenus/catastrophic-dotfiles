@@ -1,0 +1,3 @@
+# Packages the desktop used to need and no longer does. An update offers to
+# remove the ones that are installed (asks first).
+waybar

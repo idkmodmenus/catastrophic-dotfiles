@@ -1,0 +1,120 @@
+# Packages from the official Arch repositories (also available on CachyOS).
+# One per line. AUR packages go in packages-aur.
+# Only what the desktop itself needs. Personal tools and apps the system
+# already ships (editors, shells, browsers, runtimes) are deliberately left out.
+
+# --- Base tooling ---
+base-devel
+git
+curl
+wget
+unzip
+jq
+fzf
+gum
+socat
+rsync
+dbus
+xdg-utils
+lm_sensors
+pciutils
+figlet
+
+# --- Hyprland and Wayland session ---
+hyprland
+hyprlock
+hypridle
+hyprpaper
+hyprpicker
+hyprpolkitagent
+hyprsunset
+hyprshutdown
+hyprland-guiutils
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
+xdg-user-dirs
+uwsm
+polkit-gnome
+qt5-wayland
+qt6-wayland
+qt6-declarative
+qt6-5compat
+
+# --- Desktop shell ---
+gtk4
+gtk4-layer-shell
+poppler-glib
+quickshell
+rofi
+swaync
+awww
+matugen
+cliphist
+wl-clipboard
+grim
+slurp
+wf-recorder
+tesseract
+tesseract-data-eng
+imagemagick
+inotify-tools
+libnotify
+brightnessctl
+playerctl
+nwg-look
+nwg-displays
+qt6ct
+xsettingsd
+
+# --- Audio, network, bluetooth, power ---
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+pavucontrol
+networkmanager
+network-manager-applet
+nm-connection-editor
+blueman
+bluez
+bluez-utils
+power-profiles-daemon
+upower
+udiskie
+gvfs
+gvfs-mtp
+ffmpegthumbnailer
+tumbler
+
+# --- Apps ---
+# Terminal, browser, file manager and text editor are not listed here. The
+# installer uses the ones already on the system and only installs a default
+# when none is found (see "Default apps" in setup/post-arch.sh).
+fastfetch
+btop
+pacman-contrib
+
+# --- Runtimes used by scripts and the launcher ---
+python
+
+# --- Themes, icons, fonts ---
+gnome-themes-extra
+breeze
+breeze-icons
+breeze-gtk
+kde-gtk-config
+ttf-fira-sans
+ttf-jetbrains-mono-nerd
+ttf-nerd-fonts-symbols
+noto-fonts
+noto-fonts-emoji
+otf-font-awesome
+
+# --- Login manager (enabled only if you agree) ---
+sddm
+qt6-svg
+qt6-virtualkeyboard
+qt6-multimedia-ffmpeg
+
+# --- Boot splash ---
+plymouth

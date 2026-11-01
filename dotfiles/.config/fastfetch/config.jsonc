@@ -1,0 +1,82 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "builtin",
+    "source": "arch_small",
+    "color": {
+      "1": "blue",
+      "2": "blue"
+    },
+    "padding": {
+      "top": 0,
+      "left": 2,
+      "right": 4
+    },
+    "position": "auto"
+  },
+  "modules": [
+    {
+      "type": "os",
+      "key": "{#90}╭─ {#34}󰣇  {#1;37}os    {#}",
+      "format": "{pretty-name} {#90}({version}){#}"
+    },
+    {
+      "type": "command",
+      "key": "{#90}├─ {#35}󰚩  {#1;37}catastrophic  {#}",
+      "text": "v=$( { sed -n 's/.*\"Version\": *\"\\([^\"]*\\)\".*/\\1/p' ~/.config/catastrophic/version.json; } 2>/dev/null ); if [ -n \"$v\" ]; then echo \"v$v\"; else echo n/a; fi",
+      "format": "Catastrophic OS {#90}{result}{#}"
+    },
+    {
+      "type": "wm",
+      "key": "{#90}├─ {#36}󰍹  {#1;37}wm    {#}",
+      "format": "{pretty-name} {#90}v{version}{#}"
+    },
+    {
+      "type": "command",
+      "key": "{#90}├─ {#34}󰆍  {#1;37}term  {#}",
+      "text": "v=$( { kitty --version | awk '{print $2}'; } 2>/dev/null ); if [ -n \"$v\" ]; then echo \"v$v\"; else echo n/a; fi",
+      "format": "Kitty {#90}{result}{#}"
+    },
+    {
+      "type": "cpu",
+      "key": "{#90}├─ {#35}󰻠  {#1;37}cpu   {#}",
+      "format": "{name} {#90}· {cores-physical}c/{cores-logical}t{#}"
+    },
+    {
+      "type": "memory",
+      "key": "{#90}├─ {#36}󰍛  {#1;37}mem   {#}",
+      "format": "{percentage-bar} {used}{#90} / {total}{#}"
+    },
+    {
+      "type": "uptime",
+      "key": "{#90}╰─ {#34}󰅐  {#1;37}up    {#}",
+      "format": "{?days}{days}d {?}{hours}h {minutes}m"
+    },
+    "break",
+    {
+      "type": "colors",
+      "symbol": "circle",
+      "paddingLeft": 3
+    }
+  ],
+  "display": {
+    "separator": " ",
+    "color": {
+      "output": "white"
+    },
+    "bar": {
+      "char": {
+        "elapsed": "■",
+        "total": "·"
+      },
+      "border": {
+        "left": "",
+        "right": ""
+      },
+      "width": 10
+    },
+    "percent": {
+      "type": 3
+    }
+  }
+}

@@ -1,0 +1,6 @@
+# Paths (relative to the dotfiles profile) that older versions installed and the
+# current version no longer ships. An update removes them. Globs are allowed.
+# Anything else the repo stops shipping is removed automatically from the
+# manifest the installer keeps; this list covers installs from before it existed.
+.config/waybar
+.config/catastrophic/settings/waybar*

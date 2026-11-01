@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200" width="1520" height="400">
+  <g fill="#1793D1">
+    <path d="M145.00 22.06 A90 90 0 0 0 55.00 22.06 L85.00 74.02 A30 30 0 0 1 115.00 74.02 Z M10.00 100.00 A90 90 0 0 0 55.00 177.94 L85.00 125.98 A30 30 0 0 1 70.00 100.00 Z M145.00 177.94 A90 90 0 0 0 190.00 100.00 L130.00 100.00 A30 30 0 0 1 115.00 125.98 Z"/>
+    <circle cx="100" cy="100" r="16"/>
+    <text x="230" y="128" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="84" font-weight="700" letter-spacing="-2">catastrophic</text>
+    <text x="234" y="164" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="30" font-weight="600" letter-spacing="6" opacity=".8">OS</text>
+  </g>
+</svg>

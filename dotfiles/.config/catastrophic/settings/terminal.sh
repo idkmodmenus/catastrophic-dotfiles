@@ -1,0 +1,1 @@
+kitty -1 --instance-group catastrophic

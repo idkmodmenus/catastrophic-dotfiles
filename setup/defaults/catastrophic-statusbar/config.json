@@ -1,0 +1,18 @@
+{
+    "bar": {
+        "enabled": false,
+        "height": 34,
+        "reservedHeight": 68
+    },
+    "pill": {
+        "radius": 14,
+        "spacing": 18
+    },
+    "border": {
+        "width": 0
+    },
+    "opacity": {
+        "collapsed": 0.92,
+        "expanded": 0.92
+    }
+}

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# One sample of system load for the monitor drawer, as "key value..." lines:
+#   cpu <busy jiffies> <total jiffies>   mem <used KiB> <total KiB>
+#   disk <used B> <size B>   gpu <busy %> <temp C>   cputemp <C>
+#   proc <pid> <cpu %> <mem %> <name>    (top five by CPU over a short interval)
+read -r _ u n s i w q sq _ < /proc/stat
+echo "cpu $((u + n + s + q + sq)) $((u + n + s + i + w + q + sq))"
+awk '/^MemTotal/{t=$2} /^MemAvailable/{a=$2} END{print "mem", t - a, t}' /proc/meminfo
+df -B1 --output=used,size / | awk 'NR==2{print "disk", $1, $2}'
+
+gpu_busy=; gpu_temp=
+for d in /sys/class/drm/card*/device; do
+    [ -r "$d/gpu_busy_percent" ] || continue
+    gpu_busy=$(cat "$d/gpu_busy_percent")
+    t=$(cat "$d"/hwmon/hwmon*/temp1_input 2>/dev/null | head -1)
+    [ -n "$t" ] && gpu_temp=$((t / 1000))
+    break
+done
+if [ -z "$gpu_busy" ] && command -v nvidia-smi >/dev/null 2>&1; then
+    IFS=, read -r gpu_busy gpu_temp < <(nvidia-smi --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1)
+fi
+[ -n "$gpu_busy" ] && echo "gpu ${gpu_busy// /} ${gpu_temp// /}"
+
+for h in /sys/class/hwmon/hwmon*; do
+    case $(cat "$h/name" 2>/dev/null) in
+        k10temp|coretemp|zenpower)
+            t=$(cat "$h/temp1_input" 2>/dev/null) && echo "cputemp $((t / 1000))"
+            break ;;
+    esac
+done
+
+# Second pass of top: the first averages over the whole life of each process
+top -b -n 2 -d 0.4 -w 120 -o %CPU 2>/dev/null | awk '
+    /^top -/ {pass++}
+    pass == 2 && $1 ~ /^[0-9]+$/ && n < 5 {n++; print "proc", $1, $9, $10, $12}'

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+echo ":: The script will install the Catastrophic Hyprland Settings app."
+echo ":: Please note: The app requires Flatpak."
+if gum confirm "Do you want to proceed?"; then
+    catastrophic_app="com.catastrophic.hyprlandsettings"
+    catastrophic_app_repo="hyprland-settings"
+    echo ":: Installing $catastrophic_app"
+    bash -c "$(curl -s https://raw.githubusercontent.com/catastrophic-os/$catastrophic_app_repo/master/setup.sh)"
+fi

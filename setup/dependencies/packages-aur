@@ -1,0 +1,6 @@
+# AUR packages, installed with yay or paru. On CachyOS some of these come
+# from the CachyOS repositories; the AUR helper finds them either way.
+bibata-cursor-theme
+oh-my-posh-bin
+wlogout
+waypaper

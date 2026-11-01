@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# Screen recording with wf-recorder.
+#   catastrophic-record screen|area [audio]   start recording the focused monitor or a region
+#   catastrophic-record stop                  stop and save
+#   catastrophic-record toggle [area|screen]  stop if recording, otherwise start (default: screen)
+#   catastrophic-record status                prints "recording <seconds>" or "idle"
+#   catastrophic-record open-last             open the last recording
+# Recordings go to ~/Videos. State lives in $XDG_RUNTIME_DIR so a reboot clears it.
+
+state="${XDG_RUNTIME_DIR:-/tmp}/catastrophic-record"
+last="$HOME/.local/state/catastrophic/last-recording"
+out_dir="$HOME/Videos"
+
+source "$HOME/.config/catastrophic/scripts/catastrophic-notification-handler" 2>/dev/null
+note() { # summary message [icon]
+    if declare -F notify_user >/dev/null; then
+        notify_user --a "Screen Recording" --i "${3:-media-record-symbolic}" --s "$1" --m "$2" --t 4000
+    else
+        notify-send -a "Screen Recording" "$1" "$2"
+    fi
+}
+
+# Prints the recorder pid when one is really running; clears a stale state file
+live_pid() {
+    [ -f "$state" ] || return 1
+    local pid
+    read -r pid _ < "$state"
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+        echo "$pid"
+        return 0
+    fi
+    rm -f "$state"
+    return 1
+}
+
+start() {
+    local mode="${1:-screen}" audio="$2" file region args=()
+
+    if live_pid >/dev/null; then
+        note "Already recording" "Stop the current recording first"
+        return 1
+    fi
+    if ! command -v wf-recorder >/dev/null 2>&1; then
+        note "wf-recorder is not installed" "Install it with: sudo pacman -S wf-recorder" "dialog-error-symbolic"
+        return 1
+    fi
+
+    mkdir -p "$out_dir" "$(dirname "$last")" || { note "Cannot save" "$out_dir is not writable" dialog-error-symbolic; return 1; }
+    file="$out_dir/recording_$(date +%d%m%Y_%H%M%S).mp4"
+
+    if [ "$mode" = area ]; then
+        region=$(slurp -b "#00000080" -c "#888888ff" -w 1) || return 0
+        [ -z "$region" ] && return 0
+        args+=(-g "$region")
+    else
+        local mon
+        mon=$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.focused) | .name' | head -1)
+        [ -n "$mon" ] && args+=(-o "$mon")
+    fi
+    [ "$audio" = audio ] && args+=(--audio)
+
+    setsid wf-recorder "${args[@]}" -f "$file" >/dev/null 2>&1 &
+    local pid=$!
+    sleep 0.4
+    if ! kill -0 "$pid" 2>/dev/null; then
+        note "Recording failed to start" "wf-recorder exited right away" dialog-error-symbolic
+        return 1
+    fi
+    echo "$pid $(date +%s) $file" > "$state"
+}
+
+stop() {
+    local pid file
+    pid=$(live_pid) || { return 0; }
+    read -r _ _ file < "$state"
+    # SIGINT lets wf-recorder finish the file properly
+    kill -INT "$pid" 2>/dev/null
+    for _ in $(seq 1 50); do
+        kill -0 "$pid" 2>/dev/null || break
+        sleep 0.1
+    done
+    kill -0 "$pid" 2>/dev/null && kill -KILL "$pid" 2>/dev/null
+    rm -f "$state"
+
+    if [ ! -s "$file" ]; then
+        note "Recording is empty" "Nothing was saved" dialog-error-symbolic
+        return 1
+    fi
+    echo "$file" > "$last"
+
+    local thumb
+    thumb=$(mktemp --suffix=.png)
+    ffmpegthumbnailer -i "$file" -o "$thumb" -s 256 >/dev/null 2>&1 || thumb=media-record-symbolic
+    (
+        action=$(notify-send -a "Screen Recording" -i "$thumb" -t 10000 -A "open=Open" -A "folder=Show folder" \
+            "Recording saved" "$file")
+        case $action in
+            open) xdg-open "$file" ;;
+            folder) xdg-open "$(dirname "$file")" ;;
+        esac
+        [ -f "$thumb" ] && rm -f "$thumb"
+    ) >/dev/null 2>&1 &
+}
+
+case "$1" in
+    screen|area) start "$1" "$2" ;;
+    stop) stop ;;
+    toggle) if live_pid >/dev/null; then stop; else start "${2:-screen}" "$3"; fi ;;
+    status)
+        if live_pid >/dev/null; then
+            read -r _ began _ < "$state"
+            echo "recording $(( $(date +%s) - began ))"
+        else
+            echo idle
+        fi ;;
+    open-last) [ -f "$last" ] && xdg-open "$(cat "$last")" ;;
+    *) echo "usage: ${0##*/} screen|area [audio] | stop | toggle [area|screen] | status | open-last" >&2; exit 2 ;;
+esac
