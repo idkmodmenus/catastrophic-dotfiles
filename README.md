@@ -4,22 +4,9 @@ Hyprland desktop for Arch Linux and CachyOS.
 
 ## Install
 
-With the one-line installer:
-
 ```
 curl -fsSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh | bash
 ```
-
-Or from the AUR with your AUR helper, then run `catastrophic-os` to set up the desktop:
-
-```
-yay -S catastrophic-os        # or: paru -S catastrophic-os
-catastrophic-os
-```
-
-`catastrophic-os` is the latest release; `catastrophic-os-git` follows the `main` branch. The package
-only puts the installer in `/usr/share/catastrophic-os`; nothing changes in your home folder until you
-run `catastrophic-os`. After an update through your AUR helper, run `catastrophic-os` again to apply it.
 
 Preview first, changing nothing:
 
@@ -163,7 +150,7 @@ about updates" setting. The state is in `~/.local/state/catastrophic/`
 | `apps/` | Dock, power menu, overview, walker |
 | `setup/` | Package lists and install hooks |
 | `branding/` | Logo and boot splash |
-| `packaging/aur/` | AUR packages: `catastrophic-os` (releases) and `catastrophic-os-git` |
+| `website/` | The project website (static, host it anywhere) |
 
 ## Publishing
 
@@ -172,9 +159,8 @@ Push this folder to a public repository, then set `source` and `homepage` in
 `CATASTROPHIC_REPO=<git url> bash install.sh`.
 
 For a release: bump the version in `catastrophic.dotinst` and
-`dotfiles/.config/catastrophic/version.json`, tag it `v<version>` and publish a GitHub release, then
-update `pkgver` and `sha256sums` in `packaging/aur/catastrophic-os/PKGBUILD`, regenerate `.SRCINFO`
-(`makepkg --printsrcinfo > .SRCINFO`) and push that folder to the AUR.
+`dotfiles/.config/catastrophic/version.json`, and add its notes to the top of
+`dotfiles/.config/catastrophic/changelog.json` (shown under "What's new" in the dashboard).
 
 ## License
 

@@ -156,11 +156,44 @@ Item {
             x: 10
             spacing: 6
 
-            // Logo (opens the launcher)
-            Icon {
-                text: "󰣇"
-                color: Theme.primary
-                onClicked: bar.run("~/.config/catastrophic/scripts/catastrophic-launcher")
+            // Catastrophic logo (opens the launcher), in the accent colour
+            Item {
+                id: logo
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: 30
+                implicitHeight: 30
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: width / 2
+                    color: Theme.surface_container_highest
+                    opacity: logoMouse.containsMouse ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                }
+
+                Image {
+                    anchors.centerIn: parent
+                    width: 24
+                    height: 24
+                    source: Qt.resolvedUrl("logo.svg")
+                    sourceSize: Qt.size(48, 48)
+                    smooth: true
+                    scale: logoMouse.pressed ? 0.88 : 1
+                    Behavior on scale { NumberAnimation { duration: 120 } }
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        colorization: 1.0
+                        colorizationColor: Theme.primary
+                    }
+                }
+
+                MouseArea {
+                    id: logoMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: bar.run("~/.config/catastrophic/scripts/catastrophic-launcher")
+                }
             }
 
             // Workspaces, cat style: a dot for an empty one, a paw print where

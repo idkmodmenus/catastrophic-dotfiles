@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="1024" height="1024">
+  <defs>
+    <mask id="planetCut" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+      <rect width="256" height="256" fill="#fff"/>
+      <path d="M 244 128 A 116 30 0 0 1 12 128" transform="rotate(-22 128 128)" fill="none" stroke="#000" stroke-width="17" stroke-linecap="round"/>
+      <!-- crescent line: a thin gap following the lower-right limb -->
+      <path d="M 167 108 A 39 39 0 0 1 108 167" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>
+    </mask>
+    <mask id="behind" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+      <rect width="256" height="256" fill="#fff"/>
+      <circle cx="128" cy="128" r="55" fill="#000"/>
+      <circle cx="216.3" cy="163.1" r="14" fill="#000"/>
+    </mask>
+    <mask id="moonGap" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+      <rect width="256" height="256" fill="#fff"/>
+      <circle cx="216.3" cy="163.1" r="14" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#behind)"><path d="M 12 128 A 116 30 0 0 1 244 128" transform="rotate(-22 128 128)" fill="none" stroke="#ff7a5c" stroke-width="8" stroke-linecap="round"/><path d="M 20 128 A 108 34 0 0 1 236 128" transform="rotate(32 128 128)" fill="none" stroke="#ff7a5c" stroke-width="5" stroke-linecap="round"/><path d="M 32 128 A 96 40 0 0 1 224 128" transform="rotate(72 128 128)" fill="none" stroke="#ff7a5c" stroke-width="3.5" stroke-linecap="round"/><path d="M 236 128 A 108 34 0 0 1 20 128" transform="rotate(32 128 128)" fill="none" stroke="#ff7a5c" stroke-width="5" stroke-linecap="round"/><path d="M 224 128 A 96 40 0 0 1 32 128" transform="rotate(72 128 128)" fill="none" stroke="#ff7a5c" stroke-width="3.5" stroke-linecap="round"/></g>
+  <circle cx="128" cy="128" r="48" fill="#ff7a5c" mask="url(#planetCut)"/>
+  <g mask="url(#moonGap)"><path d="M 244 128 A 116 30 0 0 1 12 128" transform="rotate(-22 128 128)" fill="none" stroke="#ff7a5c" stroke-width="8" stroke-linecap="round"/></g>
+  <circle cx="216.3" cy="163.1" r="8.5" fill="#ff7a5c"/>
+</svg>

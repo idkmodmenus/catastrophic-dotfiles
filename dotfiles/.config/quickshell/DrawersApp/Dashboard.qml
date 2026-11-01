@@ -2,10 +2,11 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 import qs.CustomTheme
 import qs.Widgets
 
-// Top drawer: clock and weather, calendar, media and system load. Opens on
+// Top drawer: Catastrophic OS version and what's new, calendar, media and system load. Opens on
 // the keybinding or by resting the pointer on the top edge.
 Scope {
     id: root
@@ -86,99 +87,211 @@ Scope {
         RowLayout {
             spacing: 14
 
-            // --- Clock, weather, quick actions ---
-            ColumnLayout {
+            // --- Catastrophic OS: logo, version, update state and what's new ---
+            Card {
+                id: about
                 Layout.alignment: Qt.AlignTop
-                Layout.preferredWidth: 230
-                spacing: 12
+                Layout.preferredWidth: 250
+                implicitWidth: 250
+                // Same height as the calendar beside it
+                implicitHeight: 168 + 12 + 44
 
-                SystemClock { id: clock; precision: SystemClock.Minutes }
+                property string version: ""
+                property bool outdated: false
+                property string updateSummary: ""
+                property var changes: []
 
-                Card {
-                    Layout.fillWidth: true
-                    implicitHeight: 168
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 0
-                        Text {
-                            text: Qt.formatDateTime(clock.date, "HH:mm")
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 54
-                            font.weight: Font.DemiBold
-                            color: Theme.primary
-                        }
-                        Text {
-                            text: Qt.formatDateTime(clock.date, "dddd, d MMMM")
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 14
-                            color: Theme.on_surface
-                        }
-                        Item { Layout.fillHeight: true }
-                        Text {
-                            id: weatherText
-                            Layout.fillWidth: true
-                            elide: Text.ElideRight
-                            text: Weather.ready
-                                ? Weather.glyph + "  " + Weather.temperature + "  " + Weather.condition
-                                : "Weather unavailable"
-                            font.family: Theme.fontFamilyRegular
-                            font.pixelSize: 13
-                            color: Theme.on_surface_variant
-                        }
+                FileView {
+                    path: root.home + "/.config/catastrophic/version.json"
+                    watchChanges: true
+                    printErrors: false
+                    onFileChanged: reload()
+                    onLoaded: { try { about.version = JSON.parse(text()).Version ?? "" } catch (e) {} }
+                }
+                FileView {
+                    path: root.home + "/.local/state/catastrophic/update-status"
+                    watchChanges: true
+                    printErrors: false
+                    onFileChanged: reload()
+                    onLoaded: {
+                        const lines = text().split("\n")
+                        about.outdated = lines[0] === "outdated"
+                        about.updateSummary = lines[2] ?? ""
                     }
+                    onLoadFailed: about.outdated = false
+                }
+                FileView {
+                    path: root.home + "/.config/catastrophic/changelog.json"
+                    watchChanges: true
+                    printErrors: false
+                    onFileChanged: reload()
+                    onLoaded: { try { about.changes = JSON.parse(text()) } catch (e) { about.changes = [] } }
                 }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
+                ColumnLayout {
+                    width: about.width - about.padding * 2
+                    height: about.height - about.padding * 2
+                    spacing: 10
 
-                    component Action: Rectangle {
-                        id: act
-                        property string glyph
-                        property string label
-                        signal clicked()
+                    // Logo and name
+                    RowLayout {
                         Layout.fillWidth: true
-                        implicitHeight: 44
-                        radius: 16
-                        color: area.containsMouse ? Theme.secondary_container : Theme.surface_container
+                        spacing: 12
+
+                        Image {
+                            Layout.preferredWidth: 46
+                            Layout.preferredHeight: 46
+                            source: Qt.resolvedUrl("../FrameApp/logo.svg")
+                            sourceSize: Qt.size(92, 92)
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            layer.enabled: true
+                            layer.effect: MultiEffect {
+                                colorization: 1.0
+                                colorizationColor: Theme.primary
+                            }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+                            Text {
+                                text: "Catastrophic OS"
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 17
+                                font.weight: Font.DemiBold
+                                color: Theme.on_surface
+                            }
+                            Text {
+                                text: about.version ? "Version " + about.version : "Version unknown"
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: 12
+                                color: Theme.on_surface_variant
+                            }
+                        }
+                    }
+
+                    // Update state: a quiet line when current, a button when not
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 32
+                        radius: 10
+                        color: about.outdated
+                            ? (updateMouse.containsMouse ? Qt.lighter(Theme.primary, 1.1) : Theme.primary)
+                            : Theme.surface_container_high
                         Behavior on color { ColorAnimation { duration: 120 } }
 
                         RowLayout {
-                            anchors.centerIn: parent
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
                             spacing: 8
                             Text {
-                                text: act.glyph
+                                text: about.outdated ? "󰚰" : "󰄬"
                                 font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: 17
-                                color: Theme.primary
+                                font.pixelSize: 15
+                                color: about.outdated ? Theme.on_primary : Theme.primary
                             }
                             Text {
-                                text: act.label
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                                text: about.outdated ? "Update available" : "Up to date"
                                 font.family: Theme.fontFamily
                                 font.pixelSize: 13
                                 font.weight: Font.Medium
-                                color: Theme.on_surface
+                                color: about.outdated ? Theme.on_primary : Theme.on_surface
                             }
                         }
                         MouseArea {
-                            id: area
+                            id: updateMouse
                             anchors.fill: parent
+                            enabled: about.outdated
                             hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: act.clicked()
+                            cursorShape: about.outdated ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: Quickshell.execDetached([root.home + "/.config/catastrophic/scripts/catastrophic-update-check", "--prompt"])
                         }
                     }
 
-                    Action {
-                        glyph: "󰸉"
-                        label: "Wallpaper"
-                        onClicked: Quickshell.execDetached([root.home + "/.config/catastrophic/scripts/catastrophic-wallpaper-app", "--random"])
+                    // What's new, newest release first; scrolls when it runs long
+                    Text {
+                        text: "What's new"
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 0.6
+                        color: Theme.on_surface_variant
                     }
-                    Action {
-                        glyph: "󰔎"
-                        label: "Theme"
-                        onClicked: Quickshell.execDetached([root.home + "/.config/catastrophic/scripts/catastrophic-toggle-theme"])
+                    Flickable {
+                        id: notes
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        contentHeight: notesCol.implicitHeight
+                        boundsBehavior: Flickable.StopAtBounds
+
+                        ColumnLayout {
+                            id: notesCol
+                            width: notes.width
+                            spacing: 10
+
+                            Repeater {
+                                model: about.changes
+
+                                ColumnLayout {
+                                    id: release
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    spacing: 3
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+                                        Text {
+                                            text: release.modelData.version
+                                            font.family: "JetBrainsMono Nerd Font"
+                                            font.pixelSize: 12
+                                            font.weight: Font.Bold
+                                            color: Theme.primary
+                                        }
+                                        Text {
+                                            Layout.fillWidth: true
+                                            elide: Text.ElideRight
+                                            text: release.modelData.title ?? ""
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: 12
+                                            font.weight: Font.DemiBold
+                                            color: Theme.on_surface
+                                        }
+                                    }
+                                    Repeater {
+                                        model: release.modelData.notes ?? []
+                                        Text {
+                                            required property string modelData
+                                            Layout.fillWidth: true
+                                            wrapMode: Text.WordWrap
+                                            text: "•  " + modelData
+                                            font.family: Theme.fontFamilyRegular
+                                            font.pixelSize: 12
+                                            lineHeight: 1.1
+                                            color: Theme.on_surface_variant
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Soft fade at the bottom while there is more to scroll to
+                        Rectangle {
+                            parent: notes
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            height: 22
+                            visible: notes.contentY + notes.height < notes.contentHeight - 1
+                            gradient: Gradient {
+                                GradientStop { position: 0.0; color: Qt.alpha(Theme.surface_container, 0) }
+                                GradientStop { position: 1.0; color: Theme.surface_container }
+                            }
+                        }
                     }
                 }
             }

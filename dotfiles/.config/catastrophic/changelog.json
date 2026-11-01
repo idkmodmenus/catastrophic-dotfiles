@@ -1,0 +1,49 @@
+[
+    {
+        "version": "2.23.0",
+        "date": "2026-11-01",
+        "title": "Your own logo",
+        "notes": [
+            "The Catastrophic planet logo replaces the Arch logo in the bar",
+            "fastfetch shows the planet logo as a picture in kitty",
+            "The dashboard shows your version, update status and what's new",
+            "The bottom dock is off by default; your apps are in the bar"
+        ]
+    },
+    {
+        "version": "2.22.0",
+        "date": "2026-11-01",
+        "title": "Glass island bar",
+        "notes": [
+            "The bar is three floating glass islands, tinted like the terminal",
+            "Your apps and the app grid live in the middle of the bar",
+            "Cat workspaces: a paw where windows are open, a cat on the active one",
+            "Wi-Fi, Bluetooth, volume and battery chips with hover popouts",
+            "Menus and the dashboard float as glass cards below the bar",
+            "The dashboard opens after resting on the clock, not when sweeping past",
+            "Popouts no longer close when moving quickly between bar items"
+        ]
+    },
+    {
+        "version": "2.21.0",
+        "date": "2026-11-01",
+        "title": "Privacy dots and drop-down terminal",
+        "notes": [
+            "A dot in the bar while an app uses the mic, camera or screen sharing",
+            "Drop-down terminal on Super + `",
+            "Terminals share one kitty process, about 11 MB per extra window",
+            "The installer shows what it will change before it starts"
+        ]
+    },
+    {
+        "version": "2.20.0",
+        "date": "2026-11-01",
+        "title": "New top bar and motion blur",
+        "notes": [
+            "Popouts slide out of the top bar",
+            "Directional motion blur on moving menus",
+            "Terminal transparency is even right to the window edges",
+            "Rounder window corners"
+        ]
+    }
+]

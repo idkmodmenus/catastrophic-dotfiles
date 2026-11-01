@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<title>Catastrophic OS</title>
+<meta name="description" content="Catastrophic OS: a Hyprland desktop for Arch and CachyOS with a glass island bar, hover popouts and wallpaper colours.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a desktop seen from orbit. The nav floats as three glass islands like
+   the OS bar; the hero is the planet over slow waves; content sits in one
+   centred column of cards below. Dark first, with a light variant. */
+:root {
+  --bg: #0b0d12;
+  --surface: #141821;
+  --surface-2: #1b2030;
+  --line: #262c3d;
+  --fg: #ece8e3;
+  --muted: #949bad;
+  --accent: #ff7a5c;
+  --accent-ink: #210b05;
+  --glass: rgba(20, 24, 33, 0.72);
+  --wave-1: #1a1424;
+  --wave-2: #261623;
+  --wave-3: #3a1a22;
+  --wave-4: #5a2420;
+  --shadow: rgba(0, 0, 0, 0.45);
+  --font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #eceff4; --surface: #ffffff; --surface-2: #f4f6fa; --line: #d6dbe5;
+    --fg: #12151c; --muted: #586074; --accent: #d4472a; --accent-ink: #ffffff;
+    --glass: rgba(255, 255, 255, 0.72);
+    --wave-1: #e3e3ee; --wave-2: #e8dbe0; --wave-3: #f0cfc8; --wave-4: #f3b7a7;
+    --shadow: rgba(30, 36, 52, 0.14);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #eceff4; --surface: #ffffff; --surface-2: #f4f6fa; --line: #d6dbe5;
+  --fg: #12151c; --muted: #586074; --accent: #d4472a; --accent-ink: #ffffff;
+  --glass: rgba(255, 255, 255, 0.72);
+  --wave-1: #e3e3ee; --wave-2: #e8dbe0; --wave-3: #f0cfc8; --wave-4: #f3b7a7;
+  --shadow: rgba(30, 36, 52, 0.14);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; z-index: 30;
+  height: env(safe-area-inset-top, 0px); background: var(--bg);
+}
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+.wrap {
+  width: 100%; max-width: 1120px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.logo-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---------- Nav: three glass islands, like the bar ---------- */
+.nav {
+  position: fixed; z-index: 20; inset: 0 0 auto;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  pointer-events: none;
+}
+.island {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 4px;
+  height: 44px; padding: 0 8px;
+  border-radius: 22px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 0 4px; text-decoration: none; font-family: var(--font-mono); font-weight: 700; font-size: 14px; }
+.brand svg { width: 28px; height: 28px; color: var(--fg); }
+.nav-clock { font-family: var(--font-mono); font-weight: 700; font-size: 15px; color: var(--accent); padding: 0 14px; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.nav-link {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border-radius: 10px; text-decoration: none; font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-link:hover { background: var(--surface-2); color: var(--accent); }
+.nav-link .ext { width: 11px; height: 11px; opacity: 0.6; }
+.theme-btn {
+  width: 32px; height: 32px; border-radius: 10px; border: 0; cursor: pointer;
+  display: grid; place-items: center; background: var(--accent); color: var(--accent-ink);
+  transition: transform 0.15s;
+}
+.theme-btn:hover { transform: scale(1.06); }
+.theme-btn svg { width: 17px; height: 17px; }
+.nav-center { position: absolute; left: 50%; transform: translateX(-50%); top: calc(10px + env(safe-area-inset-top, 0px)); }
+@media (max-width: 760px) {
+  .nav-center, .hide-sm { display: none; }
+}
+
+/* ---------- Hero ---------- */
+.hero { position: relative; overflow: hidden; padding-block: 120px 150px; isolation: isolate; }
+.waves { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.wave {
+  position: absolute; left: 0; bottom: 0; width: 200%; height: 100%;
+  animation: drift linear infinite;
+}
+.wave svg { width: 100%; height: 100%; display: block; }
+.wave:nth-child(1) { animation-duration: 38s; opacity: 0.9; }
+.wave:nth-child(2) { animation-duration: 29s; animation-direction: reverse; }
+.wave:nth-child(3) { animation-duration: 22s; }
+.wave:nth-child(4) { animation-duration: 17s; animation-direction: reverse; }
+@keyframes drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+.hero-inner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 18px; }
+.planet { width: min(260px, 62vw); aspect-ratio: 1; max-width: 100%; cursor: grab; touch-action: none; }
+.planet canvas { width: 100%; height: 100%; display: block; }
+.title {
+  margin: 0; font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(38px, 9vw, 92px); line-height: 1; letter-spacing: -0.02em;
+  display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 0 0.18em;
+}
+.title .word { display: inline-flex; }
+.title .ch { display: inline-block; animation: rise 0.9s cubic-bezier(.2,.8,.2,1) both, wave 3.2s ease-in-out infinite; animation-delay: calc(var(--i) * 55ms), calc(1s + var(--i) * 110ms); }
+.title .os {
+  font-family: var(--font-mono); font-weight: 700; font-size: 0.26em; letter-spacing: 0.04em;
+  color: var(--accent-ink); background: var(--accent); padding: 0.25em 0.6em; border-radius: 0.5em;
+  align-self: center; animation: rise 0.9s 0.7s cubic-bezier(.2,.8,.2,1) both;
+}
+/* Motion only: everything is readable from the first frame */
+@keyframes rise { from { transform: translateY(0.45em); } to { transform: none; } }
+@keyframes lift { from { transform: translateY(16px); } to { transform: none; } }
+@keyframes wave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.08em); } }
+.lede { margin: 0; max-width: 34ch; font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); text-wrap: balance; animation: rise 0.9s 0.5s both; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 8px; animation: rise 0.9s 0.65s both; }
+.btn {
+  display: inline-flex; align-items: center; gap: 9px; height: 46px; padding: 0 22px;
+  border-radius: 14px; font-weight: 600; font-size: 15px; text-decoration: none;
+  transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+}
+.btn svg { width: 18px; height: 18px; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 8px 24px -10px var(--accent); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 30px -12px var(--accent); }
+.btn-ghost { background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.btn-ghost:hover { transform: translateY(-2px); background: var(--surface-2); }
+.hero-meta { font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; animation: rise 0.9s 0.8s both; }
+
+/* ---------- Sections ---------- */
+section { padding-block: 64px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 4vw, 38px); line-height: 1.15; margin: 0 0 12px; text-wrap: balance; letter-spacing: -0.01em; }
+.section-head { max-width: 640px; margin-bottom: 32px; }
+.section-head p { margin: 0; color: var(--muted); }
+
+/* ---------- Carousel ---------- */
+.showcase { margin-top: -90px; position: relative; z-index: 2; padding-block: 0 48px; }
+.carousel { position: relative; }
+.viewport {
+  position: relative; aspect-ratio: 16 / 9; max-width: 100%;
+  border-radius: 18px; overflow: hidden; background: var(--surface);
+  border: 1px solid var(--line); box-shadow: 0 30px 80px -30px var(--shadow);
+}
+.slide {
+  position: absolute; inset: 0; margin: 0;
+  opacity: 0; transform: scale(1.035); transition: opacity 0.7s ease, transform 1.2s cubic-bezier(.2,.8,.2,1);
+}
+.slide.active { opacity: 1; transform: none; }
+.slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.caption {
+  position: absolute; left: 14px; bottom: 14px; right: 14px; max-width: max-content;
+  padding: 8px 14px; border-radius: 12px; background: var(--glass); border: 1px solid var(--line);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  font-size: 14px; font-weight: 500;
+}
+.caption b { font-family: var(--font-mono); color: var(--accent); margin-right: 8px; font-weight: 700; }
+.arrow {
+  position: absolute; top: 50%; translate: 0 -50%; z-index: 2;
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); cursor: pointer;
+  background: var(--glass); color: var(--fg); display: grid; place-items: center;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: transform 0.15s, background 0.15s;
+}
+.arrow:hover { transform: scale(1.08); background: var(--surface-2); }
+.arrow svg { width: 20px; height: 20px; }
+.arrow.prev { left: 12px; }
+.arrow.next { right: 12px; }
+.dots { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+.dot {
+  position: relative; width: 34px; height: 6px; border-radius: 3px; border: 0; padding: 0; cursor: pointer;
+  background: var(--line); overflow: hidden;
+}
+.dot span { position: absolute; inset: 0; width: 0; background: var(--accent); border-radius: inherit; }
+.dot.active span { animation: fill var(--slide-ms, 6000ms) linear forwards; }
+.dot.done span { width: 100%; }
+.carousel.paused .dot.active span { animation-play-state: paused; }
+@keyframes fill { to { width: 100%; } }
+
+/* ---------- Features ---------- */
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card {
+  min-width: 0; padding: 22px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 10px;
+  transition: transform 0.2s, border-color 0.2s;
+  animation: lift 0.7s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--d, 0) * 70ms);
+}
+.card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.card h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+.card .tag { font-family: var(--font-mono); font-size: 12px; color: var(--accent); font-weight: 700; }
+.glyph { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--surface-2); color: var(--accent); }
+.glyph svg { width: 20px; height: 20px; }
+
+/* ---------- Platforms: one logo card each ---------- */
+.platforms { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .platforms { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.plat {
+  --glow: #1793d1;
+  position: relative; overflow: hidden; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 34px 16px 22px; border-radius: 20px; text-align: center; text-decoration: none;
+  background: var(--surface); border: 1px solid var(--line);
+  transition: transform 0.25s cubic-bezier(.2,.8,.2,1), border-color 0.25s;
+  animation: lift 0.7s both; animation-delay: calc(var(--d, 0) * 90ms);
+}
+.plat::before {
+  content: ""; position: absolute; left: 50%; top: 34px; width: 150px; height: 150px; translate: -50% -22%;
+  border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--glow) 34%, transparent), transparent);
+  opacity: 0.55; transition: opacity 0.3s, transform 0.3s; pointer-events: none;
+}
+.plat:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--glow) 60%, var(--line)); }
+.plat:hover::before { opacity: 1; transform: scale(1.15); }
+.plat-logo {
+  position: relative; width: 78px; height: 78px; display: grid; place-items: center;
+  animation: bob 5s ease-in-out infinite; animation-delay: calc(var(--d, 0) * -1.2s);
+  transition: transform 0.3s cubic-bezier(.2,.8,.2,1);
+}
+.plat:hover .plat-logo { transform: translateY(-6px) scale(1.08); }
+.plat-logo img { max-width: 100%; max-height: 100%; width: auto; height: 78px; object-fit: contain; filter: drop-shadow(0 8px 18px color-mix(in srgb, var(--glow) 35%, transparent)); }
+.plat-name { position: relative; font-weight: 600; font-size: 17px; }
+.plat-role { position: relative; font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+@keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -5px; } }
+
+/* ---------- Keys ---------- */
+.keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
+@media (max-width: 700px) { .keys { grid-template-columns: minmax(0, 1fr); } }
+.key-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.key-row span { color: var(--muted); min-width: 0; }
+kbd {
+  font-family: var(--font-mono); font-size: 12.5px; font-weight: 700; white-space: nowrap;
+  padding: 5px 9px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); border-bottom-width: 3px;
+}
+
+/* ---------- Install ---------- */
+.install { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 860px) { .install { grid-template-columns: minmax(0, 1fr); } }
+.term { border-radius: 16px; overflow: hidden; background: #0e1016; border: 1px solid var(--line); box-shadow: 0 24px 60px -30px var(--shadow); }
+.term-bar { display: flex; align-items: center; gap: 7px; padding: 12px 14px; border-bottom: 1px solid #222634; }
+.term-bar i { width: 11px; height: 11px; border-radius: 50%; background: #2c3140; }
+.term-bar span { margin-left: 8px; font-family: var(--font-mono); font-size: 12px; color: #8a90a2; }
+.term-body { position: relative; padding: 18px; overflow-x: auto; }
+.term pre { margin: 0; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.7; color: #e8e4de; white-space: pre; }
+.term .prompt { color: #ff7a5c; user-select: none; }
+.copy {
+  position: absolute; top: 12px; right: 12px; height: 32px; padding: 0 12px; border-radius: 9px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 700; border: 1px solid #2c3140; background: #1a1e29; color: #e8e4de;
+  transition: background 0.15s, color 0.15s;
+}
+.copy:hover { background: #ff7a5c; color: #210b05; }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 14px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; color: var(--muted); }
+.steps li::before {
+  content: counter(s); width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: 13px; background: var(--surface-2); color: var(--accent); border: 1px solid var(--line);
+}
+.steps b { color: var(--fg); font-weight: 600; }
+
+/* ---------- Numbers ---------- */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 860px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { padding: 22px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+.stat strong { display: block; font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 3.4vw, 34px); line-height: 1.1; color: var(--fg); font-variant-numeric: tabular-nums; }
+.stat strong em { font-style: normal; color: var(--accent); }
+.stat span { display: block; margin-top: 8px; color: var(--muted); font-size: 14px; }
+.note { margin-top: 14px; font-size: 13px; color: var(--muted); font-family: var(--font-mono); }
+
+/* ---------- Footer ---------- */
+footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top: 32px; }
+.foot { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 28px; }
+@media (max-width: 760px) { .foot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.foot-brand { display: flex; flex-direction: column; gap: 12px; color: var(--muted); font-size: 14px; }
+.foot-brand svg { width: 46px; height: 46px; color: var(--fg); }
+.foot h4 { margin: 0 0 10px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.foot ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.foot a { text-decoration: none; font-size: 15px; }
+.foot a:hover { color: var(--accent); }
+.copyright { margin-top: 36px; font-size: 13px; color: var(--muted); font-family: var(--font-mono); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- Logo artwork, defined once and reused by the nav and footer -->
+<svg class="logo-defs" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 256 256">
+    <defs>
+      <mask id="lg-planetCut" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+        <rect width="256" height="256" fill="#fff"/>
+        <path d="M 244 128 A 116 30 0 0 1 12 128" transform="rotate(-22 128 128)" fill="none" stroke="#000" stroke-width="17" stroke-linecap="round"/>
+        <path d="M 167 108 A 39 39 0 0 1 108 167" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>
+      </mask>
+      <mask id="lg-behind" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+        <rect width="256" height="256" fill="#fff"/>
+        <circle cx="128" cy="128" r="55" fill="#000"/>
+        <circle cx="216.3" cy="163.1" r="14" fill="#000"/>
+      </mask>
+      <mask id="lg-moonGap" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+        <rect width="256" height="256" fill="#fff"/>
+        <circle cx="216.3" cy="163.1" r="14" fill="#000"/>
+      </mask>
+    </defs>
+    <g mask="url(#lg-behind)" fill="none" stroke="currentColor" stroke-linecap="round">
+      <path d="M 12 128 A 116 30 0 0 1 244 128" transform="rotate(-22 128 128)" stroke-width="8"/>
+      <path d="M 20 128 A 108 34 0 0 1 236 128" transform="rotate(32 128 128)" stroke-width="5"/>
+      <path d="M 32 128 A 96 40 0 0 1 224 128" transform="rotate(72 128 128)" stroke-width="3.5"/>
+      <path d="M 236 128 A 108 34 0 0 1 20 128" transform="rotate(32 128 128)" stroke-width="5"/>
+      <path d="M 224 128 A 96 40 0 0 1 32 128" transform="rotate(72 128 128)" stroke-width="3.5"/>
+    </g>
+    <circle cx="128" cy="128" r="48" fill="currentColor" mask="url(#lg-planetCut)"/>
+    <g mask="url(#lg-moonGap)"><path d="M 244 128 A 116 30 0 0 1 12 128" transform="rotate(-22 128 128)" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></g>
+    <circle cx="216.3" cy="163.1" r="8.5" fill="currentColor"/>
+  </symbol>
+  <symbol id="ext" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10H0V4h12v2H2v15h17v-8h2zm3-12H13.01l4.04 4-6.98 7.07 2.83 2.83 6.98-7.07L24 12V1z"/></symbol>
+  <symbol id="gh" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2 0-.4-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></symbol>
+</svg>
+
+<nav class="nav" aria-label="Main">
+  <div class="island">
+    <a class="brand" href="#top" aria-label="Catastrophic OS, back to top">
+      <svg aria-hidden="true"><use href="#logo"/></svg>
+      <span>Catastrophic</span>
+    </a>
+  </div>
+  <div class="island nav-center" aria-hidden="true">
+    <span class="nav-clock" id="navClock">00:00:00</span>
+  </div>
+  <div class="island">
+    <a class="nav-link hide-sm" href="#features">Features</a>
+    <a class="nav-link hide-sm" href="#install">Install</a>
+    <a class="nav-link" href="https://github.com/idkmodmenus/catastrophic-dotfiles" target="_blank" rel="noopener noreferrer">GitHub<svg class="ext" aria-hidden="true"><use href="#ext"/></svg></a>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to light theme">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" id="themeIcon" d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.4 5.4 0 0 1-9.54-4.98A9 9 0 0 0 12 3z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="waves" aria-hidden="true">
+    <div class="wave"><svg viewBox="0 0 2880 1000" preserveAspectRatio="none"><path fill="var(--wave-1)" d="M0 520 C240 450 480 590 720 520 S1200 450 1440 520 S1920 590 2160 520 S2640 450 2880 520 V1000 H0Z"/></svg></div>
+    <div class="wave"><svg viewBox="0 0 2880 1000" preserveAspectRatio="none"><path fill="var(--wave-2)" d="M0 660 C240 600 480 720 720 660 S1200 600 1440 660 S1920 720 2160 660 S2640 600 2880 660 V1000 H0Z"/></svg></div>
+    <div class="wave"><svg viewBox="0 0 2880 1000" preserveAspectRatio="none"><path fill="var(--wave-3)" d="M0 790 C240 740 480 840 720 790 S1200 740 1440 790 S1920 840 2160 790 S2640 740 2880 790 V1000 H0Z"/></svg></div>
+    <div class="wave"><svg viewBox="0 0 2880 1000" preserveAspectRatio="none"><path fill="var(--wave-4)" d="M0 900 C240 860 480 940 720 900 S1200 860 1440 900 S1920 940 2160 900 S2640 860 2880 900 V1000 H0Z"/></svg></div>
+  </div>
+  <div class="wrap hero-inner">
+    <div class="planet" id="planet" title="Drag to tilt the rings">
+      <canvas id="planetCanvas" aria-label="Catastrophic OS logo: a planet with three orbit rings and a moon" role="img"></canvas>
+    </div>
+    <h1 class="title" aria-label="Catastrophic OS">
+      <span class="word" aria-hidden="true" id="titleWord"></span>
+      <span class="os" aria-hidden="true">OS</span>
+    </h1>
+    <p class="lede">A Hyprland desktop for Arch and CachyOS that looks good and stays light.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="#install">Get started</a>
+      <a class="btn btn-ghost" href="https://github.com/idkmodmenus/catastrophic-dotfiles" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true"><use href="#gh"/></svg>GitHub</a>
+    </div>
+    <div class="hero-meta">Version 2.23.0 · Hyprland · Quickshell</div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="showcase" aria-label="Desktop screenshots">
+    <div class="wrap">
+      <div class="carousel" id="carousel" tabindex="0" aria-roledescription="carousel">
+        <div class="viewport">
+          <figure class="slide active" aria-roledescription="slide" aria-label="1 of 4">
+            <img src="img/shot-desktop.webp" alt="Catastrophic OS desktop: three glass islands across the top over a mountain wallpaper" width="1600" height="900">
+            <figcaption class="caption"><b>01</b>The bar: three glass islands, nothing else in the way</figcaption>
+          </figure>
+          <figure class="slide" aria-roledescription="slide" aria-label="2 of 4">
+            <img src="img/shot-dashboard.webp" alt="Dashboard open below the clock with time, weather, calendar, media and system load" width="1600" height="900" loading="lazy">
+            <figcaption class="caption"><b>02</b>Rest on the clock for the dashboard</figcaption>
+          </figure>
+          <figure class="slide" aria-roledescription="slide" aria-label="3 of 4">
+            <img src="img/shot-monitor.webp" alt="System monitor card on the right with CPU, memory, GPU, disk and top processes" width="1600" height="900" loading="lazy">
+            <figcaption class="caption"><b>03</b>System monitor with the busiest apps</figcaption>
+          </figure>
+          <figure class="slide" aria-roledescription="slide" aria-label="4 of 4">
+            <img src="img/shot-volume.webp" alt="Volume popout under the bar with the output device and a mixer for each app" width="1600" height="900" loading="lazy">
+            <figcaption class="caption"><b>04</b>Hover the volume chip for a mixer per app</figcaption>
+          </figure>
+        </div>
+        <button class="arrow prev" type="button" aria-label="Previous screenshot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button class="arrow next" type="button" aria-label="Next screenshot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <div class="dots" role="tablist" aria-label="Choose a screenshot"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">What's in the shell</p>
+        <h2>Everything lives in the bar, and it all opens on hover</h2>
+        <p>Built with Quickshell on Hyprland. Menus drop in as glass cards with a light motion blur while they move.</p>
+      </div>
+      <div class="grid">
+        <article class="card" style="--d:0">
+          <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="6" height="5" rx="2.5"/><rect x="9.5" y="4" width="5" height="5" rx="2.5"/><rect x="16" y="4" width="6" height="5" rx="2.5"/><path d="M3 20h18"/></svg></div>
+          <h3>Glass island bar</h3>
+          <p>Three floating islands, tinted like the kitty terminal and blurred by Hyprland. Nothing runs down the sides of the screen.</p>
+        </article>
+        <article class="card" style="--d:1">
+          <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="9" r="2"/><circle cx="10" cy="6" r="2"/><circle cx="14" cy="6" r="2"/><circle cx="18" cy="9" r="2"/><path d="M12 11c3 0 6 3.5 6 6.5 0 1.6-1.2 2.5-2.6 2.5-1.3 0-2-.8-3.4-.8s-2.1.8-3.4.8C7.2 20 6 19.1 6 17.5 6 14.5 9 11 12 11z"/></svg></div>
+          <h3>Cat workspaces</h3>
+          <p>A dot for an empty workspace, a paw where windows are open and a cat on the one you are on. Scroll the island to switch.</p>
+        </article>
+        <article class="card" style="--d:2">
+          <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg></div>
+          <h3>Apps in the bar</h3>
+          <p>Pinned and running apps next to the clock. Click to focus, again to cycle windows, middle-click for a new one. The app grid sits at the end.</p>
+        </article>
+        <article class="card" style="--d:3">
+          <span class="tag">Super + D</span>
+          <h3>Dashboard</h3>
+          <p>Clock, weather, calendar, media and system load. Rest the pointer on the clock to open it; sweeping past does not.</p>
+        </article>
+        <article class="card" style="--d:4">
+          <span class="tag">Hover</span>
+          <h3>Popouts for every chip</h3>
+          <p>Wi-Fi networks, Bluetooth devices, a mixer for each app, battery and the player all drop in under the item you point at.</p>
+        </article>
+        <article class="card" style="--d:5">
+          <span class="tag">matugen</span>
+          <h3>Colours from your wallpaper</h3>
+          <p>Pick a wallpaper and the shell, dock, terminal, launcher, GTK and Qt apps recolour to match, in light or dark.</p>
+        </article>
+        <article class="card" style="--d:6">
+          <span class="tag">Super + `</span>
+          <h3>Drop-down terminal</h3>
+          <p>Terminals share one kitty process, so each extra window costs about 11 MB instead of a whole new kitty.</p>
+        </article>
+        <article class="card" style="--d:7">
+          <span class="tag">Privacy</span>
+          <h3>Mic, camera and screen dots</h3>
+          <p>While an app uses the microphone, camera or screen sharing, a coloured dot shows in the bar. Hover it to see which app.</p>
+        </article>
+        <article class="card" style="--d:8">
+          <span class="tag">Super + N</span>
+          <h3>Its own notifications</h3>
+          <p>The shell serves notifications itself, with action buttons such as the update prompt and a Silent mode on the bell.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="runs-on">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Runs on</p>
+        <h2 id="runs-on">Made for Arch, tuned on CachyOS</h2>
+        <p>The installer checks for one of these before it starts, and works on a plain Arch install without a desktop.</p>
+      </div>
+      <div class="platforms">
+        <a class="plat" style="--d:0;--glow:#1793d1" href="https://archlinux.org" target="_blank" rel="noopener noreferrer">
+          <span class="plat-logo"><img src="logos/arch.svg" alt="" width="78" height="78"></span>
+          <span class="plat-name">Arch Linux</span>
+          <span class="plat-role">Distribution</span>
+        </a>
+        <a class="plat" style="--d:1;--glow:#00d6b4" href="https://cachyos.org" target="_blank" rel="noopener noreferrer">
+          <span class="plat-logo"><img src="logos/cachyos.svg" alt="" width="78" height="78"></span>
+          <span class="plat-name">CachyOS</span>
+          <span class="plat-role">Distribution</span>
+        </a>
+        <a class="plat" style="--d:2;--glow:#00c4f0" href="https://hyprland.org" target="_blank" rel="noopener noreferrer">
+          <span class="plat-logo"><img src="logos/hyprland.svg" alt="" width="58" height="78"></span>
+          <span class="plat-name">Hyprland</span>
+          <span class="plat-role">Compositor</span>
+        </a>
+        <a class="plat" style="--d:3;--glow:#3a9a5b" href="https://quickshell.org" target="_blank" rel="noopener noreferrer">
+          <span class="plat-logo"><img src="logos/quickshell.svg" alt="" width="78" height="78"></span>
+          <span class="plat-name">Quickshell</span>
+          <span class="plat-role">Shell toolkit</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="keys-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Keys</p>
+        <h2 id="keys-title">Everything is one shortcut away</h2>
+      </div>
+      <div class="keys">
+        <div class="key-row"><span>Dashboard</span><kbd>Super + D</kbd></div>
+        <div class="key-row"><span>Notification centre</span><kbd>Super + N</kbd></div>
+        <div class="key-row"><span>Application launcher</span><kbd>Super + Ctrl + Return</kbd></div>
+        <div class="key-row"><span>Drop-down terminal</span><kbd>Super + `</kbd></div>
+        <div class="key-row"><span>Sidebar: volume, brightness, toggles</span><kbd>Super + Ctrl + S</kbd></div>
+        <div class="key-row"><span>Session menu</span><kbd>Super + Ctrl + P</kbd></div>
+        <div class="key-row"><span>Window overview</span><kbd>Super + Tab</kbd></div>
+        <div class="key-row"><span>Close the active window</span><kbd>Super + Q</kbd></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install" aria-labelledby="install-title">
+    <div class="wrap install">
+      <div>
+        <p class="eyebrow">Install</p>
+        <h2 id="install-title">One command on a fresh or existing Arch system</h2>
+        <p style="color:var(--muted);margin:0 0 20px">Run it as your normal user. It asks for your password once and before every system-level change.</p>
+        <div class="term">
+          <div class="term-bar"><i></i><i></i><i></i><span>kitty</span></div>
+          <div class="term-body">
+            <button class="copy" id="copyBtn" type="button">Copy</button>
+            <pre><span class="prompt">$ </span><span id="cmd">curl -fsSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh | bash</span></pre>
+          </div>
+        </div>
+      </div>
+      <ol class="steps" aria-label="What the installer does">
+        <li><span><b>Checks your system.</b> Arch or CachyOS and an internet connection.</span></li>
+        <li><span><b>Installs the desktop.</b> Offers a full system update first, then Hyprland and everything it needs.</span></li>
+        <li><span><b>Adds the apps.</b> Window overview, settings app, walker and elephant, which start the first time you use them.</span></li>
+        <li><span><b>Links your dotfiles.</b> Copies them to <code>~/.mydotfiles</code> and backs up anything it replaces.</span></li>
+        <li><span><b>Asks before system changes.</b> Services, SDDM, the NVIDIA driver, icons and the boot splash.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section aria-labelledby="numbers-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">By the numbers</p>
+        <h2 id="numbers-title">Light on purpose</h2>
+        <p>Things you only need now and then start when you first open them, so less runs at login.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><strong>2.23<em>.0</em></strong><span>Current version</span></div>
+        <div class="stat"><strong>0.4<em>%</em></strong><span>Shell CPU while idle</span></div>
+        <div class="stat"><strong>312<em> MB</em></strong><span>Shell memory after a fresh start</span></div>
+        <div class="stat"><strong>11<em> MB</em></strong><span>Each extra terminal window</span></div>
+      </div>
+      <p class="note">Measured on the author's laptop on 1 November 2026.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div class="foot-brand">
+        <svg aria-hidden="true"><use href="#logo"/></svg>
+        <span>A Hyprland desktop for Arch and CachyOS.</span>
+      </div>
+      <div>
+        <h4>Docs</h4>
+        <ul>
+          <li><a href="https://github.com/idkmodmenus/catastrophic-dotfiles#readme" target="_blank" rel="noopener noreferrer">README</a></li>
+          <li><a href="#install">Install</a></li>
+          <li><a href="https://github.com/idkmodmenus/catastrophic-dotfiles/commits/main" target="_blank" rel="noopener noreferrer">Changes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/idkmodmenus/catastrophic-dotfiles" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="https://github.com/idkmodmenus/catastrophic-dotfiles/issues" target="_blank" rel="noopener noreferrer">Report a problem</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Creator</h4>
+        <ul>
+          <li><a href="https://github.com/idkmodmenus" target="_blank" rel="noopener noreferrer">idkmodmenus</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">Catastrophic OS · 2026</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const root = document.documentElement;
+
+  /* ---------- Theme toggle (remembered per viewer when storage works) ---------- */
+  const themeBtn = document.getElementById("themeBtn");
+  const themeIcon = document.getElementById("themeIcon");
+  const MOON = "M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.4 5.4 0 0 1-9.54-4.98A9 9 0 0 0 12 3z";
+  const SUN = "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5 1.5 3h-3zm0 20-1.5-3h3zM2 12l3-1.5v3zm20 0-3 1.5v-3zM4.9 4.9l3.2 1-2.1 2.1zm14.2 14.2-3.2-1 2.1-2.1zM4.9 19.1l1-3.2 2.1 2.1zM19.1 4.9l-1 3.2-2.1-2.1z";
+  function currentTheme() {
+    const t = root.getAttribute("data-theme");
+    if (t) return t;
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  function paintToggle() {
+    const t = currentTheme();
+    themeIcon.setAttribute("d", t === "dark" ? MOON : SUN);
+    themeBtn.setAttribute("aria-label", t === "dark" ? "Switch to light theme" : "Switch to dark theme");
+  }
+  try { const saved = localStorage.getItem("cat-theme"); if (saved) root.setAttribute("data-theme", saved); } catch (e) {}
+  paintToggle();
+  themeBtn.addEventListener("click", () => {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("cat-theme", next); } catch (e) {}
+    paintToggle();
+    planet.recolor();
+  });
+
+  /* ---------- Nav clock, like the bar's ---------- */
+  const clock = document.getElementById("navClock");
+  const pad = n => String(n).padStart(2, "0");
+  function tick() { const d = new Date(); clock.textContent = pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()); }
+  tick(); setInterval(tick, 1000);
+
+  /* ---------- Wavy title ---------- */
+  const word = document.getElementById("titleWord");
+  "Catastrophic".split("").forEach((c, i) => {
+    const s = document.createElement("span");
+    s.className = "ch"; s.textContent = c; s.style.setProperty("--i", i);
+    word.appendChild(s);
+  });
+
+  /* ---------- Planet: rings draw in, wobble, tilt with the pointer; the moon orbits ---------- */
+  const planet = (function () {
+    const box = document.getElementById("planet");
+    const cv = document.getElementById("planetCanvas");
+    const ctx = cv.getContext("2d");
+    const C = 128, R = 48;
+    // rx, ry, angle (deg), width, crosses the planet's face
+    const rings = [
+      { rx: 116, ry: 30, a: -22, w: 8, front: true },
+      { rx: 108, ry: 34, a: 32, w: 5, front: false },
+      { rx: 96, ry: 40, a: 72, w: 3.5, front: false },
+    ];
+    let color = "#fff", dpr = 1, size = 256;
+    let tiltX = 0, tiltY = 0, aimX = 0, aimY = 0;
+    const start = performance.now();
+
+    function recolor() { color = getComputedStyle(root).getPropertyValue("--fg").trim() || "#fff"; if (reduced) draw(performance.now()); }
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      size = box.clientWidth || 256;
+      cv.width = Math.round(size * dpr); cv.height = Math.round(size * dpr);
+    }
+    function ringPoint(r, ang, ryScale, t) {
+      const x = r.rx * Math.cos(t), y = r.ry * ryScale * Math.sin(t);
+      const c = Math.cos(ang), s = Math.sin(ang);
+      return [C + x * c - y * s, C + x * s + y * c];
+    }
+    // Strokes the part of a ring between parameters t0 and t1
+    function strokeRing(r, ang, ryScale, t0, t1, width, mode) {
+      if (t1 <= t0) return;
+      ctx.beginPath();
+      const steps = Math.max(8, Math.ceil((t1 - t0) / 0.04));
+      for (let i = 0; i <= steps; i++) {
+        const [x, y] = ringPoint(r, ang, ryScale, t0 + (t1 - t0) * i / steps);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.globalCompositeOperation = mode;
+      ctx.lineWidth = width; ctx.lineCap = "round"; ctx.strokeStyle = color;
+      ctx.stroke();
+    }
+    function disc(x, y, rad, mode) {
+      ctx.globalCompositeOperation = mode;
+      ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+    }
+    const ease = t => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
+
+    function draw(now) {
+      const t = reduced ? 1e6 : (now - start) / 1000;
+      tiltX += (aimX - tiltX) * 0.06; tiltY += (aimY - tiltY) * 0.06;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      const k = size * dpr / 256;
+      ctx.setTransform(k, 0, 0, k, 0, 0);
+
+      const geo = rings.map((r, i) => ({
+        r,
+        ang: (r.a + Math.sin(t * 0.35 + i * 2.1) * 3 + tiltX * 10) * Math.PI / 180,
+        ry: 1 + tiltY * 0.35 + Math.sin(t * 0.5 + i) * 0.04,
+        p: reduced ? 1 : 0.3 + 0.7 * ease((t - 0.05 - i * 0.15) / 1.1),   // draw-in progress (starts partly drawn)
+      }));
+      // The front half of a ring is t in (0, PI) in its own frame
+      // 1. Back halves of every ring, and the whole of the rings that stay behind
+      for (const g of geo) {
+        const end = Math.PI * 2 * g.p;
+        if (g.r.front) strokeRing(g.r, g.ang, g.ry, Math.PI, Math.min(end, Math.PI * 2), g.r.w, "source-over");
+        else strokeRing(g.r, g.ang, g.ry, 0, end, g.r.w, "source-over");
+      }
+      // Moon on the second orbit; behind the planet on the back half
+      const mo = geo[1];
+      const mt = t * 0.55 + 0.6;
+      const [mx, my] = ringPoint(mo.r, mo.ang, mo.ry, mt);
+      const moonFront = Math.sin(mt % (Math.PI * 2)) > 0;
+      const moonIn = reduced ? 1 : Math.min(1, Math.max(0.4, (t - 0.4) / 0.5 + 0.4));
+      if (!moonFront && moonIn > 0) { disc(mx, my, 14, "destination-out"); disc(mx, my, 8.5 * moonIn, "source-over"); }
+      // 2. Clear a gap around the planet, then the planet itself
+      disc(C, C, R + 7, "destination-out");
+      const grow = reduced ? 1 : 0.85 + 0.15 * ease(t / 0.6);
+      disc(C, C, R * grow, "source-over");
+      // Crescent line on the night side
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath(); ctx.arc(C, C, (R - 9) * grow, -0.3, Math.PI / 2 + 0.3);
+      ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.stroke();
+      // 3. The main ring's front half, cut into the planet with a clean gap
+      for (const g of geo) {
+        if (!g.r.front) continue;
+        const end = Math.min(Math.PI * 2 * g.p, Math.PI);
+        strokeRing(g.r, g.ang, g.ry, 0, end, g.r.w + 9, "destination-out");
+        strokeRing(g.r, g.ang, g.ry, 0, end, g.r.w, "source-over");
+      }
+      if (moonFront && moonIn > 0) { disc(mx, my, 14, "destination-out"); disc(mx, my, 8.5 * moonIn, "source-over"); }
+      ctx.globalCompositeOperation = "source-over";
+    }
+
+    function loop(now) { draw(now); requestAnimationFrame(loop); }
+    function aim(e) {
+      const b = box.getBoundingClientRect();
+      aimX = Math.max(-1, Math.min(1, (e.clientX - (b.left + b.width / 2)) / (b.width)));
+      aimY = Math.max(-1, Math.min(1, (e.clientY - (b.top + b.height / 2)) / (b.height)));
+    }
+    resize(); recolor();
+    window.addEventListener("resize", () => { resize(); if (reduced) draw(performance.now()); });
+    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { recolor(); paintToggle(); });
+    if (!reduced) {
+      document.querySelector(".hero").addEventListener("pointermove", aim);
+      document.querySelector(".hero").addEventListener("pointerleave", () => { aimX = 0; aimY = 0; });
+      requestAnimationFrame(loop);
+    } else {
+      draw(performance.now());
+    }
+    return { recolor };
+  })();
+
+  /* ---------- Carousel: crossfade, arrows, dots that fill, swipe, keys ---------- */
+  const car = document.getElementById("carousel");
+  const slides = [...car.querySelectorAll(".slide")];
+  const dotsBox = car.querySelector(".dots");
+  const SLIDE_MS = 6000;
+  car.style.setProperty("--slide-ms", SLIDE_MS + "ms");
+  let index = 0, timer = null;
+  const dots = slides.map((_, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "dot"; b.setAttribute("role", "tab");
+    b.setAttribute("aria-label", "Show screenshot " + (i + 1));
+    b.appendChild(document.createElement("span"));
+    b.addEventListener("click", () => show(i, true));
+    dotsBox.appendChild(b);
+    return b;
+  });
+  function show(i, user) {
+    index = (i + slides.length) % slides.length;
+    slides.forEach((s, j) => { s.classList.toggle("active", j === index); s.setAttribute("aria-hidden", j === index ? "false" : "true"); });
+    dots.forEach((d, j) => {
+      d.classList.remove("active", "done");
+      void d.offsetWidth;   // restart the fill animation
+      if (j < index) d.classList.add("done");
+      if (j === index) { d.classList.add("active"); d.setAttribute("aria-selected", "true"); } else d.setAttribute("aria-selected", "false");
+    });
+    schedule();
+  }
+  function schedule() {
+    clearTimeout(timer);
+    if (reduced || car.classList.contains("paused")) return;
+    timer = setTimeout(() => show(index + 1), SLIDE_MS);
+  }
+  car.querySelector(".prev").addEventListener("click", () => show(index - 1, true));
+  car.querySelector(".next").addEventListener("click", () => show(index + 1, true));
+  car.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft") show(index - 1, true);
+    if (e.key === "ArrowRight") show(index + 1, true);
+  });
+  car.addEventListener("pointerenter", () => { car.classList.add("paused"); clearTimeout(timer); });
+  car.addEventListener("pointerleave", () => { car.classList.remove("paused"); show(index); });
+  let sx = null;
+  car.addEventListener("touchstart", e => { sx = e.touches[0].clientX; }, { passive: true });
+  car.addEventListener("touchend", e => {
+    if (sx === null) return;
+    const dx = e.changedTouches[0].clientX - sx; sx = null;
+    if (Math.abs(dx) > 40) show(index + (dx < 0 ? 1 : -1), true);
+  });
+  show(0);
+
+  /* ---------- Copy the install command ---------- */
+  const copyBtn = document.getElementById("copyBtn");
+  const cmd = document.getElementById("cmd");
+  copyBtn.addEventListener("click", () => {
+    const done = msg => { copyBtn.textContent = msg; setTimeout(() => { copyBtn.textContent = "Copy"; }, 1800); };
+    const select = () => { const r = document.createRange(); r.selectNodeContents(cmd); const s = getSelection(); s.removeAllRanges(); s.addRange(r); done("Selected, press Ctrl+C"); };
+    try { navigator.clipboard.writeText(cmd.textContent).then(() => done("Copied"), select); } catch (e) { select(); }
+  });
+})();
+</script>
+</body>
+</html>
