@@ -17,7 +17,7 @@ conflicts=('catastrophic-os-git')
 install="$pkgname.install"
 options=('!strip' '!debug')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP_UNTIL_RELEASED')
+sha256sums=('22698967bd8e9489ae4c3f5f53b137f6c2ed39035888b39b5138eace47754dbd')
 
 package() {
     local src="$srcdir/catastrophic-dotfiles-$pkgver"

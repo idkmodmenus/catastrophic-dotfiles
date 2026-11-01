@@ -6,7 +6,7 @@
 # afterwards to set up the desktop (it asks before every system-level change).
 
 pkgname=catastrophic-os-git
-pkgver=2.22.0.r6.0000000
+pkgver=2.22.0.r6.3601a59
 pkgrel=1
 pkgdesc="Hyprland desktop for Arch and CachyOS with a glass island bar, hover popouts and wallpaper colours"
 arch=('any')

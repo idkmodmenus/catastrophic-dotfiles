@@ -1,0 +1,21 @@
+pkgbase = catastrophic-os-git
+	pkgdesc = Hyprland desktop for Arch and CachyOS with a glass island bar, hover popouts and wallpaper colours
+	pkgver = 2.22.0.r6.3601a59
+	pkgrel = 1
+	url = https://github.com/idkmodmenus/catastrophic-dotfiles
+	install = catastrophic-os-git.install
+	arch = any
+	license = MIT
+	makedepends = git
+	depends = bash
+	depends = curl
+	depends = sudo
+	depends = git
+	provides = catastrophic-os
+	conflicts = catastrophic-os
+	options = !strip
+	options = !debug
+	source = catastrophic-os-git::git+https://github.com/idkmodmenus/catastrophic-dotfiles.git
+	sha256sums = SKIP
+
+pkgname = catastrophic-os-git
