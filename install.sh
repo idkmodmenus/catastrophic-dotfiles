@@ -53,7 +53,7 @@ trap cleanup EXIT
 
 # --- Start screen: what will happen on this computer, before anything changes ---
 show_summary() {
-    local new_ver old_ver mode gpus="" v ram_gb arch_n aur_n missing_n de
+    local new_ver old_ver mode gpus="" v ram arch_n aur_n missing_n de
     new_ver="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$SRC/catastrophic.dotinst" | head -n 1 || true)"
     old_ver="$(sed -n 's/.*"Version": *"\([^"]*\)".*/\1/p' "$HOME/.config/catastrophic/version.json" 2>/dev/null | head -n 1 || true)"
     if [ -n "$old_ver" ]; then
@@ -71,10 +71,11 @@ show_summary() {
             0x10de) gpus+="NVIDIA " ;;
             0x1002) gpus+="AMD " ;;
             0x8086) gpus+="Intel " ;;
+            0x1af4|0x1234|0x15ad|0x80ee) gpus+="virtual " ;;
         esac
     done
     gpus="$(echo "$gpus" | tr ' ' '\n' | sort -u | grep . | paste -sd '+' - || true)"
-    ram_gb=$(( $(awk '/^MemTotal:/{print $2}' /proc/meminfo || echo 0) / 1048576 ))
+    ram="$(awk '/^MemTotal:/{printf "%.1f", $2 / 1048576}' /proc/meminfo || true)"
 
     arch_n="$(grep -vcE '^\s*(#|$)' "$SRC/setup/dependencies/packages-arch" || true)"
     aur_n="$(grep -vcE '^\s*(#|$)' "$SRC/setup/dependencies/packages-aur" || true)"
@@ -83,7 +84,7 @@ show_summary() {
 
     printf '\n\033[1;36m  Catastrophic OS\033[0m  -  Hyprland desktop for Arch Linux and CachyOS\n\n'
     printf '  \033[1m%-11s\033[0m %s\n' "What" "$mode"
-    printf '  \033[1m%-11s\033[0m %s, %s GB RAM, graphics: %s\n' "Computer" "${PRETTY_NAME:-Arch}" "$ram_gb" "${gpus:-unknown}"
+    printf '  \033[1m%-11s\033[0m %s, %s GB RAM, graphics: %s\n' "Computer" "${PRETTY_NAME:-Arch}" "${ram:-?}" "${gpus:-unknown}"
     printf '  \033[1m%-11s\033[0m %s GB free on /\n' "Disk" "$(( root_free / 1048576 ))"
     printf '  \033[1m%-11s\033[0m %s of %s packages still to download, plus %s from the AUR\n' "Packages" "$missing_n" "$arch_n" "$aur_n"
     printf '  \033[1m%-11s\033[0m %s\n' "Desktop now" "$de"
@@ -261,7 +262,8 @@ jq --arg src "$SRC" '.source = $src' "$SRC/catastrophic.dotinst" > "$PROFILE"
 
 ARGS=(--install "$PROFILE")
 [ "$VERBOSE" -eq 1 ] && ARGS+=(--verbose)
-CATASTROPHIC_YES="$YES" CATASTROPHIC_SRC="$SRC" catastrophic-dotfiles-installer "${ARGS[@]}"
+# The start menu was answered already, so the installer does not ask again
+CATASTROPHIC_YES="$YES" CATASTROPHIC_CONFIRMED=1 CATASTROPHIC_SRC="$SRC" catastrophic-dotfiles-installer "${ARGS[@]}"
 rm -f "$PROFILE"
 stage 5 "Done. Reboot, then choose the Hyprland session at the login screen."
 }

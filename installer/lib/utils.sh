@@ -528,7 +528,9 @@ read_dotinst() {
     echo -e "Description: $description" >&2
     echo -e "${GREEN}--------------------------------------------------${NC}" >&2
 
-    if [ "${CATASTROPHIC_YES:-0}" != "1" ] && ! gum confirm "Do you want to proceed with the installation?"; then info "Installation cancelled by user."; exit 0; fi
+    # CATASTROPHIC_CONFIRMED: install.sh's start menu already asked
+    if [ "${CATASTROPHIC_YES:-0}" != "1" ] && [ "${CATASTROPHIC_CONFIRMED:-0}" != "1" ] \
+        && ! gum confirm "Do you want to proceed with the installation?"; then info "Installation cancelled by user."; exit 0; fi
 
     local working_dir=$(mktemp -d -t catastrophic-dots-XXXXXX)
     if [ -d "$git_url" ]; then
