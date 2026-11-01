@@ -1,0 +1,10 @@
+post_install() {
+    echo ":: Catastrophic OS is installed but not set up yet."
+    echo ":: Run 'catastrophic-os' as your normal user (not root) to set up the desktop."
+    echo ":: It asks before every system-level change. 'catastrophic-os --help' lists the options."
+}
+
+post_upgrade() {
+    echo ":: Run 'catastrophic-os' to apply Catastrophic OS $1 to your desktop."
+    echo ":: Your settings are kept; anything replaced is backed up first."
+}
