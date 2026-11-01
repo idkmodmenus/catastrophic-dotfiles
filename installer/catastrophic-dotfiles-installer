@@ -175,6 +175,21 @@ if [ -n "$CLONE_PATH" ] && [ -d "$CLONE_PATH" ]; then
             # Step G: Run migration script
             run_migration "$CLONE_PATH" "$PROFILE_ID"
 
+            # Only call it a success when the desktop can actually start
+            missing_core=()
+            for cmd in Hyprland qs uwsm; do command -v "$cmd" > /dev/null 2>&1 || missing_core+=("$cmd"); done
+            command -v kitty > /dev/null 2>&1 || command -v "$(head -n 1 "$HOME/.config/catastrophic/settings/terminal.sh" 2> /dev/null | awk '{print $1}')" > /dev/null 2>&1 || missing_core+=("a terminal")
+            if [ ${#missing_core[@]} -gt 0 ]; then
+                echo
+                echo "---------------------------------------------------"
+                error "The desktop is not ready yet: ${missing_core[*]} could not be installed."
+                error "This is usually a download problem. Run the same install command again;"
+                error "finished steps are skipped. Do not reboot into Hyprland until it succeeds."
+                info "You can find the logfile at: $LOG_FILE"
+                echo "---------------------------------------------------"
+                exit 1
+            fi
+
             echo
             echo "---------------------------------------------------"
             info "Installation successful! Please reboot your system."

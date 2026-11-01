@@ -385,6 +385,24 @@ process_package_file() {
     QUIET_PKG=""
     progress_line "$total" "$total" "done"
     progress_done
+
+    # One more try for this list's failures: a mirror that timed out usually works
+    # a moment later, and pacman moves on to the next mirror
+    local retry=() still=() p
+    for p in "${FAILED_PACKAGES[@]}"; do [[ " ${lines[*]} " == *" $p "* ]] && retry+=("$p") || still+=("$p"); done
+    if [ ${#retry[@]} -gt 0 ]; then
+        info "Trying ${#retry[@]} failed package(s) once more: ${retry[*]}"
+        sleep 5
+        for p in "${retry[@]}"; do
+            if install_package "$p"; then
+                info "  ✓ $p installed on the second try."
+                added=$((added + 1)); failed=$((failed - 1))
+            else
+                still+=("$p")
+            fi
+        done
+        FAILED_PACKAGES=("${still[@]}")
+    fi
     info "  ✓ $total packages: $added installed, $present already present, $failed failed"
 }
 

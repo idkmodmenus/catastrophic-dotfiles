@@ -38,10 +38,12 @@ die()  { printf '\033[1;31m:: ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
 PROFILE=""
 INSTALL_STARTED=0
+SUDO_KEEPALIVE=""
 cleanup() {
     local rc=$?
     if [ -n "$WORK_DIR" ]; then rm -rf "$WORK_DIR"; fi
     if [ -n "$PROFILE" ]; then rm -f "$PROFILE"; fi
+    if [ -n "$SUDO_KEEPALIVE" ]; then kill "$SUDO_KEEPALIVE" 2>/dev/null || true; fi
     if [ "$rc" -ne 0 ] && [ "$INSTALL_STARTED" -eq 1 ]; then
         printf '\n\033[1;33m:: The install stopped before it finished.\033[0m\n' >&2
         printf '   It is safe to run the same command again: steps that are done are skipped.\n' >&2
@@ -150,11 +152,22 @@ if [ -n "$SELF_DIR" ] && [ -f "$SELF_DIR/catastrophic.dotinst" ] && [ -d "$SELF_
     cp -a "$SELF_DIR" "$WORK_DIR/src"
     SRC="$WORK_DIR/src"
 else
-    command -v git >/dev/null 2>&1 || { say "git is required. Installing it (sudo)."; sudo pacman -S --needed --noconfirm git; }
     WORK_DIR="$(mktemp -d -t catastrophic-install-XXXXXX)"
     say "Downloading Catastrophic OS ($BRANCH)..."
     say "This is a one-time download of about 50 MB and can take a few minutes on a slow connection."
-    git clone --depth=1 --progress --branch "$BRANCH" "$REPO_URL" "$WORK_DIR/src" || die "Could not clone $REPO_URL"
+    if command -v git >/dev/null 2>&1; then
+        git clone --depth=1 --progress --branch "$BRANCH" "$REPO_URL" "$WORK_DIR/src" || die "Could not clone $REPO_URL"
+    elif [[ "$REPO_URL" =~ ^https://github\.com/([^/]+/[^/]+)$ ]]; then
+        # A fresh Arch install has no git yet. Take GitHub's archive instead, so
+        # nothing needs sudo before you have chosen to install.
+        mkdir -p "$WORK_DIR/src"
+        curl -fL --progress-bar "https://codeload.github.com/${BASH_REMATCH[1]}/tar.gz/refs/heads/$BRANCH" \
+            | tar -xz -C "$WORK_DIR/src" --strip-components=1 || die "Could not download $REPO_URL"
+    else
+        say "git is required to download from $REPO_URL. Installing it (sudo)."
+        sudo pacman -S --needed --noconfirm git
+        git clone --depth=1 --progress --branch "$BRANCH" "$REPO_URL" "$WORK_DIR/src" || die "Could not clone $REPO_URL"
+    fi
     SRC="$WORK_DIR/src"
 fi
 
@@ -229,6 +242,10 @@ fi
 INSTALL_STARTED=1
 say "Administrator access is needed to install packages."
 sudo -v || die "sudo authentication failed."
+# Keep the password valid for the whole install: the system update alone can
+# outlast sudo's few minutes, and a second prompt would appear mid-install
+( while kill -0 "$$" 2>/dev/null; do sudo -n true 2>/dev/null; sleep 50; done ) &
+SUDO_KEEPALIVE=$!
 
 # Arch does not support partial upgrades, and installing into an outdated system
 # can fail on packages that have moved on. Offer a full update before installing.
