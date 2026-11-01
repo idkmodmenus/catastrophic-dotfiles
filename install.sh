@@ -125,6 +125,8 @@ done
 stage 1 "Checking your system"
 [ "$EUID" -ne 0 ] || die "Run this as your normal user, not root. sudo is requested when needed."
 command -v pacman >/dev/null 2>&1 || die "This installer supports Arch Linux and CachyOS (pacman) only."
+command -v sudo >/dev/null 2>&1 || die "sudo is not installed. As root, run: pacman -S sudo, then: EDITOR=nano visudo
+   and uncomment the line %wheel ALL=(ALL:ALL) ALL. Add your user with: usermod -aG wheel $USER"
 . /etc/os-release
 case " ${ID:-} ${ID_LIKE:-} " in
     *" arch "*|*" cachyos "*) ;;

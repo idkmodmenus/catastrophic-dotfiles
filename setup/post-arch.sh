@@ -192,11 +192,26 @@ for svc in NetworkManager bluetooth power-profiles-daemon; do
         svc_todo+=("$svc")
     fi
 done
-if [ ${#svc_todo[@]} -gt 0 ] && gum confirm "Enable ${svc_todo[*]} (sudo)?"; then
+# Plain Arch often runs systemd-networkd and iwd. Two network managers fight over
+# the connection, so they are switched off when NetworkManager takes over.
+net_old=()
+if [[ " ${svc_todo[*]} " == *" NetworkManager "* ]]; then
+    for svc in systemd-networkd iwd; do
+        systemctl is-enabled --quiet "$svc.service" 2> /dev/null && net_old+=("$svc")
+    done
+fi
+svc_question="Enable ${svc_todo[*]} (sudo)?"
+[ ${#net_old[@]} -gt 0 ] && svc_question="Enable ${svc_todo[*]} (sudo)? NetworkManager replaces ${net_old[*]}, which will be switched off from the next boot"
+if [ ${#svc_todo[@]} -gt 0 ] && gum confirm "$svc_question"; then
     for svc in "${svc_todo[@]}"; do
         sudo systemctl enable "$svc.service" &>> "$LOG_FILE" && info "  ✓ $svc enabled." \
             || warn "  Could not enable $svc."
     done
+    for svc in "${net_old[@]}"; do
+        sudo systemctl disable "$svc.service" &>> "$LOG_FILE" && info "  ✓ $svc switched off (NetworkManager replaces it)." \
+            || warn "  Could not switch off $svc."
+    done
+    [ ${#net_old[@]} -gt 0 ] && POST_NOTES+=("Wi-Fi: after rebooting, connect again from the Wi-Fi icon in the bar (NetworkManager does not know your old networks)")
 fi
 
 # --- 6. NVIDIA driver ---
@@ -236,6 +251,10 @@ elif gum confirm "Use SDDM as your login manager (disables the current one, sudo
     # --force replaces whichever display manager is currently enabled
     sudo systemctl enable --force sddm.service &>> "$LOG_FILE" && info "  ✓ SDDM enabled." \
         || POST_NOTES+=("Could not enable SDDM")
+fi
+# Without any login screen (common on plain Arch) say how to start the desktop
+if ! systemctl is-enabled --quiet display-manager.service 2> /dev/null; then
+    POST_NOTES+=("No login screen is enabled. After rebooting, log in on the console and run: uwsm start hyprland.desktop")
 fi
 
 # --- 8. Branding: system icon and boot splash ---
