@@ -5,13 +5,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// The dock, moved into the bar: pinned apps first, then running ones, one icon
-// per app, and the app grid at the end. A dot under an icon means it is open, a
-// wider accent bar means it has focus. Click focuses the app (again to cycle its
-// windows) or starts it; middle click always opens a new window.
-// Pinned apps come from the dock's config (~/.config/catastrophic-dock/config.json,
-// apps.pinned). When the separate bottom dock is switched on (sidebar toggle or
-// `catastrophic-dock enable`), this hides so the apps are not shown twice.
 RowLayout {
     id: apps
 
@@ -63,7 +56,7 @@ RowLayout {
     }
 
     readonly property var entries: {
-        DesktopEntries.applications.values   // re-run when the entry index updates
+        DesktopEntries.applications.values
         const toplevels = ToplevelManager.toplevels.values
         let byKey = ({}), order = []
         const make = (key, appId, isPinned) => {
@@ -128,7 +121,6 @@ RowLayout {
                 Behavior on scale { NumberAnimation { duration: 120 } }
             }
 
-            // Open / focused marker under the icon
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
@@ -153,8 +145,6 @@ RowLayout {
         }
     }
 
-    // App selector: the dock's grid button, opening the launcher (rofi or walker,
-    // whichever is chosen in the settings)
     Item {
         id: grid
         Layout.alignment: Qt.AlignVCenter

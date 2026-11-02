@@ -5,14 +5,11 @@ import QtQuick.Controls
 import qs.CustomTheme
 import qs.Widgets
 
-// Right drawer with every notification still held, plus Do Not Disturb
 Scope {
     id: root
 
     property string query: ""
 
-    // Newest first, with each app's notifications together (apps ordered by
-    // their newest notification) so the list can show one header per app
     readonly property var rows: {
         const q = query.trim().toLowerCase()
         const order = []
@@ -110,7 +107,6 @@ Scope {
                 }
             }
 
-            // Search box, shown once there is enough to search through
             Rectangle {
                 Layout.preferredWidth: 340
                 visible: Notifs.count > 3 || root.query !== ""
@@ -149,7 +145,6 @@ Scope {
                 }
             }
 
-            // Apps muted from toasts; click one to let it through again
             Flow {
                 Layout.preferredWidth: 340
                 visible: Notifs.muted.length > 0
@@ -196,7 +191,6 @@ Scope {
                     boundsBehavior: Flickable.StopAtBounds
                     model: root.rows
 
-                    // One header per app, with its count and quick actions
                     section.property: "app"
                     section.criteria: ViewSection.FullString
                     section.delegate: RowLayout {

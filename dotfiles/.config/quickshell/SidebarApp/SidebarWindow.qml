@@ -13,11 +13,10 @@ import qs.Widgets
 PanelWindow {
     id: root
 
-    // --- WAYLAND CONFIGURATION ---
     WlrLayershell.layer: WlrLayer.Overlay
     exclusionMode: WlrLayershell.Ignore
 
-    implicitWidth: 420 // 380 + 40
+    implicitWidth: 420
     color: "transparent"
 
     property bool isHyprlandSettingsInstalled: false
@@ -34,7 +33,6 @@ PanelWindow {
         bottom: 0
     }
 
-    // --- CLICK OUTSIDE TO CLOSE (Native Hyprland) ---
     HyprlandFocusGrab {
         windows: [root]
         active: root.isOpen
@@ -45,7 +43,6 @@ PanelWindow {
         }
     }
 
-    // --- ESCAPE KEY LISTENER ---
     Shortcut {
         sequence: "Escape"
         onActivated: {
@@ -55,7 +52,6 @@ PanelWindow {
         }
     }
 
-    // --- ANIMATION LOGIC ---
     property bool isOpen: false
     visible: isOpen || slideAnim.running
 
@@ -69,7 +65,6 @@ PanelWindow {
             easing.type: Easing.OutQuint
         }
     }
-
 
     Process {
         command: ["bash", "-c", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-command-exists hyprmod"]
@@ -94,7 +89,6 @@ PanelWindow {
         }
     }
 
-    // --- REUSABLE COMPONENTS ---
     component CatastrophicMenuItem: MenuItem {
         id: control
         contentItem: Text {
@@ -183,7 +177,6 @@ PanelWindow {
         }
     }
 
-    // Supports text glyphs (iconTxt) for MPRIS controls and SVG files (iconSrc) for sidebar icons
     component ActionIcon: Button {
         property string iconTxt: ""
         property string iconSrc: ""
@@ -219,9 +212,6 @@ PanelWindow {
         }
     }
 
-    // ==========================================
-    // MAIN PANEL BACKGROUND
-    // ==========================================
     Item {
         anchors.fill: parent
         anchors.margins: 24
@@ -246,7 +236,6 @@ PanelWindow {
             anchors.margins: 22
             spacing: 18
 
-            // --- TOP BAR (Light/Dark, Screenshot, Color Picker & Keybinds) ---
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 10
@@ -288,7 +277,6 @@ PanelWindow {
 
             Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; visible: false }
 
-            // --- THREE BUTTONS ROW ---
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 10
@@ -304,7 +292,6 @@ PanelWindow {
                     text: "Settings"
                     onClicked: {
                         root.isOpen = false
-                        // Quickshell.execDetached(["kitty", "--class", "dotfiles-floating", "-e", "catastrophic-dotfiles-settings", "com.catastrophic.dotfiles"])
                         Quickshell.execDetached([Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-app", "settings", "toggle"])
                     }
                 }
@@ -320,12 +307,11 @@ PanelWindow {
 
             Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; visible: false }
 
-            // --- SCROLLABLE CONTENT ---
             ScrollView {
                 id: scrollView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                contentHeight: mainContentColumn.implicitHeight // Tells ScrollView how tall the inner content truly is
+                contentHeight: mainContentColumn.implicitHeight
                 clip: true
 
                 ScrollBar.vertical: ScrollBar {
@@ -342,12 +328,10 @@ PanelWindow {
                     width: scrollView.width
                     spacing: 20
 
-                    // --- SLIDERS (Loudness & Brightness) ---
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 20
 
-                        // LOUDNESS SLIDER
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 15
@@ -372,7 +356,7 @@ PanelWindow {
                                 Layout.fillWidth: true
                                 from: 0
                                 to: 100
-                                value: 50 // Default
+                                value: 50
 
                                 Process {
                                     command: ["bash", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print int($2 * 100)}'"]
@@ -419,7 +403,6 @@ PanelWindow {
                             }
                         }
 
-                        // BRIGHTNESS SLIDER
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 15
@@ -442,7 +425,7 @@ PanelWindow {
                             Slider {
                                 id: brightnessSlider
                                 Layout.fillWidth: true
-                                from: 10 // Guaranteed Minimum 10%
+                                from: 10
                                 to: 100
                                 value: 100
 
@@ -491,10 +474,6 @@ PanelWindow {
                             }
                         }
 
-                        // BLUE LIGHT FILTER (HYPRSUNSET) TOGGLE
-                        // Temporary status switch mirroring the SUPER+SHIFT+H
-                        // keybinding: it just starts/kills hyprsunset, nothing
-                        // is persisted, so the state is gone after a restart.
                         ToggleRow {
                             active: root.isOpen
                             visible: root.isHyprsunsetInstalled
@@ -508,12 +487,10 @@ PanelWindow {
 
                     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; Layout.topMargin: 5; Layout.bottomMargin: 5; visible: false }
 
-                    // --- MPRIS PLAYERS (Scrollable ListView) ---
                     ListView {
                         id: mprisListView
                         Layout.fillWidth: true
 
-                        // Dynamically scale based on players, up to 210px (max 2 players)
                         Layout.preferredHeight: contentHeight
                         Layout.maximumHeight: 210
 
@@ -523,11 +500,9 @@ PanelWindow {
                         model: Mpris.players.values
                         visible: Mpris.players.values.length > 0
 
-                        // Force disable scrolling entirely unless there are 3+ players
                         interactive: mprisListView.count > 2
 
                         ScrollBar.vertical: ScrollBar {
-                            // Explicitly hide the scrollbar unless there are 3+ players
                             policy: mprisListView.count > 2 ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
                             interactive: true
                             contentItem: Rectangle {
@@ -552,7 +527,6 @@ PanelWindow {
                                 anchors.margins: 10
                                 spacing: 15
 
-                                // Cover Art Block
                                 Rectangle {
                                     implicitWidth: 80
                                     implicitHeight: 80
@@ -568,7 +542,7 @@ PanelWindow {
                                     }
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "󰝚" // Music note icon (fallback)
+                                        text: "󰝚"
                                         font.family: "monospace"
                                         font.pixelSize: 32
                                         color: Theme.primary
@@ -576,7 +550,6 @@ PanelWindow {
                                     }
                                 }
 
-                                // Track Info & Controls
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
@@ -652,7 +625,6 @@ PanelWindow {
                         visible: false
                     }
 
-                    // --- STATUS BAR ---
                     ToggleRow {
                         active: root.isOpen
                         label: "Status Bar"
@@ -686,7 +658,6 @@ PanelWindow {
                         }
                     }
 
-                    // A missing file or flag counts as on, the bar's own default
                     ToggleRow {
                         active: root.isOpen
                         label: "Statusbar Expanded"
@@ -704,8 +675,6 @@ PanelWindow {
                         cmdOff: "qs ipc call statusbar autohideOff"
                     }
 
-                    // --- LAUNCHER ---
-                    // On = Walker, Off = Rofi, persisted to ~/.config/catastrophic/settings/launcher
                     ToggleRow {
                         id: launcherRow
                         active: root.isOpen
@@ -716,7 +685,6 @@ PanelWindow {
 
                         Text {
                             id: launcherName
-                            // Follows the switch right after it in the row
                             text: launcherRow.checked ? "Walker" : "Rofi"
                             color: Theme.primary
                             opacity: 0.7
@@ -726,7 +694,6 @@ PanelWindow {
                         }
                     }
 
-                    // --- DOCK ---
                     ToggleRow {
                         active: root.isOpen
                         label: "Dock"
@@ -767,7 +734,6 @@ PanelWindow {
                         }
                     }
 
-                    // --- GAMEMODE ---
                     ToggleRow {
                         active: root.isOpen
                         label: "Gamemode"
@@ -775,7 +741,6 @@ PanelWindow {
                         cmdOn: "$HOME/.config/hypr/scripts/gamemode.sh"
                     }
 
-                    // --- HYPRIDLE --- (runtime only: Hyprland's autostart brings it back)
                     ToggleRow {
                         active: root.isOpen
                         label: "Hypridle"
@@ -784,7 +749,6 @@ PanelWindow {
                         cmdOn: "$HOME/.config/hypr/scripts/hypridle.sh toggle"
                     }
 
-                    // --- FASTFETCH ---
                     ToggleRow {
                         active: root.isOpen
                         label: "Fastfetch"
@@ -794,7 +758,6 @@ PanelWindow {
 
                     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3; Layout.topMargin: 5; Layout.bottomMargin: 5; visible: false }
 
-                    // --- WALLPAPER ---
                     RowLayout {
                         Layout.fillWidth: true
                         Text { text: "Wallpaper"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }
@@ -808,7 +771,6 @@ PanelWindow {
                         }
                     }
 
-                    // --- THEME ---
                     RowLayout {
                         Layout.fillWidth: true
                         Text { text: "Theme"; color: Theme.on_surface; font.family: Theme.fontFamily; font.pixelSize: 16 }

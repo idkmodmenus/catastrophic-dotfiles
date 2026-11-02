@@ -1,8 +1,5 @@
 import QtQuick
 
-// Directional motion blur for a layer: `layer.effect: MotionBlur { ... }`.
-// Smears the item along (dx, dy) pixels; give it the item's size so the
-// length can be turned into texture coordinates.
 ShaderEffect {
     property real dx: 0
     property real dy: 0

@@ -6,8 +6,6 @@ import QtQuick.Effects
 import qs.CustomTheme
 import qs.Widgets
 
-// Top drawer: Catastrophic OS version and what's new, calendar, media and system load. Opens on
-// the keybinding or by resting the pointer on the top edge.
 Scope {
     id: root
 
@@ -21,8 +19,6 @@ Scope {
         function close(): void { win.open = false }
     }
 
-    // Touching the frame's top border opens the dashboard. A short cooldown after
-    // it closes stops it reopening while the pointer is still on the border.
     property double closedAt: 0
     Connections {
         target: DrawerState
@@ -33,9 +29,6 @@ Scope {
         }
     }
 
-    // A pointer that stops moving sends no events, so while the panel is open
-    // from a hover its real position is read from Hyprland and compared with
-    // the panel's area.
     property bool polledInside: false
     Process {
         id: cursorProc
@@ -68,12 +61,8 @@ Scope {
         id: win
         edge: "top"
         padding: 18
-        // Opened by hover it just stays while the pointer is on it; opened from
-        // the keybinding it behaves like a menu (Escape or a click away closes it)
         modal: !root.hoverOpened
 
-        // A hover-opened panel closes once the pointer has left both it and the
-        // frame's top border, or if the pointer never reaches it
         property bool entered: false
         readonly property bool pointerHere: panelHovered || DrawerState.topEdgeInside || root.polledInside
         onPanelHoveredChanged: if (panelHovered) entered = true
@@ -87,13 +76,11 @@ Scope {
         RowLayout {
             spacing: 14
 
-            // --- Catastrophic OS: logo, version, update state and what's new ---
             Card {
                 id: about
                 Layout.alignment: Qt.AlignTop
                 Layout.preferredWidth: 250
                 implicitWidth: 250
-                // Same height as the calendar beside it
                 implicitHeight: 168 + 12 + 44
 
                 property string version: ""
@@ -133,7 +120,6 @@ Scope {
                     height: about.height - about.padding * 2
                     spacing: 10
 
-                    // Logo and name
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 12
@@ -170,7 +156,6 @@ Scope {
                         }
                     }
 
-                    // Update state: a quiet line when current, a button when not
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: 32
@@ -211,7 +196,6 @@ Scope {
                         }
                     }
 
-                    // What's new, newest release first; scrolls when it runs long
                     Text {
                         text: "What's new"
                         font.family: Theme.fontFamily
@@ -227,6 +211,11 @@ Scope {
                         clip: true
                         contentHeight: notesCol.implicitHeight
                         boundsBehavior: Flickable.StopAtBounds
+
+                        Connections {
+                            target: win
+                            function onOpenChanged() { if (win.open) notes.contentY = 0 }
+                        }
 
                         ColumnLayout {
                             id: notesCol
@@ -279,7 +268,6 @@ Scope {
                             }
                         }
 
-                        // Soft fade at the bottom while there is more to scroll to
                         Rectangle {
                             parent: notes
                             anchors.left: parent.left
@@ -296,17 +284,14 @@ Scope {
                 }
             }
 
-            // --- Calendar ---
             Card {
                 Layout.alignment: Qt.AlignTop
                 implicitWidth: 7 * 34 + 28
-                // Keeps the usual size, but grows for months that need six rows
                 implicitHeight: Math.max(168 + 12 + 44, calGrid.implicitHeight + padding * 2)
 
                 CalendarGrid { id: calGrid; cell: 34 }
             }
 
-            // --- Media and system load ---
             ColumnLayout {
                 Layout.alignment: Qt.AlignTop
                 Layout.preferredWidth: 300
@@ -366,7 +351,6 @@ Scope {
         }
     }
 
-    // Whether the last opening came from hovering (those close on leave)
     property bool hoverOpened: false
     Connections {
         target: win
@@ -378,7 +362,6 @@ Scope {
         }
     }
 
-    // --- Data sources ---
     QtObject {
         id: perf
         property real cpu: 0

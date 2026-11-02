@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
-# Expand tilde ~ to the user's home directory securely
 expand_path() {
     local path="$1"
     echo "${path/#\~/$HOME}"
 }
 
-# Extract the current value from the file based on the configured mode
 get_current_value() {
     local file=$(expand_path "$1")
     local mode="$2"
@@ -19,7 +17,6 @@ get_current_value() {
         return
     fi
 
-    # Export for safe AWK parsing
     export AWK_MATCH="$match"
     export AWK_CHECKPOINT="$checkpoint"
 
@@ -35,11 +32,9 @@ get_current_value() {
         ' "$file")
     fi
 
-    # Fallback to default if nothing was found or file was empty
     [[ -z "$val" ]] && echo "$default" || echo "$val"
 }
 
-# Apply the requested setting based on mode
 apply_setting() {
     local file=$(expand_path "$1")
     local mode="$2"
@@ -47,20 +42,16 @@ apply_setting() {
     local checkpoint="$4"
     local value="$5"
 
-    # Safely abort if the file does not exist
     if [[ ! -f "$file" ]]; then
         return 1
     fi
 
-    # Ensure the target directory exists just in case (for overwrites)
     if [[ $DRY_RUN -eq 0 ]]; then
         mkdir -p "$(dirname "$file")"
     fi
 
-    # Safely construct the replacement string
     local replacement="${match//\.\*/$value}"
 
-    # Export variables for AWK to read safely from the environment.
     export AWK_MATCH="$match"
     export AWK_REPLACE="$replacement"
     export AWK_CHECKPOINT="$checkpoint"

@@ -3,7 +3,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Month grid, Monday first, with today highlighted
 ColumnLayout {
     id: cal
 

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# Notifications
 source "$HOME/.config/catastrophic/scripts/catastrophic-notification-handler"
 
 killall hypridle

@@ -5,16 +5,12 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import qs.CustomTheme
 
-// Search-and-pick list that rises from the bottom edge, shared by the
-// clipboard history and the emoji picker. Items are { glyph, text, sub }.
 Scope {
     id: root
 
-    // IPC target name: `qs ipc call <name> toggle`
     property string name
     property string placeholder: "Search"
     property string emptyText: "Nothing found"
-    // Allow removing an entry with Delete
     property bool deletable: false
     property var items: []
     property alias open: win.open
@@ -22,13 +18,11 @@ Scope {
 
     signal chosen(var item)
     signal deleted(var item)
-    // Fired each time the drawer opens, so the owner can reload its items
     signal opened()
 
     readonly property int maxRows: 7
     readonly property int cap: 200
 
-    // Computed only while showing, like the launcher
     readonly property var results: {
         if (!win.visible) return []
         const q = query.trim().toLowerCase()
@@ -86,7 +80,6 @@ Scope {
                 currentIndex: 0
                 highlightMoveDuration: 120
                 boundsBehavior: Flickable.StopAtBounds
-                // A shrinking result list must not leave the index past its end
                 onCountChanged: if (currentIndex >= count) currentIndex = Math.max(0, count - 1)
 
                 ScrollBar.vertical: ScrollBar {
@@ -197,7 +190,6 @@ Scope {
                         Keys.onReturnPressed: root.pick(root.results[list.currentIndex])
                         Keys.onEnterPressed: root.pick(root.results[list.currentIndex])
                         Keys.onEscapePressed: win.open = false
-                        // Ctrl+Delete removes the highlighted entry; plain Delete edits the text
                         Keys.onDeletePressed: event => {
                             if (root.deletable && (event.modifiers & Qt.ControlModifier)) {
                                 const it = root.results[list.currentIndex]

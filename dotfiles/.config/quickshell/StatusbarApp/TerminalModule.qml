@@ -1,7 +1,6 @@
 import Quickshell
 import QtQuick
 
-// Opens the configured terminal.
 BarButton {
     iconSrc: "../shared/icons/terminal.svg"
     onClicked: {

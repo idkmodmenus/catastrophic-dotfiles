@@ -5,8 +5,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Right-edge display for volume and brightness changes. It slides out when a
-// level changes and tucks away again after a moment.
 Scope {
     id: root
 
@@ -17,7 +15,6 @@ Scope {
 
     property real brightness: 1
     property string active: "volume"
-    // Ignore the initial values read at startup
     property bool armed: false
 
     PwObjectTracker { objects: [root.sink] }
@@ -40,7 +37,6 @@ Scope {
         onTriggered: if (!win.panelHovered) win.open = false
     }
 
-    // Backlight: the kernel updates this file whenever the level changes
     Process {
         command: ["bash", "-c", "ls -d /sys/class/backlight/*/ 2>/dev/null | head -1"]
         running: true

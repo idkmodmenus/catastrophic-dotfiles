@@ -1,8 +1,3 @@
--- -----------------------------------------------------
--- General window decoration
--- name: "Rounding All Blur No Shadows"
--- -----------------------------------------------------
-
 hl.config({
     decoration = {
         rounding = 10,
@@ -27,4 +22,3 @@ hl.config({
         },
     }
 })
-

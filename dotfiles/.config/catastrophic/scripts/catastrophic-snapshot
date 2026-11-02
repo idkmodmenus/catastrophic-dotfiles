@@ -1,14 +1,4 @@
 #!/bin/bash
-#  ____                        _           _
-# / ___| _ __   __ _ _ __  ___| |__   ___ | |_
-# \___ \| '_ \ / _` | '_ \/ __| '_ \ / _ \| __|
-#  ___) | | | | (_| | |_) \__ \ | | | (_) | |_
-# |____/|_| |_|\__,_| .__/|___/_| |_|\___/ \__|
-#                   |_|
-#
-# Original by Catastrophic OS (2024)
-# Extended for Fedora/openSUSE (2026)
-# -----------------------------------------------------
 
 sleep 1
 clear
@@ -18,7 +8,6 @@ else
     echo "--- Snapshot Tool ---"
 fi
 
-# --- OS Detection & Package Manager Setup ---
 if command -v pacman &> /dev/null; then
     OS="Arch"
     PKG_INST="pacman -S"
@@ -43,7 +32,6 @@ _isInstalled() {
     $CHECK_CMD "$1" &> /dev/null
 }
 
-# --- Main Logic ---
 if _isInstalled "timeshift"; then
     c=$(gum input --placeholder "Enter a comment for the snapshot...")
     sudo timeshift --create --comments "$c"

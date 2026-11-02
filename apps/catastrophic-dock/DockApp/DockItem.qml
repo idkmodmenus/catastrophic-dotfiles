@@ -4,20 +4,13 @@ import QtQuick
 import QtQuick.Effects
 import qs.DockApp
 
-// One app in the dock: its icon, a running/focused indicator, a tooltip with
-// the app name and a right-click menu to pin or unpin it.
 Item {
     id: item
 
-    // { key, appId, desktopEntry, name, iconSource, windows, pinned } — built by
-    // DockWindow, which owns the desktop-entry lookup.
     property var entry: null
     property int iconSize: 32
-    // The dock window. It owns the (single) context menu, which is drawn inside
-    // its own surface — see DockMenu for why it is not a popup window.
     property var dockWindow: null
 
-    // Whether the open context menu belongs to this item.
     readonly property bool menuOpen: item.dockWindow
         && item.dockWindow.menuItem === item
 
@@ -31,7 +24,6 @@ Item {
     readonly property string appName: item.entry ? item.entry.name : ""
     readonly property string iconSource: item.entry ? item.entry.iconSource : ""
 
-    // Whether one of this app's windows is the focused one.
     readonly property bool active: {
         const focused = ToplevelManager.activeToplevel
         if (!focused)
@@ -47,20 +39,15 @@ Item {
     implicitWidth: item.iconSize + 16
     implicitHeight: item.iconSize + 18
 
-    // --- ACTIONS ---
     function launch(): void {
         if (item.desktopEntry) {
             item.desktopEntry.execute()
             return
         }
-        // No desktop entry (e.g. a pinned id inherited from nwg-dock whose app
-        // ships none): run the id as a command, which is what that id is.
         if (item.entry && item.entry.appId)
             Quickshell.execDetached(["bash", "-c", item.entry.appId])
     }
 
-    // Focus the app: its only window, or — when it has several — the one after
-    // the currently focused one, so repeated clicks cycle through them.
     function activate(): void {
         if (!item.running) {
             item.launch()
@@ -79,13 +66,11 @@ Item {
     }
 
     function closeWindows(): void {
-        // Copy first: closing mutates the toplevel list this array comes from.
         const list = item.windows.slice()
         for (let i = 0; i < list.length; i++)
             list[i].close()
     }
 
-    // Entries for the right-click menu, rebuilt each time it opens.
     function menuActions(): var {
         let actions = []
         if (item.pinned)
@@ -103,8 +88,6 @@ Item {
         return actions
     }
 
-    // --- ICON ---
-    // Accent circle behind the icon on hover, matching the status bar buttons.
     Rectangle {
         id: hoverBg
         anchors.centerIn: iconImage
@@ -126,8 +109,6 @@ Item {
         id: iconImage
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        // Like nwg-dock, the icon sits a touch above the true centre so the
-        // running indicator below it does not feel cramped.
         anchors.verticalCenterOffset: -2
         source: item.iconSource
         width: item.iconSize
@@ -135,7 +116,6 @@ Item {
         sourceSize.width: item.iconSize * 2
         sourceSize.height: item.iconSize * 2
         fillMode: Image.PreserveAspectFit
-        // Pinned apps that are not running are dimmed, like in nwg-dock.
         opacity: item.running ? 1 : 0.55
         scale: item.highlighted ? 1.12 : 1
 
@@ -147,10 +127,6 @@ Item {
         }
     }
 
-    // --- RUNNING INDICATOR ---
-    // A dot below the icon for a running app; it widens into a short bar while
-    // one of its windows has focus. The icon stays centred in the dock, so the
-    // indicator sits in the small gap left below it.
     Rectangle {
         id: indicator
         anchors.horizontalCenter: parent.horizontalCenter
@@ -185,7 +161,6 @@ Item {
             } else if (mouse.button === Qt.RightButton) {
                 if (!item.dockWindow)
                     return
-                // A second right click on the same icon closes the menu again.
                 if (item.menuOpen) {
                     item.dockWindow.closeMenu()
                     return
@@ -203,7 +178,6 @@ Item {
         }
     }
 
-    // --- TOOLTIP ---
     Timer {
         id: tooltipTimer
         interval: 400
@@ -220,8 +194,6 @@ Item {
         implicitWidth: tooltipBg.implicitWidth
         implicitHeight: tooltipBg.implicitHeight
 
-        // A partial anchor.rect collapses the anchor rectangle and the popup
-        // never shows — the gap has to come from margins (see DockMenu).
         anchor.item: item
         anchor.edges: Edges.Top
         anchor.gravity: Edges.Top

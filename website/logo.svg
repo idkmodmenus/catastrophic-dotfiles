@@ -3,7 +3,7 @@
     <mask id="planetCut" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
       <rect width="256" height="256" fill="#fff"/>
       <path d="M 244 128 A 116 30 0 0 1 12 128" transform="rotate(-22 128 128)" fill="none" stroke="#000" stroke-width="17" stroke-linecap="round"/>
-      <!-- crescent line: a thin gap following the lower-right limb -->
+      
       <path d="M 167 108 A 39 39 0 0 1 108 167" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>
     </mask>
     <mask id="behind" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">

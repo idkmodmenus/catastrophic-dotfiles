@@ -1,18 +1,11 @@
 #!/usr/bin/env bash
-# Screen recording with wf-recorder.
-#   catastrophic-record screen|area [audio]   start recording the focused monitor or a region
-#   catastrophic-record stop                  stop and save
-#   catastrophic-record toggle [area|screen]  stop if recording, otherwise start (default: screen)
-#   catastrophic-record status                prints "recording <seconds>" or "idle"
-#   catastrophic-record open-last             open the last recording
-# Recordings go to ~/Videos. State lives in $XDG_RUNTIME_DIR so a reboot clears it.
 
 state="${XDG_RUNTIME_DIR:-/tmp}/catastrophic-record"
 last="$HOME/.local/state/catastrophic/last-recording"
 out_dir="$HOME/Videos"
 
 source "$HOME/.config/catastrophic/scripts/catastrophic-notification-handler" 2>/dev/null
-note() { # summary message [icon]
+note() {
     if declare -F notify_user >/dev/null; then
         notify_user --a "Screen Recording" --i "${3:-media-record-symbolic}" --s "$1" --m "$2" --t 4000
     else
@@ -20,7 +13,6 @@ note() { # summary message [icon]
     fi
 }
 
-# Prints the recorder pid when one is really running; clears a stale state file
 live_pid() {
     [ -f "$state" ] || return 1
     local pid
@@ -73,7 +65,6 @@ stop() {
     local pid file
     pid=$(live_pid) || { return 0; }
     read -r _ _ file < "$state"
-    # SIGINT lets wf-recorder finish the file properly
     kill -INT "$pid" 2>/dev/null
     for _ in $(seq 1 50); do
         kill -0 "$pid" 2>/dev/null || break

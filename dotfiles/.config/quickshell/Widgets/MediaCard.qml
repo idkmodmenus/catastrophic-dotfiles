@@ -4,11 +4,9 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Now playing: cover art, title, artist and transport controls
 Card {
     id: card
 
-    // Prefer a player that is actually playing
     readonly property var player: {
         const list = Mpris.players.values
         return list.find(p => p.isPlaying) ?? list[0] ?? null

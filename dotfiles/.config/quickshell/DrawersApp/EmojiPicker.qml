@@ -2,7 +2,6 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// Emoji picker as a drawer. Enter copies the emoji to the clipboard.
 PickerDrawer {
     id: root
 
@@ -10,7 +9,6 @@ PickerDrawer {
     placeholder: "Search emoji"
     emptyText: "Emoji list unavailable"
 
-    // Read once, the first time the picker opens
     property bool wanted: false
     onOpened: wanted = true
 

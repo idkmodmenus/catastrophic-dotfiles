@@ -11,7 +11,6 @@ import qs.CustomTheme
 import qs.Widgets
 import qs.DrawersApp
 
-// Hover popout: a glass card that drops in just below the hovered bar item.
 Item {
     id: root
 
@@ -19,16 +18,14 @@ Item {
     required property real winWidth
 
     readonly property int pad: 16
-    // Transparent margin around the card so the motion blur can spread past it
-    readonly property int blurPad: 32
+    readonly property int blurPad: 28
     readonly property bool shown: bar.popoutKind !== ""
     readonly property alias hovered: hover.hovered
 
-    // Kept after hiding so the content stays put while the panel slides away
     property string kind: ""
 
     property real progress: shown ? 1 : 0
-    Behavior on progress { NumberAnimation { duration: 320; easing.type: Easing.OutQuint } }
+    Behavior on progress { NumberAnimation { duration: root.shown ? 380 : 200; easing.type: Easing.BezierSpline; easing.bezierCurve: root.shown ? [0.05, 0.7, 0.1, 1, 1, 1] : [0.3, 0, 0.8, 0.15, 1, 1] } }
     visible: progress > 0.001
 
     implicitWidth: loader.item ? loader.item.implicitWidth + pad * 2 : 0
@@ -36,8 +33,8 @@ Item {
     width: implicitWidth
     height: implicitHeight
 
-    Behavior on width { enabled: root.shown; NumberAnimation { duration: 300; easing.type: Easing.OutQuint } }
-    Behavior on height { enabled: root.shown; NumberAnimation { duration: 300; easing.type: Easing.OutQuint } }
+    Behavior on width { enabled: root.shown; NumberAnimation { duration: 340; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.05, 0.7, 0.1, 1, 1, 1] } }
+    Behavior on height { enabled: root.shown; NumberAnimation { duration: 340; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.05, 0.7, 0.1, 1, 1, 1] } }
 
     onShownChanged: if (shown) kind = bar.popoutKind
     Connections {
@@ -48,23 +45,21 @@ Item {
         }
     }
 
-    // Centred under the hovered item, kept on screen at either end
     readonly property real minX: Geometry.edgeMargin
     y: Geometry.barBottom + Geometry.gap
     opacity: Math.min(1, progress * 1.5)
     x: Math.max(minX, Math.min(winWidth - width - minX, bar.popoutX - width / 2))
-    Behavior on x { enabled: root.shown; NumberAnimation { duration: 300; easing.type: Easing.OutQuint } }
+    Behavior on x { enabled: root.shown; NumberAnimation { duration: 360; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.05, 0.7, 0.1, 1, 1, 1] } }
 
     HoverHandler { id: hover }
 
-    // Drops the last few pixels into place as it fades in
     readonly property real slideY: -(1 - progress) * 16
 
-    // Smears the panel while it drops in or glides between icons
     MotionTracker {
         id: motion
         x: root.x
         y: root.slideY
+        enabled: root.visible
     }
 
     Item {
@@ -74,7 +69,7 @@ Item {
         width: root.width + root.blurPad * 2
         height: root.height + root.blurPad * 2
 
-        layer.enabled: motion.moving && root.visible
+        layer.enabled: motion.active && root.visible
         layer.smooth: true
         layer.effect: MotionBlur {
             dx: motion.blurX
@@ -109,11 +104,6 @@ Item {
         }
     }
 
-    // Shared list row: icon, label and optional trailing text, highlighted on hover
-
-    // Pill switch for the popout headers
-
-    // Shared pill used for sliders
     component Slider: Item {
         id: slider
         property real value: 0
@@ -156,7 +146,6 @@ Item {
             readonly property real level: ready ? sink.audio.volume : 0
             readonly property bool muted: ready ? sink.audio.muted : false
 
-            // Real output devices (not app streams) and apps currently playing
             readonly property var outputs: Pipewire.nodes.values.filter(n => n.isSink && !n.isStream && n.audio)
             readonly property var apps: Pipewire.nodes.values.filter(n => n.isSink && n.isStream && n.audio)
             property bool pickOutput: false
@@ -192,7 +181,6 @@ Item {
                 }
             }
 
-            // Output device picker
             Repeater {
                 model: vol.pickOutput ? vol.outputs : []
                 ListRow {
@@ -249,7 +237,6 @@ Item {
                 }
             }
 
-            // Per-app volume
             Text {
                 visible: vol.apps.length > 0
                 Layout.topMargin: 4
@@ -370,10 +357,8 @@ Item {
             spacing: 4
             implicitWidth: 264
 
-            // Layouts recompute implicitWidth, so pin the width with a spacer
             Item { Layout.preferredWidth: 264; implicitHeight: 0 }
 
-            // Scan only while the panel is showing
             Binding { target: net.wifi; property: "scannerEnabled"; value: root.shown && root.kind === "network"; when: net.wifi !== null }
 
             RowLayout {
@@ -450,11 +435,9 @@ Item {
             readonly property var devices: Bluetooth.devices.values
                 .filter(d => d.paired || d.connected)
                 .sort((a, b) => b.connected - a.connected)
-            // Discovered but not yet paired; unnamed ones are only an address
             readonly property var nearby: Bluetooth.devices.values
                 .filter(d => !d.paired && !d.connected && d.name && d.name !== d.address)
 
-            // Pair, then trust and connect so it reconnects by itself next time
             function pairAndConnect(dev): void {
                 if (dev.pairing) { dev.cancelPair(); return }
                 dev.pair()
@@ -470,7 +453,6 @@ Item {
             spacing: 4
             implicitWidth: 264
 
-            // Layouts recompute implicitWidth, so pin the width with a spacer
             Item { Layout.preferredWidth: 264; implicitHeight: 0 }
 
             RowLayout {
@@ -491,7 +473,6 @@ Item {
                 }
             }
 
-            // Look for nearby devices only while the panel is showing
             Binding {
                 target: bt.adapter
                 property: "discovering"
@@ -554,7 +535,6 @@ Item {
             spacing: 4
             implicitWidth: 240
 
-            // Layouts recompute implicitWidth, so pin the width with a spacer
             Item { Layout.preferredWidth: 240; implicitHeight: 0 }
 
             Text {

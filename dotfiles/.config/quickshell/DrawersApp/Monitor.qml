@@ -5,8 +5,6 @@ import QtQuick.Layouts
 import qs.CustomTheme
 import qs.Widgets
 
-// System monitor on the right edge: CPU, RAM and GPU history, disk use and the
-// busiest processes with a kill button. Sampling runs only while it is open.
 Scope {
     id: root
 
@@ -26,7 +24,6 @@ Scope {
     property real memUsedKib: 0
     property real memTotalKib: 1
     property var procs: []
-    // Previous CPU counters, to turn jiffies into a percentage
     property var last: null
 
     function push(hist, v): var {
@@ -122,7 +119,6 @@ Scope {
                 color: Theme.on_surface
             }
 
-            // One graph card per resource
             component Graph: Rectangle {
                 id: g
                 property string title
@@ -201,7 +197,6 @@ Scope {
                 tone: Theme.secondary
             }
 
-            // Disk usage of /
             Rectangle {
                 Layout.preferredWidth: 340
                 Layout.preferredHeight: 52
@@ -246,7 +241,6 @@ Scope {
                 }
             }
 
-            // Busiest processes
             Text {
                 visible: root.procs.length > 0
                 Layout.topMargin: 4
@@ -263,7 +257,6 @@ Scope {
                 Rectangle {
                     id: prow
                     required property var modelData
-                    // Two clicks to end a process, so a stray click does nothing
                     property bool armed: false
                     Layout.preferredWidth: 340
                     Layout.preferredHeight: 38

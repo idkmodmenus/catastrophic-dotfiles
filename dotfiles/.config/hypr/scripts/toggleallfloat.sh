@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
-#     _    _ _  __ _             _
-#    / \  | | |/ _| | ___   __ _| |_
-#   / _ \ | | | |_| |/ _ \ / _` | __|
-#  / ___ \| | |  _| | (_) | (_| | |_
-# /_/   \_\_|_|_| |_|\___/ \__,_|\__|
-#
 
 hyprctl dispatch workspaceopt allfloat
 
-# Notifications
 source "$HOME/.config/catastrophic/scripts/catastrophic-notification-handler"
 
 notify_user \

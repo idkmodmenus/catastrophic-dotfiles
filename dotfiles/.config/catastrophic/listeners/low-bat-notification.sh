@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Notifications
 source "$HOME/.config/catastrophic/scripts/catastrophic-notification-handler"
 APP_NAME="System"
 NOTIFICATION_ICON="battery-low-symbolic"
@@ -14,7 +13,6 @@ NOTIFIED_20=false
 NOTIFIED_15=false
 
 while true; do
-    # Shell builtins: no new process every minute
     read -r CAPACITY < "$BAT/capacity"
     read -r STATUS < "$BAT/status"
 

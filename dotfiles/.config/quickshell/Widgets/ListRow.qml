@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Icon, label and optional trailing text, highlighted on hover
 Rectangle {
     id: row
     property string glyph

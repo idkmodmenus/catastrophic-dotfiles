@@ -2,14 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import qs.DockApp
 
-// Themed on/off switch for the dock settings dialog. Same look as the
-// sidebar's CatastrophicSwitch, kept as a copy here so the dock does not depend on the
-// sidebar.
-//
-// It shows `value` and reports clicks through toggledTo() instead of owning its
-// state: a Switch sets `checked` itself on click, which would break a plain
-// `checked: <setting>` binding and stop the switch following changes made
-// elsewhere (IPC, the config file). The binding is restored after every click.
 Switch {
     id: control
 

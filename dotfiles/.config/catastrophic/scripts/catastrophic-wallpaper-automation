@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
-#     _         _         __        ______
-#    / \  _   _| |_ ___   \ \      / /  _ \
-#   / _ \| | | | __/ _ \   \ \ /\ / /| |_) |
-#  / ___ \ |_| | || (_) |   \ V  V / |  __/
-# /_/   \_\__,_|\__\___/     \_/\_/  |_|
-#
 
 catastrophic_cache_folder="$HOME/.cache/catastrophic/hyprland-dotfiles"
 
-# Notifications
 source "$HOME/.config/catastrophic/scripts/catastrophic-notification-handler"
 APP_NAME="Waypaper"
 NOTIFICATION_ICON="preferences-desktop-wallpaper-symbolic"

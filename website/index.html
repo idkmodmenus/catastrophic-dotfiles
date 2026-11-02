@@ -10,9 +10,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-/* Layout: a desktop seen from orbit. The nav floats as three glass islands like
-   the OS bar; the hero is the planet over slow waves; content sits in one
-   centred column of cards below. Dark first, with a light variant. */
 :root {
   --bg: #0b0d12;
   --surface: #141821;
@@ -76,7 +73,6 @@ a { color: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .logo-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
-/* ---------- Nav: three glass islands, like the bar ---------- */
 .nav {
   position: fixed; z-index: 20; inset: 0 0 auto;
   padding-top: calc(10px + env(safe-area-inset-top, 0px));
@@ -117,7 +113,6 @@ a { color: inherit; }
   .nav-center, .hide-sm { display: none; }
 }
 
-/* ---------- Hero ---------- */
 .hero { position: relative; overflow: hidden; padding-block: 120px 150px; isolation: isolate; }
 .waves { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
 .wave {
@@ -146,7 +141,6 @@ a { color: inherit; }
   color: var(--accent-ink); background: var(--accent); padding: 0.25em 0.6em; border-radius: 0.5em;
   align-self: center; animation: rise 0.9s 0.7s cubic-bezier(.2,.8,.2,1) both;
 }
-/* Motion only: everything is readable from the first frame */
 @keyframes rise { from { transform: translateY(0.45em); } to { transform: none; } }
 @keyframes lift { from { transform: translateY(16px); } to { transform: none; } }
 @keyframes wave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.08em); } }
@@ -164,14 +158,12 @@ a { color: inherit; }
 .btn-ghost:hover { transform: translateY(-2px); background: var(--surface-2); }
 .hero-meta { font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; animation: rise 0.9s 0.8s both; }
 
-/* ---------- Sections ---------- */
 section { padding-block: 64px; }
 .eyebrow { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
 h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 4vw, 38px); line-height: 1.15; margin: 0 0 12px; text-wrap: balance; letter-spacing: -0.01em; }
 .section-head { max-width: 640px; margin-bottom: 32px; }
 .section-head p { margin: 0; color: var(--muted); }
 
-/* ---------- Carousel ---------- */
 .showcase { margin-top: -90px; position: relative; z-index: 2; padding-block: 0 48px; }
 .carousel { position: relative; }
 .viewport {
@@ -214,7 +206,6 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 
 .carousel.paused .dot.active span { animation-play-state: paused; }
 @keyframes fill { to { width: 100%; } }
 
-/* ---------- Features ---------- */
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .grid { grid-template-columns: minmax(0, 1fr); } }
@@ -231,7 +222,6 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 
 .glyph { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--surface-2); color: var(--accent); }
 .glyph svg { width: 20px; height: 20px; }
 
-/* ---------- Platforms: one logo card each ---------- */
 .platforms { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 @media (max-width: 760px) { .platforms { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .plat {
@@ -261,7 +251,6 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 
 .plat-role { position: relative; font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
 @keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -5px; } }
 
-/* ---------- Keys ---------- */
 .keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
 @media (max-width: 700px) { .keys { grid-template-columns: minmax(0, 1fr); } }
 .key-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); min-width: 0; }
@@ -271,7 +260,6 @@ kbd {
   padding: 5px 9px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); border-bottom-width: 3px;
 }
 
-/* ---------- Install ---------- */
 .install { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
 @media (max-width: 860px) { .install { grid-template-columns: minmax(0, 1fr); } }
 .term { border-radius: 16px; overflow: hidden; background: #0e1016; border: 1px solid var(--line); box-shadow: 0 24px 60px -30px var(--shadow); }
@@ -295,7 +283,6 @@ kbd {
 }
 .steps b { color: var(--fg); font-weight: 600; }
 
-/* ---------- Numbers ---------- */
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 @media (max-width: 860px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .stat { padding: 22px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); min-width: 0; }
@@ -304,7 +291,6 @@ kbd {
 .stat span { display: block; margin-top: 8px; color: var(--muted); font-size: 14px; }
 .note { margin-top: 14px; font-size: 13px; color: var(--muted); font-family: var(--font-mono); }
 
-/* ---------- Footer ---------- */
 footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top: 32px; }
 .foot { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 28px; }
 @media (max-width: 760px) { .foot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -324,7 +310,6 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
 </head>
 <body>
 
-<!-- Logo artwork, defined once and reused by the nav and footer -->
 <svg class="logo-defs" aria-hidden="true">
   <symbol id="logo" viewBox="0 0 256 256">
     <defs>
@@ -398,7 +383,7 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
       <a class="btn btn-primary" href="#install">Get started</a>
       <a class="btn btn-ghost" href="https://github.com/idkmodmenus/catastrophic-dotfiles" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true"><use href="#gh"/></svg>GitHub</a>
     </div>
-    <div class="hero-meta">Version 2.23.0 · Hyprland · Quickshell</div>
+    <div class="hero-meta">Version 2.24.0 · Hyprland · Quickshell</div>
   </div>
 </header>
 
@@ -412,8 +397,8 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
             <figcaption class="caption"><b>01</b>The bar: three glass islands, nothing else in the way</figcaption>
           </figure>
           <figure class="slide" aria-roledescription="slide" aria-label="2 of 4">
-            <img src="img/shot-dashboard.webp" alt="Dashboard open below the clock with time, weather, calendar, media and system load" width="1600" height="900" loading="lazy">
-            <figcaption class="caption"><b>02</b>Rest on the clock for the dashboard</figcaption>
+            <img src="img/shot-dashboard.webp" alt="Dashboard open below the clock with the Catastrophic OS version, update status, what's new, calendar, media and system load" width="1600" height="900" loading="lazy">
+            <figcaption class="caption"><b>02</b>The dashboard: your version and what's new</figcaption>
           </figure>
           <figure class="slide" aria-roledescription="slide" aria-label="3 of 4">
             <img src="img/shot-monitor.webp" alt="System monitor card on the right with CPU, memory, GPU, disk and top processes" width="1600" height="900" loading="lazy">
@@ -457,7 +442,7 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
         <article class="card" style="--d:3">
           <span class="tag">Super + D</span>
           <h3>Dashboard</h3>
-          <p>Clock, weather, calendar, media and system load. Rest the pointer on the clock to open it; sweeping past does not.</p>
+          <p>Your version, update status and what's new, with the calendar, media and system load. Rest on the clock to open it.</p>
         </article>
         <article class="card" style="--d:4">
           <span class="tag">Hover</span>
@@ -619,7 +604,6 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const root = document.documentElement;
 
-  /* ---------- Theme toggle (remembered per viewer when storage works) ---------- */
   const themeBtn = document.getElementById("themeBtn");
   const themeIcon = document.getElementById("themeIcon");
   const MOON = "M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.4 5.4 0 0 1-9.54-4.98A9 9 0 0 0 12 3z";
@@ -644,13 +628,11 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
     planet.recolor();
   });
 
-  /* ---------- Nav clock, like the bar's ---------- */
   const clock = document.getElementById("navClock");
   const pad = n => String(n).padStart(2, "0");
   function tick() { const d = new Date(); clock.textContent = pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()); }
   tick(); setInterval(tick, 1000);
 
-  /* ---------- Wavy title ---------- */
   const word = document.getElementById("titleWord");
   "Catastrophic".split("").forEach((c, i) => {
     const s = document.createElement("span");
@@ -658,13 +640,11 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
     word.appendChild(s);
   });
 
-  /* ---------- Planet: rings draw in, wobble, tilt with the pointer; the moon orbits ---------- */
   const planet = (function () {
     const box = document.getElementById("planet");
     const cv = document.getElementById("planetCanvas");
     const ctx = cv.getContext("2d");
     const C = 128, R = 48;
-    // rx, ry, angle (deg), width, crosses the planet's face
     const rings = [
       { rx: 116, ry: 30, a: -22, w: 8, front: true },
       { rx: 108, ry: 34, a: 32, w: 5, front: false },
@@ -685,7 +665,6 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
       const c = Math.cos(ang), s = Math.sin(ang);
       return [C + x * c - y * s, C + x * s + y * c];
     }
-    // Strokes the part of a ring between parameters t0 and t1
     function strokeRing(r, ang, ryScale, t0, t1, width, mode) {
       if (t1 <= t0) return;
       ctx.beginPath();
@@ -716,31 +695,25 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
         r,
         ang: (r.a + Math.sin(t * 0.35 + i * 2.1) * 3 + tiltX * 10) * Math.PI / 180,
         ry: 1 + tiltY * 0.35 + Math.sin(t * 0.5 + i) * 0.04,
-        p: reduced ? 1 : 0.3 + 0.7 * ease((t - 0.05 - i * 0.15) / 1.1),   // draw-in progress (starts partly drawn)
+        p: reduced ? 1 : 0.3 + 0.7 * ease((t - 0.05 - i * 0.15) / 1.1),
       }));
-      // The front half of a ring is t in (0, PI) in its own frame
-      // 1. Back halves of every ring, and the whole of the rings that stay behind
       for (const g of geo) {
         const end = Math.PI * 2 * g.p;
         if (g.r.front) strokeRing(g.r, g.ang, g.ry, Math.PI, Math.min(end, Math.PI * 2), g.r.w, "source-over");
         else strokeRing(g.r, g.ang, g.ry, 0, end, g.r.w, "source-over");
       }
-      // Moon on the second orbit; behind the planet on the back half
       const mo = geo[1];
       const mt = t * 0.55 + 0.6;
       const [mx, my] = ringPoint(mo.r, mo.ang, mo.ry, mt);
       const moonFront = Math.sin(mt % (Math.PI * 2)) > 0;
       const moonIn = reduced ? 1 : Math.min(1, Math.max(0.4, (t - 0.4) / 0.5 + 0.4));
       if (!moonFront && moonIn > 0) { disc(mx, my, 14, "destination-out"); disc(mx, my, 8.5 * moonIn, "source-over"); }
-      // 2. Clear a gap around the planet, then the planet itself
       disc(C, C, R + 7, "destination-out");
       const grow = reduced ? 1 : 0.85 + 0.15 * ease(t / 0.6);
       disc(C, C, R * grow, "source-over");
-      // Crescent line on the night side
       ctx.globalCompositeOperation = "destination-out";
       ctx.beginPath(); ctx.arc(C, C, (R - 9) * grow, -0.3, Math.PI / 2 + 0.3);
       ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.stroke();
-      // 3. The main ring's front half, cut into the planet with a clean gap
       for (const g of geo) {
         if (!g.r.front) continue;
         const end = Math.min(Math.PI * 2 * g.p, Math.PI);
@@ -770,7 +743,6 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
     return { recolor };
   })();
 
-  /* ---------- Carousel: crossfade, arrows, dots that fill, swipe, keys ---------- */
   const car = document.getElementById("carousel");
   const slides = [...car.querySelectorAll(".slide")];
   const dotsBox = car.querySelector(".dots");
@@ -791,7 +763,7 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
     slides.forEach((s, j) => { s.classList.toggle("active", j === index); s.setAttribute("aria-hidden", j === index ? "false" : "true"); });
     dots.forEach((d, j) => {
       d.classList.remove("active", "done");
-      void d.offsetWidth;   // restart the fill animation
+      void d.offsetWidth;
       if (j < index) d.classList.add("done");
       if (j === index) { d.classList.add("active"); d.setAttribute("aria-selected", "true"); } else d.setAttribute("aria-selected", "false");
     });
@@ -819,7 +791,6 @@ footer { border-top: 1px solid var(--line); padding-block: 48px 36px; margin-top
   });
   show(0);
 
-  /* ---------- Copy the install command ---------- */
   const copyBtn = document.getElementById("copyBtn");
   const cmd = document.getElementById("cmd");
   copyBtn.addEventListener("click", () => {

@@ -1,9 +1,3 @@
--- -----------------------------------------------------
--- General window decoration
--- name: "Clean"
--- Opaque windows and a light, cached blur (xray) for transparent apps only
--- -----------------------------------------------------
-
 hl.config({
     decoration = {
         rounding = 18,

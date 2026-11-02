@@ -1,7 +1,6 @@
 @import '../../colors.css';
 
-/* === Derived dynamic colors === */
-@define-color base alpha(@surface, 0.5);                      /* translucent blurred base */
+@define-color base alpha(@surface, 0.5);
 @define-color surface_custom alpha(@surface_container_high,0.8);
 @define-color hovercolor alpha(@surface_container_high,0.8);
 @define-color activecolor @primary_container;
@@ -13,7 +12,6 @@
 @define-color bordercolor @primary;
 @define-color fontcolor @on_surface;
 @define-color text @on_surface;
-
 
 * {
   font-size: 1rem;
@@ -34,7 +32,7 @@
 }
 
 .floating-notifications.background .notification-row .notification-background .notification {
-  background: rgba(84, 84, 84, 0.65); /* @base; */
+  background: rgba(84, 84, 84, 0.65);
   border-radius: 10px;
   border: 2px solid @primary;
   margin: 5px 10px;
@@ -95,7 +93,6 @@
   background-color: @primary;
   color: @text;
 }
-
 
 .summary {
   font-weight: 800;

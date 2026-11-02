@@ -1,37 +1,28 @@
 #!/usr/bin/env bash
 
-# Default variables
 CACHE_FOLDER="$HOME/.cache/catastrophic/hyprland-dotfiles"
 CACHE_FILE="$CACHE_FOLDER/current_wallpaper"
 DEFAULT_WALLPAPER="$HOME/.config/catastrophic/wallpapers/default.jpg"
 
-# Colors for UI
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# --- UI Functions (Redirected to stderr) ---
 info() { echo -e "${GREEN}[INFO]${NC} $1" >&2; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1" >&2; }
 error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 
-# Ensure that cache folder exists
 mkdir -p $HOME/.cache
 
-# Set Wallpaper
 mkdir -p "$CACHE_FOLDER"
 if [ ! -s "$CACHE_FILE" ]; then
     echo "$DEFAULT_WALLPAPER" > "$CACHE_FILE"
     info "Cache file created"
 fi
 
-# Start nmapplet
 nm-applet --indicator &
 
-# Quickshell reads its icon theme from QS_ICON_THEME, not from GTK. Hyprland
-# normally exports it (conf/environment.lua); fall back to reading the GTK
-# settings here so a manual run of this script still themes the dock icons.
 if [ -z "$QS_ICON_THEME" ]; then
     GTK_SETTINGS="$HOME/.config/gtk-3.0/settings.ini"
     if [ -f "$GTK_SETTINGS" ]; then
@@ -41,18 +32,14 @@ if [ -z "$QS_ICON_THEME" ]; then
 fi
 info "Quickshell icon theme: ${QS_ICON_THEME:-<unset>}"
 
-# The rail watches this file for the update warning, so it has to exist first
 mkdir -p "$HOME/.local/state/catastrophic"
 [ -e "$HOME/.local/state/catastrophic/update-status" ] || echo ok > "$HOME/.local/state/catastrophic/update-status"
 
-# Kill any existing qs instances
 killall qs 2>/dev/null || true
 
-# Start Quickshell first
 info "Starting Quickshell"
 qs &
 
-# Wait for qs process to be ready, then let IPC initialize
 info "Waiting for Quickshell..."
 timeout=15
 elapsed=0
@@ -67,9 +54,6 @@ done
 sleep 0.5
 info "Quickshell ready"
 
-# Make sure the saved wallpaper still exists. A stale entry (the file was moved
-# or deleted, or it came from a previous dotfiles setup) would make
-# the wallpaper script exit and leave a black background.
 WALLPAPER="$(cat "$CACHE_FILE" 2>/dev/null)"
 if [ ! -f "$WALLPAPER" ]; then
     warn "Saved wallpaper not found: ${WALLPAPER:-<empty>}"
@@ -82,13 +66,6 @@ if [ ! -f "$WALLPAPER" ]; then
     info "Using $WALLPAPER instead"
 fi
 
-# Apply wallpaper theming on every start — qs is guaranteed ready for IPC calls.
-# Theming (matugen colors, quickshell reload) must always run.
-# The image is only skipped when awww is already showing it, to avoid a flicker.
-# awww-daemon restores its own cache on start, but that cache can point at a file
-# that no longer exists, which leaves a black screen. So compare with what awww
-# is really displaying instead of trusting that a cache exists.
-# awww reports the resolved path, and ~/.config is symlinked into ~/.mydotfiles
 if awww query 2>/dev/null | grep -qF -- "$(realpath -- "$WALLPAPER")"; then
     info "awww is already showing the wallpaper, applying theming only for $WALLPAPER"
     ~/.config/catastrophic/scripts/catastrophic-wallpaper "$WALLPAPER" --skip-wallpaper &
@@ -97,25 +74,14 @@ else
     ~/.config/catastrophic/scripts/catastrophic-wallpaper "$WALLPAPER" &
 fi
 
-# The settings app and the window overview start the first time they are opened
-# (catastrophic-app), so they do not hold memory until then. The old power menu is
-# replaced by the session menu in the main shell.
-
-# The separate bottom dock is optional (the top bar shows the apps). Start it
-# only while it is switched on, so it holds no memory otherwise.
 if grep -q '"enabled"[[:space:]]*:[[:space:]]*true' ~/.config/catastrophic-dock/config.json 2>/dev/null; then
     info "Starting Catastrophic Dock"
     catastrophic-dock start &
 fi
 
-# Walker and its backend (elephant) are not started at login: the launcher starts
-# elephant the first time a menu is shown, and walker quits when the menu closes.
-
-# Check GitHub for a new version and offer to update (waits for the network in the background)
 info "Starting update check"
 ~/.config/catastrophic/scripts/catastrophic-update-check &
 
-# Start Catastrophic Welcome App
 info "Starting Catastrophic Welcome App"
 if [ ! -f $HOME/.cache/catastrophic-welcome-autostart ]; then
     timeout=30

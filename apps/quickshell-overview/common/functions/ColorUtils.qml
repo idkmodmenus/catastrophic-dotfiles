@@ -25,7 +25,7 @@ Singleton {
     }
 
     function colorWithLightness(color, lightness) {
-        var c = Qt.color(color);
+        var c = Qt.color(color || "transparent");
         return Qt.hsla(c.hslHue, c.hslSaturation, lightness, c.a);
     }
 
@@ -56,12 +56,12 @@ Singleton {
     }
 
     function transparentize(color, percentage = 1) {
-        var c = Qt.color(color);
+        var c = Qt.color(color || "transparent");
         return Qt.rgba(c.r, c.g, c.b, c.a * (1 - percentage));
     }
 
     function applyAlpha(color, alpha) {
-        var c = Qt.color(color);
+        var c = Qt.color(color || "transparent");
         var a = Math.max(0, Math.min(1, alpha));
         return Qt.rgba(c.r, c.g, c.b, a);
     }

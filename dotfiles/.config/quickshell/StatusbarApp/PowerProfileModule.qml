@@ -6,27 +6,15 @@ import QtQuick.Effects
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Shows the active system power profile as an icon (leaf / gauge / rocket) and
-// opens a small popup menu to switch between power-saver, balanced and
-// performance. Reads and writes through Quickshell's PowerProfiles service,
-// which is backed by power-profiles-daemon; no shell-out is needed. The module
-// is always visible (unlike the battery module) so the profile can be changed
-// both on battery and while plugged in.
 Rectangle {
     id: profileRoot
 
-    // Current profile as reported by power-profiles-daemon.
     readonly property int current: PowerProfiles.profile
-    // Whether the daemon offers a performance profile (some machines don't).
     readonly property bool hasPerformance: PowerProfiles.hasPerformanceProfile
 
-    // Whether the switch popup is open.
     property bool menuOpen: false
-    // Set by the keyboard navigation in StatusbarWindow.
     property bool focused: false
 
-    // The three selectable profiles, in ascending-power order. Performance is
-    // dropped when the daemon does not expose it.
     readonly property var profiles: {
         let list = [
             { "value": PowerProfile.PowerSaver,  "label": "Power Saver",  "icon": "../shared/icons/profile-power-saver.svg" },
@@ -37,7 +25,6 @@ Rectangle {
         return list
     }
 
-    // Icon for the currently active profile, shown in the bar.
     readonly property string iconSource: {
         switch (current) {
         case PowerProfile.PowerSaver:   return "../shared/icons/profile-power-saver.svg"
@@ -46,13 +33,11 @@ Rectangle {
         }
     }
 
-    // Apply a profile and close the menu.
     function setProfile(value: int): void {
         PowerProfiles.profile = value
         profileRoot.menuOpen = false
     }
 
-    // Mouse click / keyboard Return: toggle the switch popup.
     function activate(): void {
         profileRoot.menuOpen = !profileRoot.menuOpen
     }
@@ -63,7 +48,6 @@ Rectangle {
     implicitHeight: 30
     radius: 15
 
-    // Same accent-filled circle as BarButton on hover/selection/open.
     color: active ? Theme.primary : "transparent"
     Behavior on color {
         ColorAnimation { duration: 500; easing.type: Easing.OutQuint }
@@ -95,23 +79,16 @@ Rectangle {
         onClicked: profileRoot.activate()
     }
 
-    // ==========================================
-    // SWITCH POPUP
-    // ==========================================
-    // Anchored just below the icon. grabFocus lets a click outside dismiss it.
     PopupWindow {
         id: popup
         anchor.item: profileRoot
         anchor.edges: Edges.Bottom
         anchor.gravity: Edges.Bottom
         anchor.margins.top: 10
-        // Center the popup under the icon.
         anchor.rect.x: profileRoot.width / 2 - popup.width / 2
 
         visible: profileRoot.menuOpen
 
-        // Grab input while open so a click anywhere outside the popup dismisses
-        // it — the same primitive the status bar itself uses.
         HyprlandFocusGrab {
             windows: [popup]
             active: profileRoot.menuOpen
@@ -122,9 +99,6 @@ Rectangle {
         implicitHeight: menuColumn.implicitHeight + 16
         color: "transparent"
 
-        // Take keyboard focus while open so Escape closes the menu (the popup
-        // is opened via keyboard Return as well as by mouse). forceActiveFocus
-        // on show because the popup surface is only created once visible.
         FocusScope {
             id: keyScope
             anchors.fill: parent
@@ -137,8 +111,6 @@ Rectangle {
                 keyScope.forceActiveFocus()
         }
 
-        // Card background, matching the sidebar's context menus: flat
-        // background with a thin accent border.
         Rectangle {
             anchors.fill: parent
             radius: 8

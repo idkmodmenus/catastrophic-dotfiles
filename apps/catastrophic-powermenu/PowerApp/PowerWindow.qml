@@ -7,9 +7,6 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import qs.PowerApp
 
-// The power menu: a pill of buttons that slides in from the right edge of the
-// screen. Which buttons it shows, in which order, and what each one runs come
-// from PowerSettings (powermenu.order and commands in config.json).
 PanelWindow {
     id: root
 
@@ -18,10 +15,8 @@ PanelWindow {
 
     WlrLayershell.layer: WlrLayer.Overlay
     exclusionMode: ExclusionMode.Ignore
-    // Grab the keyboard while open so arrows, Return and Escape reach the menu.
     WlrLayershell.keyboardFocus: isOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    // 20px around the pill leave room for its shadow.
     implicitWidth: panelBg.implicitWidth + 40
     implicitHeight: panelBg.implicitHeight + 40
     color: "transparent"
@@ -30,7 +25,6 @@ PanelWindow {
         right: true
     }
 
-    // Click outside to close.
     HyprlandFocusGrab {
         windows: [root]
         active: root.isOpen
@@ -47,13 +41,11 @@ PanelWindow {
 
     onIsOpenChanged: {
         if (isOpen) {
-            // Start keyboard navigation on the first button.
             selectedIndex = buttons.length > 0 ? 0 : -1
             panelBg.forceActiveFocus()
         }
     }
 
-    // Run the button's command and slide the menu out.
     function activate(index: int): void {
         if (index < 0 || index >= buttons.length)
             return
@@ -61,14 +53,12 @@ PanelWindow {
         isOpen = false
     }
 
-    // Keep the window mapped to the screen while the animation is playing.
     visible: isOpen || slideAnim.running
 
     margins {
         right: root.currentMargin
     }
 
-    // Closed, the window sits fully off the right edge of the screen.
     property real currentMargin: isOpen ? settings.powermenu.marginRight
                                         : -(implicitWidth + 50)
 
@@ -85,12 +75,10 @@ PanelWindow {
         function toggle(): void { root.isOpen = !root.isOpen }
         function open(): void { root.isOpen = true }
         function close(): void { root.isOpen = false }
-        // Re-read config.json from disk and apply the changes.
         function reload(): void {
             PowerSettings.reloadSettings()
             PowerTheme.reload()
         }
-        // Open config.json in powermenu.editorCommand (or xdg-open).
         function edit(): void { PowerSettings.editConfig() }
     }
 
@@ -128,10 +116,8 @@ PanelWindow {
             id: mainBgRect
             anchors.fill: parent
             radius: root.settings.pill.radius
-            // Only the background is transparent, not the buttons.
             opacity: root.settings.opacity.normal
 
-            // Gradient border (outer)
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop {
@@ -148,7 +134,6 @@ PanelWindow {
                 }
             }
 
-            // Background fill (inner), inset by the border thickness
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: root.settings.border.width

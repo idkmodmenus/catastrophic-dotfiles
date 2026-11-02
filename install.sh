@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-#
-# Catastrophic OS installer (Arch Linux / CachyOS)
-#
-#   curl -fsSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/install.sh | bash
-#
-# Options:
-#   --yes        Skip the start menu and "Continue?" prompts. System-level changes are still asked
-#   --dry-run    Show what would be installed, change nothing
-#   --verbose    Show package installation output (always logged)
-#   --help       Show this help
-#
-# Environment:
-#   CATASTROPHIC_REPO     Git URL to install from (default below)
-#   CATASTROPHIC_BRANCH   Branch or tag to install (default: main)
 
 set -euo pipefail
 
@@ -53,7 +39,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# --- Start screen: what will happen on this computer, before anything changes ---
 show_summary() {
     local new_ver old_ver mode gpus="" v ram arch_n aur_n missing_n de
     new_ver="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$SRC/catastrophic.dotinst" | head -n 1 || true)"
@@ -66,7 +51,6 @@ show_summary() {
         mode="Fresh install of ${new_ver:-latest}."
     fi
 
-    # Graphics from sysfs, so nothing has to be installed to find out
     for v in /sys/class/drm/card[0-9]*/device/vendor; do
         [ -r "$v" ] || continue
         case "$(cat "$v")" in
@@ -107,10 +91,6 @@ show_summary() {
     echo
 }
 
-# Everything below lives in main() so bash has read the whole script before it runs
-# anything. When started through a pipe (curl | bash) the script arrives on stdin,
-# and switching stdin to the terminal for prompts would otherwise make bash read
-# the rest of the script from the keyboard.
 main() {
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -123,7 +103,6 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-# --- 1. Checks ---
 stage 1 "Checking your system"
 [ "$EUID" -ne 0 ] || die "Run this as your normal user, not root. sudo is requested when needed."
 command -v pacman >/dev/null 2>&1 || die "This installer supports Arch Linux and CachyOS (pacman) only."
@@ -136,17 +115,12 @@ case " ${ID:-} ${ID_LIKE:-} " in
 esac
 curl -fsI --max-time 15 https://archlinux.org >/dev/null 2>&1 || curl -fsI --max-time 15 https://github.com >/dev/null 2>&1 || die "No internet connection."
 
-# --- 2. Locate the source (a local checkout, or clone the repository) ---
 stage 2 "Downloading Catastrophic OS"
-# A local checkout is used only when this file is run from disk. Through a pipe there is
-# no file, and the current folder must not be mistaken for the source.
 SELF_DIR=""
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
     SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)"
 fi
 if [ -n "$SELF_DIR" ] && [ -f "$SELF_DIR/catastrophic.dotinst" ] && [ -d "$SELF_DIR/setup" ]; then
-    # Work on a copy: the installer merges your kept settings into its source, and that must
-    # never end up inside a git checkout.
     WORK_DIR="$(mktemp -d -t catastrophic-install-XXXXXX)"
     say "Using the local checkout in $SELF_DIR (copied, so it stays untouched)."
     cp -a "$SELF_DIR" "$WORK_DIR/src"
@@ -158,8 +132,6 @@ else
     if command -v git >/dev/null 2>&1; then
         git clone --depth=1 --progress --branch "$BRANCH" "$REPO_URL" "$WORK_DIR/src" || die "Could not clone $REPO_URL"
     elif [[ "$REPO_URL" =~ ^https://github\.com/([^/]+/[^/]+)$ ]]; then
-        # A fresh Arch install has no git yet. Take GitHub's archive instead, so
-        # nothing needs sudo before you have chosen to install.
         mkdir -p "$WORK_DIR/src"
         curl -fL --progress-bar "https://codeload.github.com/${BASH_REMATCH[1]}/tar.gz/refs/heads/$BRANCH" \
             | tar -xz -C "$WORK_DIR/src" --strip-components=1 || die "Could not download $REPO_URL"
@@ -171,19 +143,16 @@ else
     SRC="$WORK_DIR/src"
 fi
 
-# A cut-off download or a wrong branch must stop here, not halfway through the install
 for f in catastrophic.dotinst setup/post-arch.sh setup/preflight-arch.sh setup/dependencies/packages-arch setup/dependencies/packages-aur \
          installer/catastrophic-dotfiles-installer installer/lib/utils.sh installer/lib/helpers.sh installer/lib/colors.sh dotfiles/.config/hypr/hyprland.lua; do
     [ -f "$SRC/$f" ] || die "The download is incomplete ($f is missing). Run the command again."
 done
-# jq is not part of a minimal Arch install yet, so fall back to a plain check without it
 if command -v jq >/dev/null 2>&1; then
     jq empty "$SRC/catastrophic.dotinst" 2>/dev/null || die "The download is damaged (catastrophic.dotinst is not valid). Run the command again."
 else
     grep -q '"id"' "$SRC/catastrophic.dotinst" || die "The download is damaged (catastrophic.dotinst is not valid). Run the command again."
 fi
 
-# --- 3. Dry run ---
 if [ "$DRY_RUN" -eq 1 ]; then
     say "Dry run. Nothing will be changed. Installing would:"
     echo "  1. Update the system (pacman -Syu, after asking)"
@@ -198,10 +167,8 @@ if [ "$DRY_RUN" -eq 1 ]; then
     exit 0
 fi
 
-# --- 4. Confirm, then ask for sudo once ---
 stage 3 "Preparing"
 
-# Free disk space: the packages need a few GB, and building AUR packages needs room too
 free_kb() { df --output=avail -k "$1" 2>/dev/null | tail -n 1 | tr -d ' '; }
 root_free="$(free_kb /)"
 if [ -n "$root_free" ] && [ "$root_free" -lt 2097152 ]; then
@@ -214,16 +181,13 @@ if [ -n "$home_free" ] && [ "$home_free" -lt 1048576 ]; then
     die "Not enough free disk space in your home folder: less than 1 GB free."
 fi
 
-# pacman refuses to run while another package manager holds its lock
 if [ -e /var/lib/pacman/db.lck ]; then
     if pgrep -x pacman > /dev/null 2>&1 || pgrep -x yay > /dev/null 2>&1 || pgrep -x paru > /dev/null 2>&1; then
         die "Another package manager is running. Wait for it to finish, then run this again."
     fi
     die "pacman is locked (/var/lib/pacman/db.lck) but nothing is using it. If no update is running, remove the lock with: sudo rm /var/lib/pacman/db.lck"
 fi
-# When started through a pipe, take prompts from the terminal
 if [ ! -t 0 ]; then
-    # The braces keep 2>/dev/null temporary; on a bare exec it would silence every prompt and error
     { exec < /dev/tty; } 2> /dev/null || die "No terminal available for prompts. Download install.sh and run it directly."
 fi
 
@@ -242,13 +206,9 @@ fi
 INSTALL_STARTED=1
 say "Administrator access is needed to install packages."
 sudo -v || die "sudo authentication failed."
-# Keep the password valid for the whole install: the system update alone can
-# outlast sudo's few minutes, and a second prompt would appear mid-install
 ( while kill -0 "$$" 2>/dev/null; do sudo -n true 2>/dev/null; sleep 50; done ) &
 SUDO_KEEPALIVE=$!
 
-# Arch does not support partial upgrades, and installing into an outdated system
-# can fail on packages that have moved on. Offer a full update before installing.
 UPDATE=1
 if [ "$YES" -ne 1 ]; then
     read -r -p "Update the system first (sudo pacman -Syu)? Recommended [Y/n] " ans
@@ -268,20 +228,17 @@ else
     say "Prerequisites are already installed."
 fi
 
-# --- 5. Install the dotfiles installer and run it ---
 stage 4 "Installing Hyprland, apps and dotfiles"
 mkdir -p "$LIB_DIR" "$BIN_DIR"
 cp "$SRC"/installer/lib/*.sh "$LIB_DIR/"
 install -m755 "$SRC/installer/catastrophic-dotfiles-installer" "$BIN_DIR/catastrophic-dotfiles-installer"
 case ":$PATH:" in *":$BIN_DIR:"*) ;; *) export PATH="$BIN_DIR:$PATH" ;; esac
 
-# Point the profile at the source we just fetched
 PROFILE="$(mktemp -t catastrophic-dotinst-XXXXXX.json)"
 jq --arg src "$SRC" '.source = $src' "$SRC/catastrophic.dotinst" > "$PROFILE"
 
 ARGS=(--install "$PROFILE")
 [ "$VERBOSE" -eq 1 ] && ARGS+=(--verbose)
-# The start menu was answered already, so the installer does not ask again
 CATASTROPHIC_YES="$YES" CATASTROPHIC_CONFIRMED=1 CATASTROPHIC_SRC="$SRC" catastrophic-dotfiles-installer "${ARGS[@]}"
 rm -f "$PROFILE"
 stage 5 "Done. Reboot, then choose the Hyprland session at the login screen."

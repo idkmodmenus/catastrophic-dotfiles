@@ -19,18 +19,15 @@ FloatingWindow {
         }
     }
 
-    // Load the Settings profile
     property string profile: Quickshell.env("PROFILE")
 
     color: Theme.background 
 
-    // Absolute path to your script to prevent system PATH issues
     property string scriptPath: Quickshell.env("HOME") + "/.local/bin/catastrophic-dotfiles-settings"
     
     property var settingsData: []
     property int selectedGroupIndex: 0
     
-    // Load and parse the JSON configuration on startup
     Process {
         command: ["bash", "-c", "cat ~/.config/catastrophic-dotfiles-settings/" + root.profile + "/settings.json 2>&1"]
         running: true
@@ -55,9 +52,6 @@ FloatingWindow {
         anchors.fill: parent
         spacing: 0
 
-        // ==========================================
-        // LEFT SIDEBAR: Group Navigation
-        // ==========================================
         Rectangle {
             Layout.preferredWidth: 260
             Layout.fillHeight: true
@@ -93,9 +87,6 @@ FloatingWindow {
             }
         }
 
-        // ==========================================
-        // RIGHT PANE: Settings Content
-        // ==========================================
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -104,7 +95,6 @@ FloatingWindow {
                 anchors.fill: parent
                 anchors.margins: 40
 
-                // Header
                 Text {
                     text: root.settingsData[root.selectedGroupIndex] ? root.settingsData[root.selectedGroupIndex].group : "Loading..."
                     font.pixelSize: 28
@@ -121,7 +111,6 @@ FloatingWindow {
                     font.family: Theme.fontFamily
                 }
 
-                // Settings Fields
                 ListView {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -129,25 +118,21 @@ FloatingWindow {
                     spacing: 15
                     model: root.settingsData[root.selectedGroupIndex] ? root.settingsData[root.selectedGroupIndex].settings : []
 
-                    // --- ADDED: INTERACTIVE STYLED SCROLLBAR ---
                     ScrollBar.vertical: ScrollBar {
                         policy: ScrollBar.AsNeeded
-                        interactive: true // Ensures you can grab and drag it with the mouse
+                        interactive: true
                         
-                        // Custom styling to match your dark theme
                         contentItem: Rectangle {
                             implicitWidth: 6
                             implicitHeight: 100
                             radius: 3
                             color: Theme.primary
-                            // Dims slightly when not interacting with it
                             opacity: parent.pressed ? 1.0 : (parent.active ? 0.8 : 0.4)
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
                     }
 
                     delegate: Rectangle {
-                        // --- ADDED: Margin space for the right-side scrollbar ---
                         width: ListView.view.width - 16
                         implicitHeight: 90
                         color: Theme.background
@@ -178,9 +163,6 @@ FloatingWindow {
                                 }
                             }
 
-                            // ==========================================
-                            // DYNAMIC INPUT AREA (Based on JSON Type)
-                            // ==========================================
                             Item {
                                 id: fieldItem 
                                 Layout.preferredWidth: 220
@@ -188,7 +170,6 @@ FloatingWindow {
                                 property string exactVal: ""
                                 property var dropdownOptions: modelData.type === "choose" ? modelData.options : []
 
-                                // 1. Fetch exact value (--get)
                                 Process {
                                     command: [root.scriptPath, "--get", "--id", modelData.id, root.profile]
                                     running: true
@@ -199,7 +180,6 @@ FloatingWindow {
                                     }
                                 }
 
-                                // 2. Dynamically fetch files/folders list if needed
                                 Process {
                                     running: modelData.type === "files" || modelData.type === "folders"
                                     command: {
@@ -226,15 +206,11 @@ FloatingWindow {
                                     }
                                 }
 
-                                // 3. Hidden Save Process (--set)
                                 Process {
                                     id: saveProc
                                     running: false 
                                 }
 
-                                // --- UI COMPONENTS ---
-
-                                // A. TEXTFIELD
                                 Rectangle {
                                     anchors.fill: parent
                                     visible: modelData.type === "textfield"
@@ -271,7 +247,6 @@ FloatingWindow {
                                     }
                                 }
 
-                                // B. TOGGLE (Switch)
                                 Switch {
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
@@ -282,7 +257,6 @@ FloatingWindow {
                                         return fieldItem.exactVal === tVal
                                     }
 
-                                    // Custom styling for the dark theme
                                     indicator: Rectangle {
                                         implicitWidth: 48
                                         implicitHeight: 26
@@ -315,14 +289,12 @@ FloatingWindow {
                                     }
                                 }
 
-                                // C. DROPDOWN (ComboBox)
                                 ComboBox {
                                     id: combo
                                     anchors.fill: parent
                                     visible: modelData.type === "choose" || modelData.type === "files" || modelData.type === "folders"
                                     model: fieldItem.dropdownOptions
 
-                                    // Keep dropdown highlighted choice in sync with exact value
                                     onModelChanged: updateIndex()
                                     Connections {
                                         target: fieldItem
@@ -340,7 +312,6 @@ FloatingWindow {
                                         fieldItem.exactVal = newVal
                                     }
 
-                                    // Custom styling for the dropdown button
                                     background: Rectangle {
                                         color: Theme.background
                                         border.color: Theme.primary
@@ -355,7 +326,6 @@ FloatingWindow {
                                         font.family: Theme.fontFamily
                                     }
 
-                                    // Custom styling for the popup menu
                                     popup: Popup {
                                         y: combo.height - 1
                                         implicitWidth: 220

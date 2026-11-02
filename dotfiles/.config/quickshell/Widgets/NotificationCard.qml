@@ -4,15 +4,12 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// One notification: icon or picture, summary, body and action buttons
 Rectangle {
     id: card
 
     required property var notif
     visible: notif !== null
-    // Called after the card is clicked or closed
     signal closed()
-    // Typing needs keyboard focus, which toasts never take: they ask for the centre instead
     property bool canType: false
     signal replyRequested()
 
@@ -26,7 +23,6 @@ Rectangle {
     radius: 20
     color: critical ? Theme.error_container : Theme.surface_container
 
-    // Click anywhere to trigger the default action, if the app has one
     MouseArea {
         id: bodyArea
         anchors.fill: parent
@@ -114,7 +110,6 @@ Rectangle {
                 color: card.critical ? Theme.on_error_container : Theme.on_surface_variant
             }
 
-            // Inline reply: a field in the centre, a button on toasts
             Rectangle {
                 Layout.fillWidth: true
                 Layout.topMargin: 6
@@ -169,7 +164,6 @@ Rectangle {
                 }
             }
 
-            // Wraps onto a second line when the labels are long
             Flow {
                 Layout.fillWidth: true
                 Layout.topMargin: 6
@@ -237,7 +231,6 @@ Rectangle {
         }
     }
 
-    // Close button, shown on hover
     Rectangle {
         anchors.top: parent.top
         anchors.right: parent.right

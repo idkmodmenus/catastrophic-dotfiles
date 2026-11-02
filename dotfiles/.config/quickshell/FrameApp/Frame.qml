@@ -4,16 +4,11 @@ import QtQuick
 import qs.CustomTheme
 import qs.DrawersApp
 
-// Floating top bar: three separate glass islands (left, centre, right) set in
-// from the screen edges, with hover popouts dropping below them as cards.
-// Nothing runs down the sides or along the bottom of the screen.
 Scope {
     id: frame
 
     required property var modelData
 
-    // Space is reserved through an empty, click-through surface so windows tile
-    // below the islands; the drawing surface itself ignores exclusive zones.
     PanelWindow {
         screen: frame.modelData
         anchors { top: true; left: true; right: true }
@@ -32,7 +27,6 @@ Scope {
         color: "transparent"
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "frame"
-        // Only the islands and an open popout take input; the rest is click-through
         mask: Region {
             item: leftMask
             regions: [
@@ -42,14 +36,10 @@ Scope {
             ]
         }
 
-        // Proxies in window coordinates: a region that follows an item nested in
-        // the bar can miss it moving when an island changes width
         Item { id: leftMask; x: bar.leftIsland.x; y: bar.leftIsland.y; width: bar.leftIsland.width; height: bar.leftIsland.height }
         Item { id: centerMask; x: bar.centerIsland.x; y: bar.centerIsland.y; width: bar.centerIsland.width; height: bar.centerIsland.height }
         Item { id: rightMask; x: bar.rightIsland.x; y: bar.rightIsland.y; width: bar.rightIsland.width; height: bar.rightIsland.height }
 
-        // Follows the popout only while it is showing, so a hidden popout never
-        // blocks the windows below the bar
         Item {
             id: popoutMask
             x: popout.x

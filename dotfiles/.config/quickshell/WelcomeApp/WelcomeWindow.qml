@@ -2,7 +2,7 @@ import Quickshell
 import Quickshell.Hyprland
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
+import QtQuick.Effects
 import Quickshell.Io
 import qs.CustomTheme
 
@@ -10,660 +10,484 @@ FloatingWindow {
     id: root
     visible: false
     title: "Catastrophic Welcome"
-    implicitWidth: 850
-    implicitHeight: 550
+    implicitWidth: 940
+    implicitHeight: 640
+    color: Theme.surface_container_low
 
-    // --- Guard property for the flatpak app ---
-    property bool isHyprlandSettingsInstalled: false
+    readonly property string home: Quickshell.env("HOME")
+    readonly property string scripts: home + "/.config/catastrophic/scripts/"
 
-    // --- Version read from the shipped version.json ---
+    property int page: 0
     property string version: ""
+    property bool isHyprModInstalled: false
+    property bool showOnStartup: true
+    property var info: ({})
+
+    function run(cmd: var): void { Quickshell.execDetached(cmd) }
+    function floating(script: string): void {
+        run(["kitty", "--class", "dotfiles-floating", "-e", scripts + script])
+    }
+    function openUrl(url: string): void { run(["xdg-open", url]) }
 
     FileView {
         id: versionFile
-        path: Quickshell.env("HOME") + "/.config/catastrophic/version.json"
+        path: root.home + "/.config/catastrophic/version.json"
         blockLoading: true
         printErrors: false
         onLoaded: {
-            try {
-                root.version = JSON.parse(this.text()).Version || ""
-            } catch (e) {
-                root.version = ""
-            }
+            try { root.version = JSON.parse(this.text()).Version || "" }
+            catch (e) { root.version = "" }
         }
         onLoadFailed: root.version = ""
     }
 
-    // Re-read version.json every time the window is shown, so an update that
-    // happened while the window was hidden is picked up.
     onVisibleChanged: {
-        if (root.visible)
-            versionFile.reload()
+        if (!visible) return
+        page = 0
+        versionFile.reload()
+        logo.play()
     }
 
-    // --- Check if flatpak is installed when window opens ---
     Process {
-        command: ["bash", "-c", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-command-exists hyprmod"]
+        command: ["bash", "-c", root.scripts + "catastrophic-command-exists hyprmod"]
         running: root.visible
-        
+        stdout: StdioCollector {
+            onStreamFinished: root.isHyprModInstalled = (this.text.trim() === "0")
+        }
+    }
+
+    Process {
+        command: ["bash", "-c", "test -f ~/.cache/catastrophic-welcome-autostart && echo off || echo on"]
+        running: root.visible
+        stdout: StdioCollector {
+            onStreamFinished: root.showOnStartup = (this.text.trim() !== "off")
+        }
+    }
+
+    Process {
+        running: root.visible
+        command: ["bash", "-c",
+            ". /etc/os-release 2>/dev/null; echo \"distro=${PRETTY_NAME:-$NAME}\";" +
+            "echo \"host=$(cat /etc/hostname 2>/dev/null || uname -n)\";" +
+            "echo \"kernel=$(uname -r)\";" +
+            "echo \"hyprland=$(hyprctl version 2>/dev/null | sed -n '1s/^Hyprland \\([^ ]*\\).*/\\1/p')\";" +
+            "echo \"quickshell=$(qs --version 2>/dev/null | awk '{print $2; exit}')\";" +
+            "echo \"cpu=$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -1)\";" +
+            "echo \"memory=$(awk '/MemTotal/{printf \"%.1f GiB\", $2/1048576}' /proc/meminfo)\""]
         stdout: StdioCollector {
             onStreamFinished: {
-                console.log(this.text.trim())
-                // The script echoes "0" if the app exists/is installed
-                root.isHyprlandSettingsInstalled = (this.text.trim() === "0")
+                const out = {}
+                for (const line of this.text.split("\n")) {
+                    const i = line.indexOf("=")
+                    if (i > 0) out[line.slice(0, i)] = line.slice(i + 1).trim()
+                }
+                root.info = out
             }
         }
     }
-
-    // Define a custom reusable styled MenuItem
-    component CatastrophicMenuItem: MenuItem {
-        id: control
-        
-        contentItem: Text {
-            text: control.text
-            font.family: Theme.fontFamily
-            font.pixelSize: 14
-            // Invert colors on hover
-            color: control.highlighted ? Theme.background : Theme.primary 
-            verticalAlignment: Text.AlignVCenter
-        }
-        
-        background: Rectangle {
-            implicitWidth: 220
-            implicitHeight: 36
-            // Apply theme color on hover
-            color: control.highlighted ? Theme.primary : "transparent"
-            radius: 4
-        }
-    }
-
-    component CatastrophicMenuSeparator: MenuSeparator {
-        contentItem: Rectangle {
-            implicitWidth: 200
-            implicitHeight: 1
-            color: Theme.primary
-            opacity: 0.3 // Dim the line so it doesn't distract from text
-        }
-    }
-
-    color: Theme.background
 
     ColumnLayout {
-        anchors.fill: parent
-        spacing: 0
+        id: nav
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.margins: 18
+        width: 272
+        spacing: 3
 
-        // ==========================================
-        // TRADITIONAL MENU BAR
-        // ==========================================
-        MenuBar {
+        RowLayout {
             Layout.fillWidth: true
-            Layout.margins: 10
-            background: Rectangle {
-                color: Theme.primary
-                border.color: Theme.primary
-                radius: 8
-            }
-
-            // --- SETTINGS MENU ---
-            Menu {
-                title: qsTr("Settings")
-                font.family: Theme.fontFamily
-                font.pixelSize: 14
-                padding:8
-
-                enter: Transition { NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200; easing.type: Easing.OutQuad } }
-                exit: Transition { NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 150; easing.type: Easing.InQuad } }
-
-                CatastrophicMenuItem { 
-                    text: qsTr("Input");
-                    onClicked: {
-                        Quickshell.execDetached(["gnome-text-editor", Quickshell.env("HOME") + "/.config/hypr/input.lua"])
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("Gestures");
-                    onClicked: {
-                        Quickshell.execDetached(["gnome-text-editor", Quickshell.env("HOME") + "/.config/hypr/gestures.lua"])
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("Monitors");
-                    onClicked: { 
-                        // Quickshell.execDetached(["gnome-text-editor", Quickshell.env("HOME") + "/.config/hypr/monitors.lua"])
-                        Quickshell.execDetached(["nwg-displays"]) 
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("Network");
-                    onClicked: { 
-                        Quickshell.execDetached(["kitty", "--class", "dotfiles-floating", "-e", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-network"])
-                    }
-                }    
-                CatastrophicMenuItem { 
-                    text: qsTr("Bluetooth");
-                    onClicked: { 
-                        Quickshell.execDetached(["blueman-manager"])
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("Wallpaper");
-                    onClicked: { 
-                        Quickshell.execDetached(["bash", "-c", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-wallpaper-app"])
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("Theme");
-                    onClicked: { 
-                        Quickshell.execDetached(["nwg-look"])
-                    }
-                }
-                CatastrophicMenuSeparator {}
-                CatastrophicMenuItem { 
-                    text: qsTr("Sidebar");
-                    onClicked: {
-                        Quickshell.execDetached(["qs", "ipc", "call", "sidebar", "toggle"])
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("Dotfiles Settings");
-                    onClicked: {
-                        Quickshell.execDetached([Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-app", "settings", "toggle"])
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: root.isHyprlandSettingsInstalled ? qsTr("HyprMod") : qsTr("Install HyprMod")
-                    onClicked: { 
-                        if (root.isHyprlandSettingsInstalled) {
-                            Quickshell.execDetached(["hyprmod"])
-                        } else {
-                            Quickshell.execDetached(["kitty", "--class", "dotfiles-floating", "-e", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-install-hyprmod"])
-                        }
-                    }
-                }
-                background: Rectangle {
-                    implicitWidth: 220
-                    color: Theme.background
-                    border.color: Theme.primary
-                    border.width: 1
-                    radius: 8
+            Layout.bottomMargin: 18
+            Layout.leftMargin: 6
+            spacing: 10
+            Image {
+                Layout.preferredWidth: 30
+                Layout.preferredHeight: 30
+                source: Qt.resolvedUrl("../FrameApp/logo.svg")
+                sourceSize: Qt.size(60, 60)
+                fillMode: Image.PreserveAspectFit
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    colorization: 1.0
+                    colorizationColor: Theme.primary
                 }
             }
-
-            // --- System MENU ---
-            Menu {
-                title: qsTr("System")
-                font.family: Theme.fontFamily
-                font.pixelSize: 14
-                padding:8
-                
-                enter: Transition { NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200; easing.type: Easing.OutQuad } }
-                exit: Transition { NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 150; easing.type: Easing.InQuad } }
-
-                CatastrophicMenuItem { 
-                    text: qsTr("Display Manager");
-                    onClicked: { 
-                        Quickshell.execDetached(["kitty", "--class", "dotfiles-floating", "-e", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-install-sddm"]) 
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("Network Manager Applet");
-                    onClicked: { 
-                        Quickshell.execDetached(["bash", "-c", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-toggle-nmapplet"])
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("Change Shell");
-                    onClicked: { 
-                        Quickshell.execDetached(["kitty", "--class", "dotfiles-floating", "-e", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-change-shell"])
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("System Info") 
-                    onClicked: { 
-                        Quickshell.execDetached(["bash", "-c", Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-hyprsysteminfo"])
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("Open .mydotfiles Folder") 
-                    onClicked: { 
-                        // Opens the dotfiles folder in the filemanager
-                        // configured in the dotfiles settings.
-                        Quickshell.execDetached(["bash", "-c", "$(cat ~/.config/catastrophic/settings/filemanager) ~/.mydotfiles"])
-                    }
-                }
-                CatastrophicMenuItem { 
-                    text: qsTr("Open Backup Folder") 
-                    onClicked: { 
-                        // Opens the dotfiles backup folder in the filemanager
-                        // configured in the dotfiles settings.
-                        Quickshell.execDetached(["bash", "-c", "$(cat ~/.config/catastrophic/settings/filemanager) ~/.mydotfiles/backups"])
-                    }
-                }
-                CatastrophicMenuSeparator {}
-                CatastrophicMenuItem { 
-                    text: qsTr("Exit Hyprland") 
-                    onClicked: {
-                        Quickshell.execDetached(["qs", "ipc", "call", "session", "toggle"])
-                    }
-                }
-
-                background: Rectangle {
-                    implicitWidth: 220
-                    color: Theme.background
-                    border.color: Theme.primary
-                    border.width: 1
-                    radius: 8
-                }
-            }
-
-            // --- HELP MENU ---
-            Menu {
-                title: qsTr("Help")
-                font.family: Theme.fontFamily
-                font.pixelSize: 14
-                padding:8
-                
-                enter: Transition { NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 200; easing.type: Easing.OutQuad } }
-                exit: Transition { NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 150; easing.type: Easing.InQuad } }
-
-                CatastrophicMenuItem { text: qsTr("Catastrophic OS Homepage"); onClicked: { 
-                    Quickshell.execDetached(["xdg-open", "https://catastrophic.com/os/"])
-                    }
-                }
-                CatastrophicMenuItem { text: qsTr("Catastrophic OS GitHub"); onClicked: { 
-                    Quickshell.execDetached(["xdg-open", "https://github.com/catastrophic-os/dotfiles"]) 
-                    } 
-                }
-                CatastrophicMenuItem { text: qsTr("Catastrophic OS Changelog"); onClicked: { 
-                    Quickshell.execDetached(["xdg-open", "https://github.com/catastrophic-os/dotfiles/blob/main/CHANGELOG.md"]) 
-                    } 
-                }
-                CatastrophicMenuItem { text: qsTr("Catastrophic YouTube Channel"); onClicked: { 
-                    Quickshell.execDetached(["xdg-open", "https://www.youtube.com/channel/UC0sUzmZ0CHvVCVrpRfGKZfw"]) 
-                    } 
-                }
-                CatastrophicMenuItem { text: qsTr("Get more Wallpapers"); onClicked: { 
-                    Quickshell.execDetached(["xdg-open", "https://github.com/catastrophic-os/wallpaper"]) 
-                    } 
-                }
-                CatastrophicMenuSeparator {}
-                CatastrophicMenuItem { text: qsTr("Hyprland Homepage"); onClicked: { 
-                    Quickshell.execDetached(["xdg-open", "https://github.com/catastrophic-os/wallpaper"]) 
-                    } 
-                }
-                CatastrophicMenuItem { text: qsTr("Hyprland Wiki"); onClicked: { 
-                    Quickshell.execDetached(["xdg-open", "https://github.com/catastrophic-os/wallpaper"]) 
-                    } 
-                }
-                CatastrophicMenuItem { text: qsTr("Update Catastrophic OS"); onClicked: { 
-                    Quickshell.execDetached(["xdg-open", "https://catastrophic.com/os/getting-started/update"]) 
-                    } 
-                }
-
-                background: Rectangle {
-                    implicitWidth: 180
-                    color: Theme.background
-                    border.color: Theme.primary
-                    radius: 8
-                }
-            }
-
-            // --- UNIVERSAL STYLING FOR ALL MENUS ---
-            delegate: MenuBarItem {
-                id: menuBarItem
-                contentItem: Text {
-                    text: menuBarItem.text
-                    font.pixelSize: 14
+            ColumnLayout {
+                spacing: -2
+                Text {
+                    text: "Catastrophic"
                     font.family: Theme.fontFamily
-                    color: Theme.on_primary
-                    horizontalAlignment: Text.AlignLeft
-                    verticalAlignment: Text.AlignVCenter
+                    font.pixelSize: 18
+                    color: Theme.on_surface
                 }
-                background: Rectangle {
-                    color: "transparent"
-                    radius: Theme.on_primary
+                Text {
+                    text: "Welcome hub"
+                    font.family: Theme.fontFamilyRegular
+                    font.pixelSize: 12
+                    color: Theme.on_surface_variant
                 }
             }
         }
 
-        // ==========================================
-        // MAIN CONTENT AREA
-        // ==========================================
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: "transparent"
+        WelcomeNavItem {
+            first: true
+            icon: "\u{f02dc}"; label: "Start"; sub: "Hello and first steps"
+            current: root.page === 0; onClicked: root.page = 0
+        }
+        WelcomeNavItem {
+            last: true
+            icon: "\u{f030c}"; label: "Shortcuts"; sub: "Keys worth knowing"
+            current: root.page === 1; onClicked: root.page = 1
+        }
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 10
-                spacing: 10
+        Item { Layout.preferredHeight: 10 }
 
-                // --- MAIN HERO SECTION --- 
-                ColumnLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    spacing: 5
-                    Layout.topMargin: 20
+        WelcomeNavItem {
+            first: true
+            icon: "\u{f0493}"; label: "Settings"; sub: "Input, displays, look"
+            current: root.page === 2; onClicked: root.page = 2
+        }
+        WelcomeNavItem {
+            icon: "\u{f061a}"; label: "System"; sub: "Info and tools"
+            current: root.page === 3; onClicked: root.page = 3
+        }
+        WelcomeNavItem {
+            last: true
+            icon: "\u{f02d7}"; label: "Help"; sub: "Links and updates"
+            current: root.page === 4; onClicked: root.page = 4
+        }
 
-                    Image {
-                        Layout.alignment: Qt.AlignHCenter
-                        source: "../shared/catastrophic.svg"
-                        sourceSize.width: 100 
-                        sourceSize.height: 100
-                        width: 100
-                        height: 100
-                        fillMode: Image.PreserveAspectFit
-                    }
+        Item { Layout.fillHeight: true }
 
-                    Text {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "Welcome to Catastrophic OS"
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 28
-                        font.bold: true
-                        color: Theme.on_background
-                        Layout.bottomMargin: 0
-                    }
-
-                    Text {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "Version " + root.version
-                        visible: root.version !== ""
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 16
-                        color: Theme.on_background
-                        Layout.bottomMargin: 10
-                    }
-
-                    // Action Buttons
-                    RowLayout {
-                        Layout.alignment: Qt.AlignHCenter
-                        spacing: 15
-
-                        Button {
-                            text: "Dotfiles Settings"
-                            onClicked: {
-                                Quickshell.execDetached([Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-app", "settings", "toggle"])
-                            }
-                            background: Rectangle {
-                                color: "transparent"
-                                radius: 10
-                                border.color: Theme.primary
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                font.family: Theme.fontFamily
-                                color: Theme.primary
-                                padding: 8
-                            }
-                        }
-
-                        // --- VISIBILITY BOUND TO GUARD PROPERTY ---
-                        Button {
-                            text: "HyprMod"
-                            visible: root.isHyprlandSettingsInstalled 
-                            
-                            onClicked: {
-                                Quickshell.execDetached(["hyprmod"])
-                            }
-                            background: Rectangle {
-                                color: "transparent"
-                                radius: 10
-                                border.color: Theme.primary
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                font.family: Theme.fontFamily
-                                color: Theme.primary
-                                padding: 8
-                            }
-                        }
-                    }
-                }
-
-                Item { Layout.fillHeight: true } // Spacer
-
-                // --- KEYBINDINGS GRID ---
-                ColumnLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    spacing: 8
-
-                    Repeater {
-                        model: ListModel {
-                            ListElement { keys: "Super + Enter"; desc: "to open the terminal" }
-                            ListElement { keys: "Super + B"; desc: "to open the browser" }
-                            ListElement { keys: "Super + Q"; desc: "to close the active window" }
-                            ListElement { keys: "Super + CTRL + Enter"; desc: "to open the application launcher" }
-                            ListElement { keys: "Super + CTRL + S"; desc: "to open the sidebar" }
-                            ListElement { keys: "Super + CTRL + W"; desc: "to set a wallpaper" }
-                        }
-                        
-                        delegate: RowLayout {
-                            spacing: 15
-                            
-                            Text {
-                                text: model.keys
-                                color: Theme.primary
-                                font.family: Theme.fontFamily
-                                font.bold: true
-                                font.pixelSize: 13
-                                Layout.preferredWidth: 120
-                                horizontalAlignment: Text.AlignRight
-                            }
-                            
-                            Text {
-                                text: model.desc
-                                color: Theme.on_background
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 13
-                                Layout.preferredWidth: 240
-                            }
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.topMargin: 15
-                        spacing: 8
-
-                        Button {
-                            text: "Input"
-
-                            onClicked: {
-                                Quickshell.execDetached(["gnome-text-editor", Quickshell.env("HOME") + "/.config/hypr/input.lua"])
-                            }
-
-                            background: Rectangle {
-                                color: "transparent"
-                                border.color: Theme.primary
-                                radius: 10
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                font.family: Theme.fontFamily
-                                color: Theme.primary
-                                padding: 8
-                            }
-                        }
-
-                        Button {
-                            text: "Monitors"
-
-                            onClicked: {
-                                Quickshell.execDetached(["nwg-displays"])
-                            }
-
-                            background: Rectangle {
-                                color: "transparent"
-                                border.color: Theme.primary
-                                radius: 10
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                font.family: Theme.fontFamily
-                                color: Theme.primary
-                                padding: 8
-                            }
-                        }
-
-                        Button {
-                            text: "All Keybinds"
-
-                            onClicked: {
-                                Quickshell.execDetached(["bash", "-c", Quickshell.env("HOME") + "/.config/hypr/scripts/keybindings.sh"])
-                            }
-
-                            background: Rectangle {
-                                color: "transparent"
-                                border.color: Theme.primary
-                                radius: 10
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                font.family: Theme.fontFamily
-                                color: Theme.primary
-                                padding: 8
-                            }
-                        }
-                    }
-                }
-                
-                Item { Layout.fillHeight: true } 
-
-                // ==========================================
-                // BOTTOM BAR
-                // ==========================================
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.margins: 10
-
-                    // --- CLOSE BUTTON (Left Side) ---
-                    Button {
-                        text: "Close"
-
-                        background: Rectangle {
-                            color: "transparent"
-                            border.color: Theme.primary
-                            border.width: 1
-                            radius: 6
-                        }
-
-                        contentItem: Text {
-                            text: parent.text
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 12
-                            color: Theme.primary
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            padding: 4
-                            leftPadding: 10
-                            rightPadding: 10
-                        }
-
-                        onClicked: root.visible = !root.visible
-                    }
-
-                    // --- NEW TOGGLE BUTTON (Left Side) ---
-                    Button {
-                        text: "Toggle Tiling/Floating"
-                        
-                        // Styled to be slightly smaller and compact
-                        background: Rectangle {
-                            color: "transparent"
-                            border.color: Theme.primary
-                            border.width: 1
-                            radius: 6
-                        }
-                        
-                        contentItem: Text {
-                            text: parent.text
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 12 // Smaller text size
-                            color: Theme.primary
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            padding: 4
-                            leftPadding: 10
-                            rightPadding: 10
-                        }
-                        
-                        onClicked: {
-                            // Hyprland with Lua dispatchers ignores the plain
-                            // "togglefloating" string, so branch on usingLua the
-                            // same way the overview and statusbar modules do.
-                            if (Hyprland.usingLua)
-                                Hyprland.dispatch("hl.dsp.window.float({ action = 'toggle' })")
-                            else
-                                Hyprland.dispatch("togglefloating")
-                        }
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Text {
-                        text: qsTr("Show on Startup")
-                        color: Theme.primary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 14
-                        Layout.alignment: Qt.AlignVCenter
-                    }
-
-                    Switch {
-                        id: autostartSwitch
-                        Layout.alignment: Qt.AlignVCenter
-                        
-                        implicitWidth: 48
-                        implicitHeight: 26
-
-                        property bool ready: false
-
-                        Process {
-                            command: ["bash", "-c", "test -f ~/.cache/catastrophic-welcome-autostart && echo exists || echo missing"]
-                            running: root.visible
-                            stdout: StdioCollector {
-                                onStreamFinished: {
-                                    let output = this.text.trim()
-                                    if (output === "exists") {
-                                        autostartSwitch.checked = false 
-                                    } else if (output === "missing") {
-                                        autostartSwitch.checked = true  
-                                    }
-                                    autostartSwitch.ready = true
-                                }
-                            }
-                        }
-
-                        indicator: Rectangle {
-                            implicitWidth: 48
-                            implicitHeight: 26
-                            radius: 13
-                            
-                            color: autostartSwitch.checked ? Theme.primary : Theme.background
-                            border.color: Theme.primary
-                            border.width: 1
-
-                            Rectangle {
-                                x: autostartSwitch.checked ? parent.width - width - 2 : 2
-                                y: 2
-                                width: 22
-                                height: 22 
-                                radius: 11
-                                color: autostartSwitch.checked ? Theme.background : Theme.on_primary
-                                Behavior on x { NumberAnimation { duration: 150 } }
-                            }
-                        }
-
-                        onClicked: {
-                            if (!ready) return;
-                            if (checked) {
-                                Quickshell.execDetached(["rm", "-f", Quickshell.env("HOME") + "/.cache/catastrophic-welcome-autostart"])
-                            } else {
-                                Quickshell.execDetached(["touch", Quickshell.env("HOME") + "/.cache/catastrophic-welcome-autostart"])
-                            }
-                        }
-                    }
-                }                
+        WelcomeRow {
+            first: true; last: true
+            color: Theme.surface_container_high
+            label: "Show on startup"
+            toggle: true
+            checked: root.showOnStartup
+            onClicked: {
+                root.showOnStartup = !root.showOnStartup
+                root.run(root.showOnStartup
+                    ? ["rm", "-f", root.home + "/.cache/catastrophic-welcome-autostart"]
+                    : ["touch", root.home + "/.cache/catastrophic-welcome-autostart"])
             }
+        }
+    }
+
+    Rectangle {
+        id: pane
+        anchors.left: nav.right
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.margins: 12
+        anchors.leftMargin: 18
+        radius: 26
+        color: Theme.surface
+
+        WelcomePage {
+            index: 0; current: root.page
+
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: hero.implicitHeight + 56
+                radius: 20
+                color: Theme.surface_container
+
+                ColumnLayout {
+                    id: hero
+                    anchors.centerIn: parent
+                    width: parent.width - 48
+                    spacing: 4
+
+                    WelcomeLogo {
+                        id: logo
+                        Layout.alignment: Qt.AlignHCenter
+                    }
+                    Text {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.topMargin: 6
+                        text: "Catastrophic OS"
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 32
+                        font.letterSpacing: 0.5
+                        color: Theme.on_surface
+                    }
+                    Text {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: root.version ? "v" + root.version : "…"
+                        font.family: Theme.fontFamilyRegular
+                        font.pixelSize: 14
+                        color: Theme.on_surface_variant
+                    }
+                    Text {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.topMargin: 8
+                        Layout.maximumWidth: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.WordWrap
+                        text: "Welcome! Your desktop is ready. Here is everything you need to make it yours."
+                        font.family: Theme.fontFamilyRegular
+                        font.pixelSize: 13
+                        color: Theme.outline
+                    }
+                }
+            }
+
+            WelcomeSection { text: "Get started" }
+            WelcomeRow {
+                first: true
+                icon: "\u{f02e9}"; label: "Pick a wallpaper"; sub: "Colours follow the wallpaper"
+                trailing: "\u{f0142}"
+                onClicked: root.run(["bash", "-c", root.scripts + "catastrophic-wallpaper-app"])
+            }
+            WelcomeRow {
+                icon: "\u{f0379}"; label: "Set up your monitors"; sub: "Resolution, scale, layout"
+                trailing: "\u{f0142}"
+                onClicked: root.run(["nwg-displays"])
+            }
+            WelcomeRow {
+                icon: "\u{f0675}"; label: "Dotfiles settings"; sub: "Apps, bar, animations and more"
+                trailing: "\u{f0142}"
+                onClicked: root.run([root.scripts + "catastrophic-app", "settings", "toggle"])
+            }
+            WelcomeRow {
+                last: true
+                icon: "\u{f030c}"; label: "Learn the shortcuts"; sub: "The keys you will use every day"
+                trailing: "\u{f0142}"
+                onClicked: root.page = 1
+            }
+        }
+
+        WelcomePage {
+            index: 1; current: root.page; title: "Shortcuts"
+
+            WelcomeSection { first: true; text: "Apps" }
+            WelcomeRow { first: true; label: "Terminal"; keys: true; value: "Super + Enter" }
+            WelcomeRow { label: "Drop-down terminal"; keys: true; value: "Super + `" }
+            WelcomeRow { label: "Browser"; keys: true; value: "Super + B" }
+            WelcomeRow { label: "File manager"; keys: true; value: "Super + E" }
+            WelcomeRow { last: true; label: "App launcher"; keys: true; value: "Super + Ctrl + Enter" }
+
+            WelcomeSection { text: "Shell" }
+            WelcomeRow { first: true; label: "Dashboard"; keys: true; value: "Super + D" }
+            WelcomeRow { label: "Notifications"; keys: true; value: "Super + N" }
+            WelcomeRow { label: "Sidebar"; keys: true; value: "Super + Ctrl + S" }
+            WelcomeRow { label: "Wallpaper selector"; keys: true; value: "Super + Ctrl + W" }
+            WelcomeRow { label: "Clipboard history"; keys: true; value: "Super + V" }
+            WelcomeRow { last: true; label: "Power menu"; keys: true; value: "Super + Ctrl + P" }
+
+            WelcomeSection { text: "Windows" }
+            WelcomeRow { first: true; label: "Close window"; keys: true; value: "Super + Q" }
+            WelcomeRow { label: "Toggle floating"; keys: true; value: "Super + T" }
+            WelcomeRow { label: "Fullscreen"; keys: true; value: "Super + F" }
+            WelcomeRow { last: true; label: "Lock screen"; keys: true; value: "Super + Ctrl + L" }
+
+            WelcomeRow {
+                Layout.topMargin: 14
+                first: true; last: true
+                icon: "\u{f0279}"; label: "All keybindings"; sub: "Searchable list (Super + Ctrl + K)"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["bash", "-c", root.home + "/.config/hypr/scripts/keybindings.sh"])
+            }
+        }
+
+        WelcomePage {
+            index: 2; current: root.page; title: "Settings"
+
+            WelcomeSection { first: true; text: "Devices" }
+            WelcomeRow {
+                first: true
+                icon: "\u{f037d}"; label: "Input"; sub: "Keyboard layout, mouse, touchpad"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["gnome-text-editor", root.home + "/.config/hypr/input.lua"])
+            }
+            WelcomeRow {
+                icon: "\u{f0d76}"; label: "Gestures"; sub: "Touchpad swipes"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["gnome-text-editor", root.home + "/.config/hypr/gestures.lua"])
+            }
+            WelcomeRow {
+                icon: "\u{f0379}"; label: "Monitors"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["nwg-displays"])
+            }
+            WelcomeRow {
+                icon: "\u{f05a9}"; label: "Network"
+                trailing: "\u{f03cc}"
+                onClicked: root.floating("catastrophic-network")
+            }
+            WelcomeRow {
+                last: true
+                icon: "\u{f00af}"; label: "Bluetooth"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["blueman-manager"])
+            }
+
+            WelcomeSection { text: "Look and feel" }
+            WelcomeRow {
+                first: true
+                icon: "\u{f02e9}"; label: "Wallpaper"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["bash", "-c", root.scripts + "catastrophic-wallpaper-app"])
+            }
+            WelcomeRow {
+                icon: "\u{f03d8}"; label: "GTK theme"; sub: "Icons, cursor, fonts"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["nwg-look"])
+            }
+            WelcomeRow {
+                last: true
+                icon: "\u{f10ab}"; label: "Sidebar"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["qs", "ipc", "call", "sidebar", "toggle"])
+            }
+
+            WelcomeSection { text: "More" }
+            WelcomeRow {
+                first: true
+                icon: "\u{f0675}"; label: "Dotfiles settings"
+                trailing: "\u{f03cc}"
+                onClicked: root.run([root.scripts + "catastrophic-app", "settings", "toggle"])
+            }
+            WelcomeRow {
+                last: true
+                icon: "\u{f062e}"
+                label: root.isHyprModInstalled ? "HyprMod" : "Install HyprMod"
+                sub: "Graphical Hyprland settings"
+                trailing: "\u{f03cc}"
+                onClicked: root.isHyprModInstalled ? root.run(["hyprmod"])
+                                                   : root.floating("catastrophic-install-hyprmod")
+            }
+        }
+
+        WelcomePage {
+            index: 3; current: root.page; title: "System"
+
+            WelcomeSection { first: true; text: "This computer" }
+            WelcomeRow { first: true; label: "Hostname"; value: root.info.host || "…" }
+            WelcomeRow { label: "Distro"; value: root.info.distro || "…" }
+            WelcomeRow { label: "Kernel"; value: root.info.kernel || "…" }
+            WelcomeRow { label: "Processor"; value: root.info.cpu || "…" }
+            WelcomeRow { last: true; label: "Memory"; value: root.info.memory || "…" }
+
+            WelcomeSection { text: "Software" }
+            WelcomeRow { first: true; label: "Catastrophic OS"; value: root.version || "…" }
+            WelcomeRow { label: "Hyprland"; value: root.info.hyprland || "…" }
+            WelcomeRow { last: true; label: "Quickshell"; value: root.info.quickshell || "…" }
+
+            WelcomeSection { text: "Tools" }
+            WelcomeRow {
+                first: true
+                icon: "\u{f0342}"; label: "Display manager"; sub: "Install or change the login screen"
+                trailing: "\u{f03cc}"
+                onClicked: root.floating("catastrophic-install-sddm")
+            }
+            WelcomeRow {
+                icon: "\u{f05a9}"; label: "Network applet"; sub: "Show or hide nm-applet"
+                trailing: "\u{f0142}"
+                onClicked: root.run(["bash", "-c", root.scripts + "catastrophic-toggle-nmapplet"])
+            }
+            WelcomeRow {
+                icon: "\u{f018d}"; label: "Change shell"; sub: "bash, zsh or fish"
+                trailing: "\u{f03cc}"
+                onClicked: root.floating("catastrophic-change-shell")
+            }
+            WelcomeRow {
+                icon: "\u{f02fc}"; label: "System info"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["bash", "-c", root.scripts + "catastrophic-hyprsysteminfo"])
+            }
+            WelcomeRow {
+                icon: "\u{f05b2}"; label: "Float or tile this window"
+                trailing: "\u{f0142}"
+                onClicked: {
+                    if (Hyprland.usingLua)
+                        Hyprland.dispatch("hl.dsp.window.float({ action = 'toggle' })")
+                    else
+                        Hyprland.dispatch("togglefloating")
+                }
+            }
+            WelcomeRow {
+                icon: "\u{f024b}"; label: "Open the dotfiles folder"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["bash", "-c", "$(cat ~/.config/catastrophic/settings/filemanager) ~/.mydotfiles"])
+            }
+            WelcomeRow {
+                icon: "\u{f024b}"; label: "Open the backup folder"
+                trailing: "\u{f03cc}"
+                onClicked: root.run(["bash", "-c", "$(cat ~/.config/catastrophic/settings/filemanager) ~/.mydotfiles/backups"])
+            }
+            WelcomeRow {
+                last: true
+                icon: "\u{f0425}"; label: "Log out or power off"
+                trailing: "\u{f0142}"
+                onClicked: root.run(["qs", "ipc", "call", "session", "toggle"])
+            }
+        }
+
+        WelcomePage {
+            index: 4; current: root.page; title: "Help"
+
+            WelcomeSection { first: true; text: "Catastrophic OS" }
+            WelcomeRow {
+                first: true
+                icon: "\u{f06b0}"; label: "Check for updates"; sub: "Installed: " + (root.version || "…")
+                trailing: "\u{f0142}"
+                onClicked: root.run([root.scripts + "catastrophic-update-check", "--prompt"])
+            }
+            WelcomeRow {
+                icon: "\u{f02a4}"; label: "GitHub"; sub: "Source, issues and install command"
+                trailing: "\u{f03cc}"
+                onClicked: root.openUrl("https://github.com/idkmodmenus/catastrophic-dotfiles")
+            }
+            WelcomeRow {
+                last: true
+                icon: "\u{f14de}"; label: "Releases"; sub: "What changed in each version"
+                trailing: "\u{f03cc}"
+                onClicked: root.openUrl("https://github.com/idkmodmenus/catastrophic-dotfiles/releases")
+            }
+
+            WelcomeSection { text: "Hyprland" }
+            WelcomeRow {
+                first: true
+                icon: "\u{f02fd}"; label: "Hyprland homepage"
+                trailing: "\u{f03cc}"
+                onClicked: root.openUrl("https://hypr.land")
+            }
+            WelcomeRow {
+                last: true
+                icon: "\u{f1064}"; label: "Hyprland wiki"
+                trailing: "\u{f03cc}"
+                onClicked: root.openUrl("https://wiki.hypr.land")
+            }
+        }
+    }
+
+    Rectangle {
+        anchors.top: pane.top
+        anchors.right: pane.right
+        anchors.margins: 12
+        width: 38
+        height: 38
+        radius: 19
+        color: closeMouse.containsMouse ? Qt.alpha(Theme.error, 0.14) : "transparent"
+        Behavior on color { ColorAnimation { duration: 150 } }
+        Text {
+            anchors.centerIn: parent
+            text: "\u{f0156}"
+            font.family: "JetBrainsMono Nerd Font"
+            font.pixelSize: 20
+            color: closeMouse.containsMouse ? Theme.error : Theme.on_surface_variant
+            scale: closeMouse.pressed ? 0.8 : 1
+            Behavior on scale { NumberAnimation { duration: 120 } }
+        }
+        MouseArea {
+            id: closeMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.visible = false
         }
     }
 }

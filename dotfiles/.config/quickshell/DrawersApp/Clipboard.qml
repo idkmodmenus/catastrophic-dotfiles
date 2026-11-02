@@ -2,8 +2,6 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// Clipboard history (cliphist) as a drawer. Enter copies the entry back to the
-// clipboard; Ctrl+Delete or the bin removes it.
 PickerDrawer {
     id: root
 
@@ -27,7 +25,6 @@ PickerDrawer {
     })
 
     function copy(line): void {
-        // The whole listed line identifies the entry, so pass it on stdin untouched
         Quickshell.execDetached(["bash", "-c", "printf '%s\\n' \"$1\" | cliphist decode | wl-copy", "_", line])
     }
 

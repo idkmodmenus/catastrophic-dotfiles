@@ -5,35 +5,15 @@ import QtQuick.Controls
 import QtQuick.Effects
 import qs.CustomTheme
 
-// The month calendar that drops out of the clock module.
-//
-// This is a plain Item living inside the statusbar's own window, not a separate
-// PanelWindow or a PopupWindow: while the bar holds a Hyprland focus grab (which
-// is what closes the panel on an outside click), pointer input only reaches the
-// grabbed layer surface, so a separate surface renders but never receives the
-// clicks on its buttons. StatusbarWindow reserves room for it below the bar and
-// opens its input mask while it is showing.
-//
-// The panel is positioned by the parent (see StatusbarWindow): `openY` is where
-// it sits when open, and it slides up out of the window when closed.
 Item {
     id: panel
 
-    // Open/closed, driven by the clock module and the "calendar" IPC handler.
     property bool isOpen: false
 
-    // Where the panel sits when open, in window coordinates. Set by the parent
-    // so the panel hangs below the pill.
     property real openY: 0
 
-    // Guard that keeps the item rendered until the closing slide has finished.
-    // Without it the panel would vanish the instant isOpen went false instead of
-    // sliding away.
     property bool showPanel: false
 
-    // The card is inset inside the item so the drop shadow has room, which is
-    // why the panel is 2 * cardInset wider and taller than the card itself.
-    // The parent reads this to line the card up with the bar.
     readonly property int cardInset: 20
     implicitWidth: 380
     implicitHeight: 380
@@ -41,7 +21,6 @@ Item {
     height: implicitHeight
     visible: showPanel
 
-    // Parked above the window (and so off-screen) when closed.
     readonly property real hiddenY: -height - 20
     y: isOpen ? openY : hiddenY
 
@@ -49,7 +28,6 @@ Item {
         NumberAnimation {
             duration: 350
             easing.type: Easing.OutQuint
-            // Stop rendering the panel only once the closing slide is done.
             onRunningChanged: {
                 if (!running && !panel.isOpen)
                     panel.showPanel = false
@@ -62,7 +40,6 @@ Item {
             return
         showPanel = true
 
-        // Auto-refresh "Today" if the date changed while Quickshell was running
         let now = new Date()
         if (now.getDate() !== todayDate || now.getMonth() !== todayMonth) {
             todayDate = now.getDate()
@@ -75,16 +52,12 @@ Item {
         }
     }
 
-    // Swallow clicks that land on the card but not on one of its buttons, so
-    // they do not fall through to the window-level MouseArea that closes the
-    // panel.
     MouseArea {
         anchors.fill: parent
         anchors.margins: panel.cardInset
         acceptedButtons: Qt.LeftButton | Qt.RightButton
     }
 
-    // --- REUSABLE COMPONENTS ---
     component ActionIcon: Button {
         property string iconTxt: ""
         property string iconSrc: ""
@@ -120,7 +93,6 @@ Item {
         }
     }
 
-    // Styled Catastrophic Button for the "Today" action
     component CatastrophicButton: Button {
         background: Rectangle {
             color: "transparent"
@@ -141,7 +113,6 @@ Item {
         }
     }
 
-    // --- CALENDAR LOGIC & DATA ---
     property var monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     property var dayNames: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 
@@ -211,9 +182,6 @@ Item {
         }
     }
 
-    // ==========================================
-    // MAIN PANEL BACKGROUND
-    // ==========================================
     Item {
         anchors.fill: parent
         anchors.margins: panel.cardInset
@@ -230,16 +198,14 @@ Item {
             id: mainBgRect
             anchors.fill: parent
             radius: 10
-            opacity: 0.95 // Only the background is transparent
+            opacity: 0.95
 
-            // Gradient border (outer)
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop { position: 0.0; color: Theme.primary }
                 GradientStop { position: 1.0; color: Theme.on_primary }
             }
 
-            // Background fill (inner), inset by the border thickness
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 2
@@ -253,7 +219,6 @@ Item {
             anchors.margins: 20
             spacing: 15
 
-            // --- HEADER: MONTH NAVIGATION & TODAY BUTTON ---
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 30
@@ -303,7 +268,6 @@ Item {
 
             Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.primary; opacity: 0.3 }
 
-            // --- CALENDAR BODY ---
             RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true

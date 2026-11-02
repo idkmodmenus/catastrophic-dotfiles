@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-#
-# Start the Catastrophic Power Menu or send it an IPC call
-#
 
 set -euo pipefail
 
-# The power menu lives one level above this script. Resolve the symlink in
-# ~/.local/bin so the script also works from any other clone.
 MENU_DIR="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
 
 IPC_FUNCTIONS=(

@@ -1,10 +1,4 @@
 #!/bin/bash
-#    __ __              _    ____   
-#   / // /_ _____  ____(_)__/ / /__ 
-#  / _  / // / _ \/ __/ / _  / / -_)
-# /_//_/\_, / .__/_/ /_/\_,_/_/\__/ 
-#      /___/_/                      
-# 
 
 SERVICE="hypridle"
 
@@ -18,7 +12,6 @@ print_status() {
 
 case "$1" in
     status)
-        # Add a tiny delay to avoid race condition on startup
         sleep 0.2
         print_status
         ;;
@@ -28,7 +21,6 @@ case "$1" in
         else
             "$SERVICE" &
         fi
-        # Give it a moment to start/stop before checking again
         sleep 0.2
         print_status
         ;;

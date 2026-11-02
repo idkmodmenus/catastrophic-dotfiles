@@ -2,8 +2,6 @@ import QtQuick
 import QtQuick.Effects
 import qs.PowerApp
 
-// One round button of the power menu: an icon on a ring that fills with the
-// primary color while hovered or selected with the keyboard.
 Rectangle {
     id: btn
 

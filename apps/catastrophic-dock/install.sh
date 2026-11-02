@@ -1,37 +1,34 @@
 #!/usr/bin/env bash
-#
-# Install or update the Catastrophic Dock
-#
 
 set -euo pipefail
 
-REPO_URL="https://github.com/catastrophic-os/catastrophic-dock"
+REPO_TARBALL="https://github.com/idkmodmenus/catastrophic-dotfiles/archive/refs/heads/main.tar.gz"
+APP_NAME="catastrophic-dock"
 INSTALL_DIR="$HOME/.local/share/catastrophic-dock"
 BIN_DIR="$HOME/.local/bin"
 
-if ! command -v git >/dev/null 2>&1; then
-    echo ":: ERROR: git is required but not installed."
-    exit 1
-fi
+for tool in curl tar; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo ":: ERROR: $tool is required but not installed."
+        exit 1
+    fi
+done
 
 if ! command -v qs >/dev/null 2>&1; then
     echo ":: WARNING: quickshell (qs) is not installed. The dock needs it to run."
 fi
 
-if [ -d "$INSTALL_DIR/.git" ]; then
-    echo ":: Updating catastrophic-dock in $INSTALL_DIR"
-    git -C "$INSTALL_DIR" pull --ff-only
-    echo ":: catastrophic-dock updated successfully."
-elif [ -d "$INSTALL_DIR" ]; then
-    echo ":: ERROR: $INSTALL_DIR exists but is not a git repository."
-    echo ":: Please remove or rename it and run this script again."
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+echo ":: Downloading catastrophic-dock"
+curl -fsSL "$REPO_TARBALL" | tar -xz -C "$TMP_DIR" --strip-components=3 "catastrophic-dotfiles-main/apps/$APP_NAME"
+if [ ! -f "$TMP_DIR/shell.qml" ]; then
+    echo ":: ERROR: download did not contain $APP_NAME."
     exit 1
-else
-    echo ":: Cloning catastrophic-dock into $INSTALL_DIR"
-    mkdir -p "$(dirname "$INSTALL_DIR")"
-    git clone "$REPO_URL" "$INSTALL_DIR"
-    echo ":: catastrophic-dock installed successfully."
 fi
+mkdir -p "$INSTALL_DIR"
+cp -a "$TMP_DIR/." "$INSTALL_DIR/"
+echo ":: catastrophic-dock installed to $INSTALL_DIR"
 
 echo ":: Linking catastrophic-dock into $BIN_DIR"
 mkdir -p "$BIN_DIR"

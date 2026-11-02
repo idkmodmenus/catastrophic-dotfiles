@@ -1,16 +1,10 @@
 #!/usr/bin/env bash
 
-# ------------------------------------------
-# CLI Application Launcher
-# ------------------------------------------
-
-# --- Configuration ---
 INCLUDE_TERMINAL_APPS=true
 DIRS=("/usr/share/applications" "$HOME/.local/share/applications")
-FLATPAK_SYM="󰏖"  # Distinct icon for all Flatpaks
-FLATPAK_ICON="$FLATPAK_SYM "  # Distinct icon for all Flatpaks
+FLATPAK_SYM="󰏖"
+FLATPAK_ICON="$FLATPAK_SYM "
 
-# --- 1. Collect Standard Apps (AWK) ---
 LIST=$(find -L "${DIRS[@]}" -name "*.desktop" -type f -print0 2>/dev/null | xargs -0 awk -F'=' -v inc_term="$INCLUDE_TERMINAL_APPS" '
     function print_entry() {
         if (name != "" && exec != "") {
@@ -27,7 +21,6 @@ LIST=$(find -L "${DIRS[@]}" -name "*.desktop" -type f -print0 2>/dev/null | xarg
     END { print_entry() }
 ' 2>/dev/null)
 
-# --- 2. Collect Flatpaks (Direct Query) ---
 if command -v flatpak >/dev/null 2>&1; then
     while IFS=$'\t' read -r id fp_name; do
         [ -z "$id" ] && continue
@@ -41,7 +34,6 @@ if command -v flatpak >/dev/null 2>&1; then
     done < <(flatpak list --app --columns=application,name 2>/dev/null)
 fi
 
-# --- 3. UI Selection (Preview Removed) ---
 SELECTED=$(echo "$LIST" | grep . | sort -u | fzf \
     --style full \
     --delimiter '|' \
@@ -52,7 +44,6 @@ SELECTED=$(echo "$LIST" | grep . | sort -u | fzf \
     --prompt "🚀 Run: " \
     --header "󰀻 System | 󰏖 Flatpak |   Terminal")
 
-# --- 4. Launch ---
 if [ -n "$SELECTED" ]; then
     CMD=$(echo "$SELECTED" | cut -d'|' -f2 | xargs)
     setsid $CMD >/dev/null 2>&1 &

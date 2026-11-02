@@ -1,5 +1,3 @@
-//@ pragma UseQApplication
-
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -13,7 +11,6 @@ import "DrawersApp"
 import "Widgets"
 
 ShellRoot {
-    // Test IPC tools: qs ipc show
 
     IpcHandler {
         target: "theme-manager" 

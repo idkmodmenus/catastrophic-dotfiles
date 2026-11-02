@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# --- Helper to identify the Linux distro ---
 get_distro_by_bin() {
     if command -v pacman &> /dev/null; then echo "arch";
     elif command -v dnf &> /dev/null; then echo "fedora";
@@ -9,11 +8,9 @@ get_distro_by_bin() {
     else echo "unknown"; fi
 }
 
-# --- Logging ---
 LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/catastrophic-dotfiles-installer/logs"
 LOG_KEEP=10
 
-# Create a new logfile for this run and remove all but the newest $LOG_KEEP
 init_log() {
     mkdir -p "$LOG_DIR"
     LOG_FILE="$LOG_DIR/install-$(date +%Y%m%d_%H%M%S).log"
@@ -28,9 +25,6 @@ init_log() {
     ls -1 "$LOG_DIR"/install-*.log 2> /dev/null | sort -r | tail -n +$((LOG_KEEP + 1)) | xargs -r rm -f
 }
 
-# --- Run a command with its output written to the logfile ---
-# Usage: run_logged [--title "Spinner text"] command [args...]
-# Output is hidden (or shown with --verbose); the exit code is passed through.
 run_logged() {
     local title=""
     if [ "$1" = "--title" ]; then title=$2; shift 2; fi
@@ -53,9 +47,6 @@ run_logged() {
     return $rc
 }
 
-# --- Ask for the sudo password once and keep the session alive ---
-# Package installs run with hidden output, so a sudo prompt must not appear
-# in the middle of a spinner. The keepalive is stopped in the cleanup trap.
 ensure_sudo() {
     [ "$EUID" -eq 0 ] && return 0
     [ -n "$SUDO_KEEPALIVE_PID" ] && return 0
@@ -70,9 +61,6 @@ stop_sudo_keepalive() {
     SUDO_KEEPALIVE_PID=""
 }
 
-# --- Progress bar ---
-# progress_bar CURRENT TOTAL [WIDTH]  ->  ████████▌░░░░░░░░ 52%
-# Partial blocks give eight steps per cell, so the bar moves on every package.
 progress_bar() {
     local cur=$1 total=$2 width=${3:-24} units full rem i bar=""
     local partial=("" "▏" "▎" "▍" "▌" "▋" "▊" "▉")
@@ -89,7 +77,6 @@ progress_bar() {
     printf '%s %3d%%' "$bar" $(( cur * 100 / total ))
 }
 
-# progress_line CURRENT TOTAL LABEL  - redraws one line in place (plain lines when not a terminal)
 progress_line() {
     local cur=$1 total=$2 label=$3 cols=${COLUMNS:-$(tput cols 2> /dev/null || echo 80)}
     label="${label:0:$(( cols > 50 ? cols - 42 : 8 ))}"
@@ -100,23 +87,19 @@ progress_line() {
     fi
 }
 
-# progress_done - clear the in-place line
 progress_done() { [ -t 2 ] && printf '\r\033[K' >&2; return 0; }
 
-# --- Overall step header: step N TOTAL "Message" ---
 step() {
     echo >&2
     printf '\033[1;36m━━ %s\033[0m  %s\n' "$(progress_bar "$1" "$2" 12)" "$3" >&2
     log_msg "[STEP $1/$2] $3"
 }
 
-# --- Helper to install a package disto agnostic ---
 install_package() {
     local pkg=$1; local distro=$(get_distro_by_bin)
     ensure_sudo || return 1
     case "$distro" in
         arch)
-            # QUIET_PKG: the caller draws its own progress line, so no spinner here
             if [ -n "$QUIET_PKG" ]; then
                 run_logged sudo pacman -S --needed --noconfirm "$pkg"
             else
@@ -133,7 +116,6 @@ install_package() {
     esac
 }
 
-# --- Helper to check command and install if not available ---
 check_and_install() {
     local cmd=$1; local pkg=$2
     if command -v "$cmd" &> /dev/null; then return 0; fi
@@ -147,7 +129,6 @@ check_and_install() {
     fi
 }
 
-# --- Helper to get content from URL or Local File ---
 get_json_content() {
     local source=$1
     if [[ "$source" =~ ^https?:// ]]; then

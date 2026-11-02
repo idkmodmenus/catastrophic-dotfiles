@@ -1,15 +1,3 @@
-/*
-#  ____        __ _  
-# |  _ \ ___  / _(_) 
-# | |_) / _ \| |_| | 
-# |  _ < (_) |  _| | 
-# |_| \_\___/|_| |_| 
-#                    
-# by Catastrophic OS (2023) 
-# ----------------------------------------------------- 
-*/
-
-/* ---- Configuration ---- */
 configuration {
     modi:                       "drun,filebrowser,window,run";
     font:                       "Fira Sans 11";
@@ -30,29 +18,22 @@ configuration {
     kb-cancel: "Escape,MousePrimary";    
 }
 
-/* ---- Load font ---- */
 @import "~/.config/catastrophic/settings/rofi-font.rasi"
 
-/* ---- Load colors ---- */
 @theme "~/.config/rofi/colors.rasi"
 
-/* ---- Load wallpaper ---- */
 @import "~/.cache/catastrophic/hyprland-dotfiles/current_wallpaper.rasi"
 
-/* ---- Load border width ---- */
 @import "~/.config/catastrophic/settings/rofi-border.rasi"
 
-/* ---- Load border radius ---- */
 @import "~/.config/catastrophic/settings/rofi-border-radius.rasi"
 
-/* ---- Map colors ---- */
 * {
     color11: @primary;
     color5: @on-primary-fixed;
     foreground: @on-surface;
 }
 
-// Main //
 window {
     width:                        20em;
     x-offset:                     -2em;
@@ -83,7 +64,6 @@ mainbox {
     background-image:            @current-image;    
 }
 
-// Lists //
 listbox {
     padding:                     0em;
     spacing:                     0em;
@@ -111,7 +91,6 @@ listview {
     text-color:                  @on-surface;
 }
 
-// Elements //
 element {
     enabled:                     true;
     padding:                     1em;

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# --- Profile Backup ---
 backup_existing_profile() {
     local profile_dir=$1
     local id=$2
@@ -14,14 +13,12 @@ backup_existing_profile() {
     if cp -a "$profile_dir" "$backup_path"; then
         info "  - Backup completed successfully."
     else
-        # Nothing is changed without a backup: the caller stops the update
         rm -rf "$backup_path"
         error "  - The backup failed (is the disk full?). Nothing has been changed."
         return 1
     fi
 }
 
-# --- Restore Orchestrator ---
 handle_restore_logic() {
     local json=$1
     local existing_dir=$2
@@ -41,8 +38,6 @@ handle_restore_logic() {
     
     local user_selections
     if [ "${CATASTROPHIC_YES:-0}" = "1" ]; then
-        # Non-interactive: keep every item (default selection = all). Scripts
-        # (dot-switch) set CATASTROPHIC_YES=1; gum can't be answered with typed 'y'.
         user_selections="$restore_data"
     else
         user_selections=$(echo "$restore_data" | gum choose --no-limit --height 25 --selected="$selected_default")
@@ -70,9 +65,6 @@ handle_restore_logic() {
         if [ -e "$src_path" ]; then
             info "  - Restoring: $title ($rel_src)"
             mkdir -p "$(dirname "$dest_path")"
-            # -T treats the destination as the target itself, never as a folder
-            # to copy into. Without it an existing destination folder would
-            # receive a nested copy (e.g. settings/settings) instead of a merge.
             cp -aT "$src_path" "$dest_path"
         else
             warn "  - Restore source not found: $rel_src"
@@ -80,29 +72,19 @@ handle_restore_logic() {
     done <<< "$user_selections"
 }
 
-# --- Blacklist Matching Helper ---
-# Returns 0 (true) if rel_path is blacklisted: exact match, path lives under
-# a blacklisted entry, or path is an ancestor of one. The ancestor case
-# matters for symlink deployment — if a subdirectory is blacklisted, its
-# parent must not be linked either, otherwise a partial sandbox would replace
-# real local files.
 is_blacklisted() {
     local rel_path=$1
     local blacklist=$2
     [ -f "$blacklist" ] || return 1
     while IFS= read -r line || [[ -n "$line" ]]; do
         line=$(echo "$line" | xargs)
-        line="${line%/}"   # normalize trailing slash (README example: .config/my-app/)
+        line="${line%/}"
         [[ -z "$line" || "$line" =~ ^# ]] && continue
         [[ "$rel_path" == "$line" || "$rel_path" == "$line"/* || "$line" == "$rel_path"/* ]] && return 0
     done < "$blacklist"
     return 1
 }
 
-# --- RECURSIVE Blacklist-Aware Copy ---
-# A file is left alone when the update does not change it (its shipped checksum is the
-# same as in the manifest of the previous install), so edits you made to it are kept.
-# Files the update does change are replaced; the previous profile is backed up first.
 copy_with_blacklist() {
     local source=$1
     local target=$2
@@ -124,7 +106,7 @@ copy_with_blacklist() {
     if [ -f "$blacklist" ]; then
         while IFS= read -r line || [[ -n "$line" ]]; do
             line=$(echo "$line" | xargs)
-            line="${line%/}"   # normalize trailing slash (README example: .config/my-app/)
+            line="${line%/}"
             [[ -z "$line" || "$line" =~ ^# ]] && continue
             blacklisted+=("$line")
         done < "$blacklist"
@@ -144,10 +126,6 @@ copy_with_blacklist() {
             fi
         done
 
-        # Skip blacklisted entries unconditionally. The previous guard
-        # (`[ -e "$target_path" ]`) only preserved blacklisted paths that
-        # already existed in the sandbox, so a fresh deploy staged them
-        # anyway and they got symlinked over real files.
         if [ "$skip" = true ]; then
             if [[ "$rel_path" == "$b" ]]; then
                 warn "  - Skipping blacklisted entry: $rel_path"
@@ -161,19 +139,16 @@ copy_with_blacklist() {
             mkdir -p "$(dirname "$target_path")"
             if [ -n "${old_sum[$rel_path]:-}" ] && [ ! -L "$item" ] && { [ -e "$target_path" ] || [ -L "$target_path" ]; } \
                 && [ "${old_sum[$rel_path]}" = "$(sha256sum -- "$item" | cut -d' ' -f1)" ]; then
-                continue    # unchanged by this update: keep what is there
+                continue
             fi
             cp -a "$item" "$target_path"
         fi
     done
 }
 
-# --- Update: remove what the repo no longer ships ---
-# Removes the paths listed in a file (setup/obsolete-paths) from a folder. Globs are allowed.
 remove_obsolete_paths() {
     local dir=$1 list=$2 rel p
     [ -f "$list" ] || return 0
-    # Refuse to work on anything but a real folder that is not the root or the home folder
     { [ -n "$dir" ] && [ -d "$dir" ] && [ "$dir" != "/" ] && [ "$dir" != "$HOME" ]; } || return 0
     while IFS= read -r rel || [ -n "$rel" ]; do
         rel=$(echo "$rel" | xargs)
@@ -187,12 +162,6 @@ remove_obsolete_paths() {
     done < "$list"
 }
 
-
-# Run before staging the new files. Removes
-#   1. paths listed in setup/obsolete-paths (installs from before the manifest), and
-#   2. files that the previous update installed (its manifest) and the repo no
-#      longer has.
-# Files the user created themselves are in neither list and are left alone.
 prune_obsolete() {
     local src_dir=$1 final_target=$2 clone_path=$3 manifest=$4
     { [ -n "$final_target" ] && [ -d "$final_target" ] && [ "$final_target" != "/" ] && [ "$final_target" != "$HOME" ]; } || return 0
@@ -213,8 +182,6 @@ prune_obsolete() {
         done < "$manifest"
     fi
 
-    # Folders that the removals left empty, and only those: an empty folder the
-    # user made themselves is never touched
     if [ "${#touched[@]}" -gt 0 ]; then
         while IFS= read -r d; do
             while [ "$d" != "$final_target" ] && [ "${d#"$final_target"/}" != "$d" ] && rmdir -- "$d" 2> /dev/null; do
@@ -226,9 +193,6 @@ prune_obsolete() {
     return 0
 }
 
-# Record what this version ships, so the next update knows what to remove.
-# One line per file: "<sha256>  <path>" (a link has "-" instead of a checksum).
-# Older versions wrote just the path; both forms are read.
 write_manifest() {
     local src_dir=$1 manifest=$2 rel
     mkdir -p "$(dirname "$manifest")"
@@ -237,13 +201,11 @@ write_manifest() {
     done ) > "$manifest"
 }
 
-# The path part of a manifest line (either form)
 manifest_path() {
     local line=$1
     if [[ "$line" =~ ^([0-9a-f]{64}|-)\ \ (.*)$ ]]; then echo "${BASH_REMATCH[2]}"; else echo "$line"; fi
 }
 
-# Links in $HOME and ~/.config that point into the profile but whose target is gone
 remove_dangling_links() {
     local profile_dir=$1 link
     for link in "$HOME"/.[!.]* "$HOME"/* "$HOME"/.config/* "$HOME"/.config/.[!.]*; do
@@ -255,7 +217,6 @@ remove_dangling_links() {
     return 0
 }
 
-# --- Symlink Helper ---
 create_symlink() {
     local source=$1; local target=$2; local backup_dir=$3
     local abs_source=$(realpath -m "$source")
@@ -267,7 +228,6 @@ create_symlink() {
             return 0
         else
             warn "  - Link $(basename "$target") points elsewhere ($(readlink "$target")). Recreating..."
-            # Keep the old link itself (what it pointed to) before replacing it
             mkdir -p "$backup_dir"
             cp -a "$target" "$backup_dir/" || { error "  - Could not back up the link $target. Leaving it as it is."; return 1; }
             rm "$target"
@@ -277,7 +237,6 @@ create_symlink() {
     if [ -e "$target" ]; then
         warn "  - Existing file/folder found at $target. Creating backup..."
         mkdir -p "$backup_dir"
-        # Only remove the original once the copy succeeded
         if cp -a "$target" "$backup_dir/"; then
             rm -rf "$target"
         else
@@ -290,7 +249,6 @@ create_symlink() {
     ln -s --relative "$source" "$target"
 }
 
-# --- Deployment Orchestrator ---
 deploy_symlinks() {
     local source_dir=$1; local backup_root=$2; local id=$3; local blacklist=$4
     local timestamp=$(date +%Y%m%d_%H%M%S)
@@ -302,8 +260,6 @@ deploy_symlinks() {
         [[ "$name" == "." || "$name" == ".." || "$name" == ".config" ]] && continue
         [ -e "$item" ] || continue
 
-        # Never link blacklisted paths, even if they somehow exist in the
-        # sandbox (e.g. staged by an older version or an empty dir).
         if is_blacklisted "$name" "$blacklist"; then
             warn "  - Skipping blacklisted entry: $name"
             continue
@@ -331,14 +287,11 @@ deploy_symlinks() {
     info "Backups are in $backup_dir"
 }
 
-# --- Process package list and install packages ---
-# One progress line is redrawn in place; only failures and a summary are printed.
 process_package_file() {
     local file=$1; [ ! -f "$file" ] && return 0
     local distro=$(get_distro_by_bin)
     info "Installing packages from $(basename "$file")"
 
-    # Read the list up front so install commands can't consume the loop's stdin
     local raw lines=() pkg
     mapfile -t raw < "$file"
     for pkg in "${raw[@]}"; do
@@ -386,8 +339,6 @@ process_package_file() {
     progress_line "$total" "$total" "done"
     progress_done
 
-    # One more try for this list's failures: a mirror that timed out usually works
-    # a moment later, and pacman moves on to the next mirror
     local retry=() still=() p
     for p in "${FAILED_PACKAGES[@]}"; do [[ " ${lines[*]} " == *" $p "* ]] && retry+=("$p") || still+=("$p"); done
     if [ ${#retry[@]} -gt 0 ]; then
@@ -406,14 +357,12 @@ process_package_file() {
     info "  ✓ $total packages: $added installed, $present already present, $failed failed"
 }
 
-# --- Run setup logic with preflight, dependencies, post-installation and user post script ---
 run_setup_logic() {
     local repo_path=$1; local profile_id=$2
     local distro=$(get_distro_by_bin)
     local dep_dir="$repo_path/setup/dependencies"
     local user_config_dir="$HOME/.config/catastrophic-dotfiles-installer/$profile_id"
     
-    # 1. Repo Preflight (general first, then distro-specific)
     local preflight="$repo_path/setup/preflight.sh"
     if [ -f "$preflight" ]; then
         info "Running preflight script $preflight..."
@@ -425,11 +374,6 @@ run_setup_logic() {
         source "$distro_preflight"
     fi
     
-    # 2. Dependencies
-    # NOTE: a missing dependency folder must NOT abort the rest of setup.
-    # Profiles like Catastrophic's repo don't ship setup/dependencies, and returning
-    # early here silently skipped step 4 (the user post.sh hook) — which is
-    # where Hyprland 0.56 compat fixes live. Warn and continue instead.
     if [ ! -d "$dep_dir" ]; then 
         warn "Dependency folder not found at: $dep_dir — skipping dependency install (post-install hooks will still run)."
     else
@@ -443,7 +387,6 @@ run_setup_logic() {
         fi
     fi
 
-    # 3. Repo Post-installation (general first, then distro-specific)
     local postflight="$repo_path/setup/post.sh"
     if [ -f "$postflight" ]; then
         info "Running post-installation script $postflight..."
@@ -455,7 +398,6 @@ run_setup_logic() {
         source "$distro_postflight"
     fi
 
-    # 4. User-specific Post-installation
     local user_post="$user_config_dir/post.sh"
     if [ -f "$user_post" ]; then
         info "Running user-specific post-installation script for $profile_id..."
@@ -463,7 +405,6 @@ run_setup_logic() {
     fi
 }
 
-# --- Run Migration Script for file modifications after creating the symbolic links ---
 run_migration() {
     local repo_path=$1
     local profile_id=$2
@@ -474,7 +415,6 @@ run_migration() {
     fi
 }
 
-# --- Check dotfiles installer dependencies ---
 check_dependencies() {
     info "Checking system dependencies..."
     local failed=false
@@ -489,18 +429,15 @@ check_dependencies() {
     fi
 }
 
-# --- Active Profile Tracker ---
 set_active_profile() {
     local id=$1
     local active_file="$INSTALLER_CONFIG/active.json"
 
-    # Write the JSON object to the file
     echo "{\"active\":\"$id\"}" > "$active_file"
     
     info "Profile '$id' marked as active in $active_file"
 }
 
-# --- Read remote or local dotinst file and show installation profile ---
 read_dotinst() {
     local source=$1; local target_base_dir=$2; local test_mode=$3
     local content=$(get_json_content "$source")
@@ -537,7 +474,6 @@ read_dotinst() {
     echo -e "Homepage:    $homepage" >&2
     echo -e "Source:      $git_url" >&2
     [ -n "$subfolder" ] && [ "$subfolder" != "null" ] && echo -e "Subfolder:   $subfolder" >&2
-    # Detection line for User Post Script
     if [ -f "$user_post" ]; then
         echo -e "User Script: ${GREEN}Detected${NC}" >&2
     else
@@ -546,7 +482,6 @@ read_dotinst() {
     echo -e "Description: $description" >&2
     echo -e "${GREEN}--------------------------------------------------${NC}" >&2
 
-    # CATASTROPHIC_CONFIRMED: install.sh's start menu already asked
     if [ "${CATASTROPHIC_YES:-0}" != "1" ] && [ "${CATASTROPHIC_CONFIRMED:-0}" != "1" ] \
         && ! gum confirm "Do you want to proceed with the installation?"; then info "Installation cancelled by user."; exit 0; fi
 

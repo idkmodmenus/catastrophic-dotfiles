@@ -4,8 +4,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Session menu on the right edge: lock, log out, sleep, restart, shut down.
-// Arrow keys or letters select a tile and Enter confirms.
 Scope {
     id: root
 
@@ -57,8 +55,6 @@ Scope {
             Keys.onDownPressed: current = (current + 1) % root.actions.length
             Keys.onReturnPressed: root.run(current)
             Keys.onEnterPressed: root.run(current)
-            // Letters jump to a tile; Enter confirms, so a stray key never
-            // restarts or powers off the machine
             Keys.onPressed: event => {
                 const k = event.text.toUpperCase()
                 const i = root.actions.findIndex(a => a.key === k)

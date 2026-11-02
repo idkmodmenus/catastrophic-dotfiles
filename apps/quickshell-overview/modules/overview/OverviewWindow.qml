@@ -7,7 +7,7 @@ import "../../common"
 import "../../common/functions"
 import "../../services"
 
-Item { // Window
+Item {
     id: root
     property var toplevel
     property var windowData
@@ -79,7 +79,7 @@ Item { // Window
         return (windowData?.monitor ?? -1) === widgetMonitorId;
     }
     property var entry: {
-        DesktopEntries.applications.values; // re-run when the entry index updates
+        DesktopEntries.applications.values;
         return DesktopEntries.heuristicLookup(windowData?.class);
     }
     property string iconName: {
@@ -130,9 +130,6 @@ Item { // Window
         animation: Appearance.animation.elementMoveEnter.numberAnimation.createObject(this)
     }
 
-    // Opaque background for windows on the active monitor.
-    // The simplest solution for making those windows fully opaque and not interacting with actual
-    // windows behind the overview, e.g., applying blur to them.
     Rectangle {
         visible: (root.windowData?.monitor ?? -1) === root.widgetMonitorId
         anchors.fill: parent

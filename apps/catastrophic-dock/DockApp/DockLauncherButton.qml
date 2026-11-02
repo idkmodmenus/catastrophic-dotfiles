@@ -2,40 +2,25 @@ import Quickshell
 import QtQuick
 import qs.DockApp
 
-// Launcher button at the left end of the dock: a 3×3 grid of dots. A left click
-// runs dock.launcherCommand — by default the application launcher, like the
-// status bar's launcher button — and a right click opens the dock menu (Reload
-// Dock, Settings, Edit configuration). The menu is the dock's shared context
-// menu, so the button sits in the dock's row and is passed to
-// DockWindow.openMenuFor() as the item the menu is positioned over.
-//
-// The dots are drawn here rather than loaded from shared/icons, so the dock
-// does not depend on files outside DockApp.
 Item {
     id: button
 
     property int iconSize: 32
-    // Shell command a left click runs: dock.launcherCommand from config.json.
     property string command: ""
-    // The dock window, which owns the context menu (see DockMenu).
     property var dockWindow: null
 
     signal reloadRequested()
     signal settingsRequested()
     signal editConfigRequested()
 
-    // Whether the open context menu belongs to this button.
     readonly property bool menuOpen: button.dockWindow
         && button.dockWindow.menuItem === button
 
     readonly property bool highlighted: buttonMouse.containsMouse || button.menuOpen
 
-    // Same footprint as an app icon (see DockItem).
     implicitWidth: button.iconSize + 16
     implicitHeight: button.iconSize + 18
 
-    // Run through bash so the configured command can use ~, arguments and
-    // pipes. An empty command (set that way in config.json) does nothing.
     function launch(): void {
         if (button.command.trim() !== "")
             Quickshell.execDetached(["bash", "-c", button.command])
@@ -50,7 +35,6 @@ Item {
         ]
     }
 
-    // Accent circle behind the grid on hover, matching the app icons.
     Rectangle {
         anchors.centerIn: grid
         width: button.iconSize + 14
@@ -67,7 +51,6 @@ Item {
     Grid {
         id: grid
         anchors.centerIn: parent
-        // Same lift as the app icons (see DockItem), so the grid lines up with them.
         anchors.verticalCenterOffset: -2
         columns: 3
         spacing: Math.max(3, Math.round(button.iconSize / 8))
@@ -104,7 +87,6 @@ Item {
             }
             if (!button.dockWindow)
                 return
-            // A second right click closes the menu again.
             if (button.menuOpen) {
                 button.dockWindow.closeMenu()
                 return

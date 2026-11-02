@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# 1. Define the target folders here (use absolute or relative paths)
 HYPR_CONFIG_FOLDER=".config/hypr/conf"
 TARGET_FOLDERS=(
     "$HYPR_CONFIG_FOLDER/animations"
@@ -20,15 +19,11 @@ if gum confirm "Do you want to proceed?" ;then
     echo "Starting cleanup of .conf files..."
     echo "-----------------------------------"
 
-    # 2. Loop through each folder in the array
     for folder in "${TARGET_FOLDERS[@]}"; do
         
-        # 3. Verify the directory actually exists before trying to modify it
         if [[ -d "$HOME/$folder" ]]; then
             echo "Cleaning: $folder"
             
-            # 4. Find and delete the files
-            # Note: -maxdepth 1 ensures it only deletes in the target folder, not sub-folders.
             find "$HOME/$folder" -maxdepth 1 -type f -name "*.conf" -exec rm -v {} +
             
         else

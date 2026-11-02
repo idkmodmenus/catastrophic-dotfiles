@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# 1. Detect script folder
 DEV_DIR="/catastrophic-dotfiles-installer/bin"
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 if [[ "$SCRIPT_DIR" == *"$DEV_DIR"* ]]; then
@@ -11,24 +10,20 @@ else
     LIB_DIR="$HOME/.local/share/catastrophic-dotfiles-installer"
 fi
 
-# 2. Source Modules
 source "$LIB_DIR/colors.sh"
 source "$LIB_DIR/helpers.sh"
 source "$LIB_DIR/utils.sh"
 
-# Default settings
 DOTFILES_DIR="$HOME/.mydotfiles"
 TEST_MODE=false
 VERBOSE=false
 SCRIPT_VERSION="0.3.0"
 
-# --- Check for Installer Config Folder ---
 INSTALLER_CONFIG="$HOME/.config/catastrophic-dotfiles-installer"
 if [ ! -d "$INSTALLER_CONFIG" ]; then
     mkdir -p "$INSTALLER_CONFIG"
 fi
 
-# 3. Global Cleanup Trap
 cleanup() {
     stop_sudo_keepalive
     if [ -n "$CLONE_PATH" ] && [ -d "$CLONE_PATH" ]; then
@@ -38,7 +33,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# 4. Help Function
 show_help() {
     echo
     echo "------------------------"
@@ -56,7 +50,6 @@ show_help() {
     echo "  --help               Show this help message"
 }
 
-# 5. Argument Parsing
 if [ $# -eq 0 ]; then
     show_help
     exit 0
@@ -93,19 +86,15 @@ clear
 echo
 info "Running Catastrophic Dotfiles Installer ($SCRIPT_VERSION)..."
 
-# 6. Execute Logic
 [ -z "$INSTALL_URL" ] && { show_help; exit 0; }
 
 init_log
 info "Logfile: $LOG_FILE"
 
-# Step A: Check dependencies for running the script
 check_dependencies
 
-# Step B: Read configuration and prepare environment
 RESULT=$(read_dotinst "$INSTALL_URL" "$DOTFILES_DIR" "$TEST_MODE")
 
-# Catch cases where the subshell exited early or cancelled
 [ -z "$RESULT" ] && exit 0
 
 CLONE_PATH=$(echo "$RESULT" | awk '{print $1}')
@@ -118,7 +107,6 @@ if [ -n "$CLONE_PATH" ] && [ -d "$CLONE_PATH" ]; then
 
     FINAL_TARGET="$DOTFILES_DIR/$PROFILE_ID"
 
-    # --- Step B.5: Update-specific Logic (Backup & Restore) ---
     if [ -d "$FINAL_TARGET" ] && [ "$TEST_MODE" = false ]; then
         backup_existing_profile "$FINAL_TARGET" "$PROFILE_ID" "$DOTFILES_DIR" || {
             error "Your current setup could not be backed up, so the update was stopped before anything changed."
@@ -136,7 +124,6 @@ if [ -n "$CLONE_PATH" ] && [ -d "$CLONE_PATH" ]; then
     info "Repository prepared. Starting package setup..."
     run_setup_logic "$CLONE_PATH" "$PROFILE_ID"
     
-    # --- Step C: Test Mode Exit ---
     if [ "$TEST_MODE" = true ]; then
         warn "Test Mode active: Skipping file staging and symlink creation."
         info "Setup logic completed successfully."
@@ -144,7 +131,6 @@ if [ -n "$CLONE_PATH" ] && [ -d "$CLONE_PATH" ]; then
         exit 0
     fi
 
-    # Step D: Deploy staged dotfiles
     BLACKLIST_FILE="$PROFILE_CONFIG/blacklist"
 
     if [ -n "$SUBFOLDER" ] && [ "$SUBFOLDER" != "null" ]; then
@@ -154,28 +140,22 @@ if [ -n "$CLONE_PATH" ] && [ -d "$CLONE_PATH" ]; then
     fi
 
     if [ -d "$SRC_DIR" ]; then
-        # Update: drop what the repo no longer ships before staging the new files
         MANIFEST_FILE="$PROFILE_CONFIG/manifest"
         info "Checking for obsolete files..."
-        # The settings kept from the old install (restore) can bring back files the repo dropped
         remove_obsolete_paths "$SRC_DIR" "$CLONE_PATH/setup/obsolete-paths"
         prune_obsolete "$SRC_DIR" "$FINAL_TARGET" "$CLONE_PATH" "$MANIFEST_FILE"
 
         if copy_with_blacklist "$SRC_DIR" "$FINAL_TARGET" "$BLACKLIST_FILE" "$MANIFEST_FILE"; then
             info "Successfully updated $PROFILE_ID dotfiles in sandbox."
             
-            # Step E: Create symlinks
             deploy_symlinks "$FINAL_TARGET" "$DOTFILES_DIR" "$PROFILE_ID" "$BLACKLIST_FILE"
             remove_dangling_links "$FINAL_TARGET"
             write_manifest "$SRC_DIR" "$MANIFEST_FILE"
 
-            # Step F: Set active profile
             set_active_profile "$PROFILE_ID"
 
-            # Step G: Run migration script
             run_migration "$CLONE_PATH" "$PROFILE_ID"
 
-            # Only call it a success when the desktop can actually start
             missing_core=()
             for cmd in Hyprland qs uwsm; do command -v "$cmd" > /dev/null 2>&1 || missing_core+=("$cmd"); done
             command -v kitty > /dev/null 2>&1 || command -v "$(head -n 1 "$HOME/.config/catastrophic/settings/terminal.sh" 2> /dev/null | awk '{print $1}')" > /dev/null 2>&1 || missing_core+=("a terminal")

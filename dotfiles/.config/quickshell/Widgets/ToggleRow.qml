@@ -5,11 +5,6 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// One labelled on/off row. `probe` is a shell command printing 1 when the
-// switch should read on; it runs while `active` and, with `poll`, once a second
-// so the switch follows changes made elsewhere (keybindings). Clicking runs
-// `cmdOn` or `cmdOff` (the same script for both when `cmdOff` is empty).
-// Extra items go before the switch (default slot) or after it (`after`).
 RowLayout {
     id: tr
 
@@ -19,7 +14,6 @@ RowLayout {
     property string cmdOff
     property bool poll: false
     property bool endPad: true
-    // Bound by each use to the sidebar's open state
     property bool active: false
     property alias checked: sw.checked
     default property alias before: beforeBox.data

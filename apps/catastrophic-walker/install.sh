@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-#
-# Install or update walker and elephant with selected providers
-#
-# Usage:
-#   curl -sSL https://raw.githubusercontent.com/catastrophic-os/catastrophic-walker/main/install.sh | bash
-#   curl -sSL .../install.sh | bash -s -- --providers desktopapplications,menus,calc
-#
 
 set -euo pipefail
 
@@ -13,11 +6,10 @@ ELEPHANT_REPO="abenz1267/elephant"
 WALKER_REPO="abenz1267/walker"
 BIN_DIR="$HOME/.local/bin"
 PROVIDER_DIR="$HOME/.config/elephant/providers"
-REPO_URL="${CATASTROPHIC_WALKER_REPO:-https://github.com/catastrophic-os/catastrophic-walker}"
+REPO_TARBALL="${CATASTROPHIC_WALKER_TARBALL:-https://github.com/idkmodmenus/catastrophic-dotfiles/archive/refs/heads/main.tar.gz}"
 INSTALL_DIR="$HOME/.local/share/catastrophic-walker"
 STATE_DIR="$HOME/.local/state/catastrophic-walker"
 MANIFEST="$STATE_DIR/manifest"
-# Sources, toolchains and build caches for builds from source
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/catastrophic-walker"
 
 DEFAULT_PROVIDERS="desktopapplications,menus"
@@ -40,7 +32,6 @@ FROM_SOURCE=0
 FORCE_BINARIES=0
 DISTRO=""
 TMP_DIR=""
-# "binary" downloads release binaries (x86_64), "source" builds them (aarch64)
 MODE=""
 GO_ARCH=""
 
@@ -137,7 +128,6 @@ parse_args() {
     done
 }
 
-# Normalize the comma separated provider list: trim, dedupe, validate
 normalize_providers() {
     local p valid list=()
     IFS=',' read -ra items <<<"$PROVIDERS"
@@ -165,7 +155,6 @@ version_ge() {
 detect_distro() {
     local id="" like="" version=""
     if [ -r /etc/os-release ]; then
-        # shellcheck disable=SC1091
         id="$(. /etc/os-release && echo "${ID:-}")"
         like="$(. /etc/os-release && echo "${ID_LIKE:-}")"
         version="$(. /etc/os-release && echo "${VERSION_ID:-}")"
@@ -193,14 +182,12 @@ preflight() {
         x86_64)
             GO_ARCH="amd64"
             MODE="binary"
-            # Keep building from source if the installation was built from source
             if [ "$FROM_SOURCE" = 1 ] ||
                 { [ "$FORCE_BINARIES" = 0 ] && [ "$(manifest_get mode)" = "source" ]; }; then
                 MODE="source"
             fi
             ;;
         aarch64 | arm64)
-            # walker and elephant publish no ARM release binaries
             [ "$FORCE_BINARIES" = 0 ] || die "There are no release binaries for $arch."
             GO_ARCH="arm64"
             MODE="source"
@@ -212,7 +199,6 @@ preflight() {
         command -v "$cmd" >/dev/null 2>&1 || die "$cmd is required but not installed."
     done
 
-    # The release binaries are built against glibc 2.39, own builds against the system glibc
     if [ "$MODE" = "binary" ]; then
         glibc="$(ldd --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+$' || true)"
         if [ -z "$glibc" ]; then
@@ -231,7 +217,6 @@ preflight() {
     done
 }
 
-# Distribution packages needed by walker itself
 base_packages() {
     case "$DISTRO" in
         arch) echo "gtk4 gtk4-layer-shell poppler-glib" ;;
@@ -241,8 +226,6 @@ base_packages() {
     esac
 }
 
-# Distribution packages needed to build walker and elephant from source.
-# Rust and Go are installed by the script itself, see setup_rust and setup_go.
 build_packages() {
     case "$DISTRO" in
         arch) echo "base-devel gtk4 gtk4-layer-shell poppler-glib" ;;
@@ -252,7 +235,6 @@ build_packages() {
     esac
 }
 
-# Distribution packages needed by a provider
 provider_packages() {
     case "$DISTRO:$1" in
         arch:calc) echo "libqalculate" ;;
@@ -283,7 +265,6 @@ provider_packages() {
     esac
 }
 
-# Hints for providers that need tools this script does not install
 provider_notes() {
     local p
     IFS=',' read -ra list <<<"$PROVIDERS"
@@ -319,7 +300,6 @@ install_dependencies() {
     for p in "${list[@]}"; do
         pkgs="$pkgs $(provider_packages "$p")"
     done
-    # shellcheck disable=SC2086
     pkgs="$(printf '%s\n' $pkgs | sort -u | tr '\n' ' ')"
 
     if [ "$(id -u)" -ne 0 ]; then
@@ -328,7 +308,6 @@ install_dependencies() {
     fi
 
     info "Installing packages: $pkgs"
-    # shellcheck disable=SC2086
     case "$DISTRO" in
         arch) $sudo pacman -S --needed --noconfirm $pkgs ;;
         fedora) $sudo dnf install -y $pkgs ;;
@@ -340,7 +319,6 @@ install_dependencies() {
     esac
 }
 
-# Resolve "latest" to a tag by following the GitHub redirect (no API rate limit)
 resolve_tag() {
     local repo="$1" version="$2" url
     if [ "$version" != "latest" ]; then
@@ -355,27 +333,26 @@ resolve_tag() {
     esac
 }
 
-# Clone or update the catastrophic-walker repository and link the catastrophic-walker command
 install_self() {
-    # Earlier versions kept only the manifest in $INSTALL_DIR
     if [ -f "$INSTALL_DIR/manifest" ] && [ ! -d "$INSTALL_DIR/.git" ]; then
         mkdir -p "$STATE_DIR"
         mv "$INSTALL_DIR/manifest" "$MANIFEST"
         rmdir "$INSTALL_DIR" 2>/dev/null || true
     fi
 
-    if [ -d "$INSTALL_DIR/.git" ] && [ -n "${CATASTROPHIC_WALKER_MANAGED:-}" ]; then
-        # Called by catastrophic-walker, which updates the repository itself in "update"
+    if [ -n "${CATASTROPHIC_WALKER_MANAGED:-}" ] && [ -d "$INSTALL_DIR" ]; then
         :
-    elif [ -d "$INSTALL_DIR/.git" ]; then
-        info "Updating catastrophic-walker in $INSTALL_DIR"
-        git -C "$INSTALL_DIR" pull --ff-only --quiet || die "Could not update $INSTALL_DIR"
-    elif [ -d "$INSTALL_DIR" ]; then
-        die "$INSTALL_DIR exists but is not a git repository. Please remove or rename it and run this script again."
+    elif [ -f "$INSTALL_DIR/bin/catastrophic-walker" ] && [ "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" = "$INSTALL_DIR" ]; then
+        :
     else
-        info "Cloning catastrophic-walker into $INSTALL_DIR"
-        mkdir -p "$(dirname "$INSTALL_DIR")"
-        git clone --quiet "$REPO_URL" "$INSTALL_DIR" || die "Could not clone $REPO_URL"
+        info "Downloading catastrophic-walker into $INSTALL_DIR"
+        local tmp
+        tmp="$(mktemp -d)"
+        curl -fsSL "$REPO_TARBALL" | tar -xz -C "$tmp" --strip-components=3 "catastrophic-dotfiles-main/apps/catastrophic-walker" ||
+            { rm -rf "$tmp"; die "Could not download catastrophic-walker"; }
+        mkdir -p "$INSTALL_DIR"
+        cp -a "$tmp/." "$INSTALL_DIR/"
+        rm -rf "$tmp"
     fi
 
     mkdir -p "$BIN_DIR"
@@ -387,7 +364,6 @@ manifest_get() {
     grep -E "^$1=" "$MANIFEST" | head -n1 | cut -d= -f2- || true
 }
 
-# Download a release tarball and extract the file $3 into the staging dir as $4
 fetch() {
     local repo="$1" tag="$2" asset="$3" member="$4" target="$5"
     local url="https://github.com/$repo/releases/download/$tag/$asset"
@@ -400,7 +376,6 @@ fetch() {
     rm -f "$TMP_DIR/$asset"
 }
 
-# Clone the release tag $2 of $1 into $3
 checkout_source() {
     local repo="$1" tag="$2" dir="$3"
     info "Fetching $repo $tag"
@@ -410,7 +385,6 @@ checkout_source() {
         "https://github.com/$repo" "$dir" || die "Could not clone $repo $tag"
 }
 
-# Install the Go version required by go.mod into the cache and set GO
 setup_go() {
     local gomod="$1" version dir
     version="$(grep -E '^toolchain go[0-9]' "$gomod" | head -n1 | sed 's/^toolchain go//' || true)"
@@ -418,7 +392,6 @@ setup_go() {
         version="$(grep -E '^go [0-9]' "$gomod" | head -n1 | cut -d' ' -f2)"
     fi
     [ -n "$version" ] || die "Could not read the Go version from $gomod"
-    # go.mod may name only "1.x"; the first release of it is "1.x.0"
     case "$version" in
         *.*.*) ;;
         *) version="$version.0" ;;
@@ -435,7 +408,6 @@ setup_go() {
     GO="$dir/bin/go"
 }
 
-# Install Rust with rustup into the cache, so an existing Rust setup is not touched
 setup_rust() {
     export RUSTUP_HOME="$CACHE_DIR/toolchains/rustup"
     export CARGO_HOME="$CACHE_DIR/toolchains/cargo"
@@ -445,16 +417,12 @@ setup_rust() {
             warn "Could not update Rust, using the installed version."
     else
         info "Installing Rust into $CACHE_DIR/toolchains"
-        # The private install does not conflict with a Rust from the distribution
         curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs |
             RUSTUP_INIT_SKIP_PATH_CHECK=yes sh -s -- -y --quiet --no-modify-path --profile minimal --default-toolchain stable >/dev/null ||
             die "Could not install Rust"
     fi
 }
 
-# Build elephant and the given providers into the staging dir.
-# Go plugins only load into the elephant binary they were built with, so
-# elephant is always built together with its providers.
 build_elephant() {
     local tag="$1" p
     shift
@@ -490,7 +458,6 @@ build_walker() {
     strip "$TMP_DIR/walker" 2>/dev/null || true
 }
 
-# True if a process runs $BIN_DIR/<name>, not another installation
 own_running() {
     local pid
     for pid in $(pgrep -x "$1" 2>/dev/null || true); do
@@ -501,7 +468,6 @@ own_running() {
     return 1
 }
 
-# Copy next to the target and rename, so running binaries are not touched
 place() {
     local src="$1" dest="$2" mode="$3"
     install -m "$mode" "$src" "$dest.catastrophic-new"
@@ -528,7 +494,6 @@ main() {
     old_providers="$(manifest_get providers)"
     old_mode="$(manifest_get mode)"
 
-    # Switching between binaries and own builds replaces everything
     if [ -n "$old_mode" ] && [ "$old_mode" != "$MODE" ]; then
         FORCE=1
     fi
@@ -538,7 +503,6 @@ main() {
     if [ "$FORCE" = 1 ] || [ "$walker_tag" != "$old_walker" ] || [ ! -x "$BIN_DIR/walker" ]; then
         update_walker=1
     fi
-    # A newly built provider only loads into an elephant from the same build
     if [ "$MODE" = "source" ]; then
         IFS=',' read -ra providers <<<"$PROVIDERS"
         for p in "${providers[@]}"; do
@@ -548,7 +512,6 @@ main() {
 
     IFS=',' read -ra providers <<<"$PROVIDERS"
     for p in "${providers[@]}"; do
-        # Providers must match the elephant build, so all are replaced when elephant changes
         if [ "$update_elephant" = 1 ] || [ ! -f "$PROVIDER_DIR/$p.so" ]; then
             new_providers+=("$p")
         fi
@@ -572,7 +535,6 @@ main() {
         TMP_DIR="$(mktemp -d)"
         trap cleanup EXIT
 
-        # Download or build everything first, so a failure leaves the old install intact
         if [ "$MODE" = "source" ]; then
             if [ "$update_elephant" = 1 ] || [ "$update_walker" = 1 ]; then
                 info "Building from source. This needs about 3 GB in $CACHE_DIR and can take a long time."
@@ -627,7 +589,6 @@ mode=$MODE
 EOF
         info "walker and elephant installed successfully."
 
-        # catastrophic-walker restarts them itself after update/add/remove
         if [ -z "${CATASTROPHIC_WALKER_MANAGED:-}" ] && { own_running elephant || own_running walker; }; then
             info "elephant or walker is running. Restart both to use the new version:"
             info "  catastrophic-walker restart"

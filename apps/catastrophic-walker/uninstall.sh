@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-#
-# Uninstall walker and elephant installed by catastrophic-walker
-#
 
 set -euo pipefail
 
@@ -12,7 +9,6 @@ STATE_DIR="$HOME/.local/state/catastrophic-walker"
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/catastrophic-walker"
 MANIFEST="$STATE_DIR/manifest"
 
-# Stop processes that run the binary from $BIN_DIR, not other installations
 stop_binary() {
     local name="$1" pid
     for pid in $(pgrep -x "$name" 2>/dev/null || true); do
@@ -28,7 +24,6 @@ stop_binary() {
 main() {
     local providers p
 
-    # Earlier versions kept the manifest in $INSTALL_DIR
     if [ ! -f "$MANIFEST" ] && [ -f "$INSTALL_DIR/manifest" ]; then
         MANIFEST="$INSTALL_DIR/manifest"
     fi
@@ -46,7 +41,6 @@ main() {
     stop_binary walker
     stop_binary elephant
 
-    # Without a manifest the binaries may belong to another installation
     for bin in walker elephant; do
         [ -f "$MANIFEST" ] || continue
         if [ -f "$BIN_DIR/$bin" ]; then

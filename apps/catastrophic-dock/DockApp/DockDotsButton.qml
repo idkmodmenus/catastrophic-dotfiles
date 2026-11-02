@@ -1,9 +1,6 @@
 import QtQuick
 import qs.DockApp
 
-// Three dots in a row that open and close a collapsible dock (dock.collapsible).
-// Collapsed, it is the whole dock; open, it sits at the right end of the row and
-// a click folds the dock back into the dots.
 Item {
     id: button
 
@@ -16,7 +13,6 @@ Item {
     implicitWidth: dots.implicitWidth + 24
     implicitHeight: dots.implicitHeight + 16
 
-    // Accent pill behind the dots on hover, matching the app icons.
     Rectangle {
         anchors.centerIn: parent
         width: dots.implicitWidth + 16

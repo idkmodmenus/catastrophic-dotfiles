@@ -330,7 +330,6 @@ Item {
         };
     }
 
-    // Calculate which rows have windows or current workspace
     property var rowsWithContent: {
         if (!Config.options.overview.hideEmptyRows) return null;
 
@@ -338,13 +337,11 @@ Item {
         const firstWorkspace = root.workspaceGroup * root.workspacesShown + 1 + workspaceOffset;
         const lastWorkspace = (root.workspaceGroup + 1) * root.workspacesShown + workspaceOffset;
 
-        // Add row containing current workspace
         const currentWorkspace = effectiveActiveWorkspaceId;
         if (currentWorkspace >= firstWorkspace && currentWorkspace <= lastWorkspace) {
             rows.add(getWorkspaceRow(currentWorkspace));
         }
 
-        // Add rows with windows
         for (let addr in windowByAddress) {
             const win = windowByAddress[addr];
             const wsId = win?.workspace?.id;
@@ -379,7 +376,7 @@ Item {
     StyledRectangularShadow {
         target: overviewBackground
     }
-    Rectangle { // Background
+    Rectangle {
         id: overviewBackground
         property real padding: Config.options.overview.backgroundPadding
         anchors.fill: parent
@@ -431,7 +428,7 @@ Item {
             border.color: ColorUtils.applyAlpha("#FFFFFF", root.glassBorderOpacity * 0.20)
         }
 
-        ColumnLayout { // Workspaces
+        ColumnLayout {
             id: contentLayout
 
             z: root.workspaceZ
@@ -451,9 +448,9 @@ Item {
                              (root.rowsWithContent && root.rowsWithContent.has(rowIndex))
                     height: visible ? implicitHeight : 0
 
-                    Repeater { // Workspace repeater
+                    Repeater {
                         model: Config.options.overview.columns
-                        Rectangle { // Workspace
+                        Rectangle {
                             id: workspace
                             property int colIndex: index
                             property int workspaceValue: root.getWorkspaceInCell(rowIndex, colIndex)
@@ -832,7 +829,6 @@ Item {
                                                     root.draggingTargetSpecialWorkspace = ""
                                                     if (targetSpecialWorkspace === root.createSpecialWorkspaceTarget) {
                                                         const createdName = root.nextSpecialWorkspaceName()
-                                                        //INFO: From special TO NEW special
                                                         if (Hyprland.usingLua) {
                                                             Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${createdName}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
                                                         } else {
@@ -843,7 +839,6 @@ Item {
                                                         specialWindow.y = specialWindow.initY
                                                     }
                                                     else if (targetSpecialWorkspace && targetSpecialWorkspace !== specialWorkspaceTile.specialName) {
-                                                        // Idk
                                                         if (Hyprland.usingLua) {
                                                             Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${targetSpecialWorkspace}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
                                                         } else {
@@ -854,7 +849,6 @@ Item {
                                                         specialWindow.y = specialWindow.initY
                                                     }
                                                     else if (targetWorkspace !== -1) {
-                                                        //INFO: From Special TO Normal workspace
                                                         if (Hyprland.usingLua) {
                                                             Hyprland.dispatch(`hl.dsp.window.move({workspace = '${targetWorkspace}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
                                                         } else {
@@ -1002,7 +996,7 @@ Item {
             }
         }
 
-        Item { // Windows & focused workspace indicator
+        Item {
             id: windowSpace
             anchors.centerIn: parent
             implicitWidth: contentLayout.implicitWidth
@@ -1020,7 +1014,7 @@ Item {
                 }
             }
 
-            Repeater { // Window repeater
+            Repeater {
                 model: ScriptModel {
                     values: {
                         return ToplevelManager.toplevels.values.filter((toplevel) => {
@@ -1033,24 +1027,19 @@ Item {
                             const inWorkspaceGroup = (minWorkspace <= win?.workspace?.id && win?.workspace?.id <= maxWorkspace)
                             return inWorkspaceGroup;
                         }).sort((a, b) => {
-                            // Proper stacking order based on Hyprland's window properties
                             const addrA = `0x${a.HyprlandToplevel.address}`
                             const addrB = `0x${b.HyprlandToplevel.address}`
                             const winA = windowByAddress[addrA]
                             const winB = windowByAddress[addrB]
 
-                            // 1. Pinned windows are always on top
                             if (winA?.pinned !== winB?.pinned) {
                                 return winA?.pinned ? 1 : -1
                             }
 
-                            // 2. Floating windows above tiled windows
                             if (winA?.floating !== winB?.floating) {
                                 return winA?.floating ? 1 : -1
                             }
 
-                            // 3. Within same category, sort by focus history
-                            // Lower focusHistoryID = more recently focused = higher in stack
                             return (winB?.focusHistoryID ?? 0) - (winA?.focusHistoryID ?? 0)
                         })
                     }
@@ -1121,7 +1110,6 @@ Item {
                             root.draggingTargetSpecialWorkspace = ""
                             if (targetSpecialWorkspace === root.createSpecialWorkspaceTarget) {
                                 const createdName = root.nextSpecialWorkspaceName()
-                                //INFO: From normal TO special
                                 if (Hyprland.usingLua) {
                                     Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${createdName}', follow = false, window = 'address:${window.windowData?.address}'})`);
                                 } else {
@@ -1130,7 +1118,6 @@ Item {
                                 updateWindowPosition.restart()
                             }
                             else if (targetSpecialWorkspace && targetSpecialWorkspace !== root.specialWorkspaceName(windowData)) {
-                                // Idk
                                 if (Hyprland.usingLua) {
                                     Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${targetSpecialWorkspace}', follow = false, window = 'address:${window.windowData?.address}'})`);
                                 } else {
@@ -1139,7 +1126,6 @@ Item {
                                 updateWindowPosition.restart()
                             }
                             else if (targetWorkspace !== -1 && targetWorkspace !== windowData?.workspace.id) {
-                                //INFO: From normal TO normal
                                 if (Hyprland.usingLua) {
                                     Hyprland.dispatch(`hl.dsp.window.move({workspace = '${targetWorkspace}', follow = false, window = 'address:${window.windowData?.address}'})`);
                                 } else {
@@ -1182,7 +1168,7 @@ Item {
                 }
             }
 
-            Rectangle { // Focused workspace indicator
+            Rectangle {
                 id: focusedWorkspaceIndicator
                 property int activeWorkspaceRowIndex: root.getWorkspaceRow(root.effectiveActiveWorkspaceId)
                 property int visibleActiveWorkspaceRowIndex: root.getVisibleRowPosition(activeWorkspaceRowIndex)

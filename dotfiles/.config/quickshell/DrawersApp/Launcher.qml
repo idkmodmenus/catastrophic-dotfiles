@@ -5,7 +5,6 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import qs.CustomTheme
 
-// Application launcher that rises from the bottom edge of the frame
 Scope {
     id: root
 
@@ -19,8 +18,6 @@ Scope {
         function close(): void { win.open = false }
     }
 
-    // Only computed while the launcher is showing: sorting every installed app at
-    // login was wasted work for a menu that is usually closed
     readonly property var results: {
         if (!win.visible) return []
         const q = query.trim().toLowerCase()
@@ -67,7 +64,6 @@ Scope {
         ColumnLayout {
             spacing: 10
 
-            // Results grow upwards from the search field
             ListView {
                 id: list
                 Layout.preferredWidth: 540
@@ -81,7 +77,6 @@ Scope {
                 highlightMoveDuration: 120
                 boundsBehavior: Flickable.StopAtBounds
 
-                // Thin indicator so a long list reads as scrollable
                 ScrollBar.vertical: ScrollBar {
                     policy: list.count > 7 ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
                     contentItem: Rectangle {
@@ -155,7 +150,6 @@ Scope {
                 }
             }
 
-            // Search field
             Rectangle {
                 Layout.preferredWidth: 540
                 implicitHeight: 48

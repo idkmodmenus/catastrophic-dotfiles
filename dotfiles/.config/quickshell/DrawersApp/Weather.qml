@@ -4,16 +4,13 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// Current weather from wttr.in (location from the IP address), shared by the bar
-// and the dashboard so it is fetched once: every 30 minutes, and again after
-// 2 minutes when a fetch fails (for example when there is no network yet at login).
 Singleton {
     id: root
 
     readonly property bool ready: temperature !== ""
-    property string temperature: ""   // "53°F"
-    property string condition: ""     // "Sunny"
-    property string glyph: "󰖐"        // Nerd Font weather icon for the condition
+    property string temperature: ""
+    property string condition: ""
+    property string glyph: "󰖐"
 
     function glyphFor(c: string): string {
         c = c.toLowerCase()

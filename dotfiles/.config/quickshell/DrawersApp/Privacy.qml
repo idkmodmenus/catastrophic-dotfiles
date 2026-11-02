@@ -5,25 +5,17 @@ import Quickshell.Io
 import Quickshell.Services.Pipewire
 import QtQuick
 
-// What is using the microphone, camera or screen right now, for the bar's
-// privacy dots. Mic and screen sharing come from the PipeWire graph the shell
-// already follows, so they cost nothing extra. The camera is checked only when
-// a /dev/video device is opened or closed, never on a timer.
 Singleton {
     id: root
 
-    // Apps recording audio. Streams that capture an output (level meters,
-    // visualizers) are not the microphone and are left out.
     readonly property var micApps: names(Pipewire.nodes.values.filter(n =>
         n.type === PwNodeType.AudioInStream
         && n.properties["stream.capture.sink"] !== "true"
         && !(n.properties["stream.monitor"] === "true")))
 
-    // xdg-desktop-portal-hyprland adds a video source node only while sharing
     readonly property var screenApps: Pipewire.nodes.values.some(n =>
         n.type === PwNodeType.VideoSource && (n.name ?? "").startsWith("xdph")) ? ["Screen sharing"] : []
 
-    // Filled by the camera watcher below
     property var cameraApps: []
 
     readonly property bool mic: micApps.length > 0
@@ -40,9 +32,6 @@ Singleton {
         return seen
     }
 
-    // --- Camera ---
-    // inotifywait sleeps until a camera device is opened or closed; then fuser
-    // lists who holds one open. Without a camera neither process runs.
     property bool hasCamera: false
     Process {
         running: true
@@ -57,7 +46,6 @@ Singleton {
         stdout: SplitParser { onRead: settle.restart() }
     }
 
-    // Opening a camera fires a burst of events; check once it has settled
     Timer {
         id: settle
         interval: 400
@@ -66,12 +54,9 @@ Singleton {
 
     Process {
         id: holders
-        // PIDs holding a camera open, then each one's program name
         command: ["sh", "-c", "for p in $(fuser /dev/video* 2>/dev/null); do cat /proc/$p/comm 2>/dev/null; done | sort -u"]
         stdout: StdioCollector {
             onStreamFinished: {
-                // PipeWire opens the camera for apps that use it through the
-                // portal; name those apps from their video streams instead
                 const progs = text.split("\n").filter(s => s && s !== "inotifywait" && s !== "wireplumber")
                 const viaPw = root.names(Pipewire.nodes.values.filter(n =>
                     n.type === PwNodeType.VideoSink && n.isStream))

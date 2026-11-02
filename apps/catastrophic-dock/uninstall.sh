@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-#
-# Uninstall the Catastrophic Dock
-#
 
 set -euo pipefail
 

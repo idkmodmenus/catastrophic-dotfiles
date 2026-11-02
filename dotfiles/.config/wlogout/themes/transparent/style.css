@@ -1,23 +1,4 @@
-/*
-          _                         _
-__      _| | ___   __ _  ___  _   _| |_
-\ \ /\ / / |/ _ \ / _` |/ _ \| | | | __|
- \ V  V /| | (_) | (_| | (_) | |_| | |_
-  \_/\_/ |_|\___/ \__, |\___/ \__,_|\__|
-                  |___/
-
-by Catastrophic OS (2023)
------------------------------------------------------
-*/
-
-/* -----------------------------------------------------
- * Import Pywal colors
- * ----------------------------------------------------- */
 @import '../../colors.css';
-
-/* -----------------------------------------------------
- * General
- * ----------------------------------------------------- */
 
 * {
     font-family: "Fira Sans Semibold", FontAwesome, Roboto, Helvetica, Arial, sans-serif;
@@ -38,7 +19,7 @@ button {
 	background-position: center;
 	background-size: 20%;
 	animation: gradient_f 20s ease-in infinite;
-	border-radius: 80px; /* Increased border radius for a more rounded look */
+	border-radius: 80px;
 	border:0px;
 	transition: all 0.3s cubic-bezier(.55, 0.0, .28, 1.682), box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out;
 	color: @foreground;
@@ -64,16 +45,9 @@ button:hover {
     box-shadow: 0 0 50px @shadow;
 }
 
-/* Adjust the size of the icon or content inside the button */
 button span {
-    font-size: 1.2em; /* Increase the font size */
+    font-size: 1.2em;
 }
-
-/*
------------------------------------------------------
-Buttons
------------------------------------------------------
-*/
 
 #lock {
 	margin: 10px;

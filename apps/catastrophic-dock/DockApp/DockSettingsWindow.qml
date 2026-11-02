@@ -3,21 +3,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs.DockApp
 
-// The dock's settings dialog, opened from the launcher button's menu or with
-// `qs ipc call dock settings`.
-//
-// A regular toplevel window rather than something drawn inside the dock: it
-// needs keyboard focus, can be moved, and closes like any other window. The
-// dock's focus-grab trouble with popups (see DockMenu) does not apply, as the
-// menu is already closed when this opens.
-//
-// The size is fixed (minimum = maximum), which makes Hyprland float the window
-// without a window rule; catastrophic.lua still has one that centers and pins it.
-//
-// DockLoader creates it while DockSettings.dialogOpen is set, independently of
-// the dock window, so it keeps working when the dock itself is turned off. The
-// controls are bound straight to DockSettings: changes apply live and follow
-// changes made elsewhere.
 FloatingWindow {
     id: root
 
@@ -30,8 +15,6 @@ FloatingWindow {
     minimumSize: Qt.size(480, 300)
     maximumSize: Qt.size(480, 300)
 
-    // Closed by the compositor (SUPER+Q, the window's close action): drop the
-    // flag so DockLoader tears the window down and a later open builds it anew.
     onClosed: DockSettings.dialogOpen = false
 
     Item {
@@ -44,7 +27,6 @@ FloatingWindow {
             anchors.margins: 24
             spacing: 16
 
-            // --- HEADER ---
             RowLayout {
                 Layout.fillWidth: true
 
@@ -57,7 +39,6 @@ FloatingWindow {
 
                 Item { Layout.fillWidth: true }
 
-                // Close button: an accent circle on hover behind a drawn ×.
                 Item {
                     id: closeButton
                     implicitWidth: 30
@@ -97,7 +78,6 @@ FloatingWindow {
                 }
             }
 
-            // --- AUTOHIDE ---
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 16
@@ -129,7 +109,6 @@ FloatingWindow {
                 }
             }
 
-            // --- LAUNCHER ICON ---
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 16

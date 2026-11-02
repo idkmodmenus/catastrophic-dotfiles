@@ -1,7 +1,6 @@
 import QtQuick
 import qs.CustomTheme
 
-// Tonal rounded surface that groups related content
 Rectangle {
     default property alias content: inner.data
     property real padding: 14

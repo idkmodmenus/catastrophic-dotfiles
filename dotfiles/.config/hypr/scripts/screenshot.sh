@@ -1,21 +1,8 @@
 #!/usr/bin/env bash
-#                                 __        __ 
-#   ___ ___________ ___ ___  ___ / /  ___  / /_
-#  (_-</ __/ __/ -_) -_) _ \(_-</ _ \/ _ \/ __/
-# /___/\__/_/  \__/\__/_//_/___/_//_/\___/\__/ 
-#                                              
-# Based on https://github.com/hyprwm/contrib/blob/main/grimblast/screenshot.sh
 
-# -----------------------------------------------------
-
-# Screenshots will be stored in $HOME by default.
-# The screenshot will be moved into the screenshot directory
-
-# Defaults
 SAVE_DIR="$HOME/Pictures"
 SAVE_FILENAME="screenshot_$(date +%d%m%Y_%H%M%S).jpg"
 
-# Load Settings
 if [ -f ~/.config/catastrophic/settings/screenshot-folder ]; then
     SAVE_DIR=$(cat ~/.config/catastrophic/settings/screenshot-folder)
 fi
@@ -26,7 +13,6 @@ fi
 eval screenshot_folder="$SAVE_DIR"
 eval NAME="$SAVE_FILENAME"
 
-# Get image format
 image_format="png"
 extension="${NAME##*.}"
 
@@ -39,15 +25,12 @@ case $extension in
         ;;
 esac
 
-# Notifications
 source "$HOME/.config/catastrophic/scripts/catastrophic-notification-handler"
 APP_NAME="Screen Capture"
 NOTIFICATION_ICON="camera-photo-symbolic"
 
-# Screenshot Editor
 export GRIMBLAST_EDITOR="$(cat ~/.config/catastrophic/settings/screenshot-editor)"
 
-# Quick instant mode: full screen
 take_instant_full() {
     grim -t "$image_format" "$NAME" && notify_user \
         --a "${APP_NAME}" \
@@ -59,25 +42,20 @@ take_instant_full() {
     [[ -f "$HOME/$NAME" && -d "$screenshot_folder" && -w "$screenshot_folder" ]] && mv "$HOME/$NAME" "$screenshot_folder/"
 }
 
-# Quick instant mode: area selection
 take_instant_area() {
     local pid_picker region
 
-    # freeze screen for region selection
     hyprpicker -r -z &
     pid_picker=$!
     trap 'kill "$pid_picker" 2>/dev/null' EXIT
     sleep 0.1
 
-    # user selects region; kill picker on cancel
     region=$(slurp -b "#00000080" -c "#888888ff" -w 1) || exit 0
     [[ -z "$region" ]] && exit 0
 
-    # unfreeze screen
     kill "$pid_picker" 2>/dev/null
     trap - EXIT
 
-    # capture and notify
     grim -g "$region" -t "$image_format" "$NAME" && notify_user \
         --a "${APP_NAME}" \
         --i "${NOTIFICATION_ICON}" \
@@ -87,7 +65,6 @@ take_instant_area() {
     [[ -f "$HOME/$NAME" && -d "$screenshot_folder" && -w "$screenshot_folder" ]] && mv "$HOME/$NAME" "$screenshot_folder/"
 }
 
-# Handle instant flags
 if [[ "$1" == "--instant" ]]; then
     take_instant_full
     exit 0
@@ -96,7 +73,6 @@ elif [[ "$1" == "--instant-area" ]]; then
     exit 0
 fi
 
-# Options
 option_1="Immediate"
 option_2="Delayed"
 
@@ -109,7 +85,6 @@ option_time_2="10s"
 option_time_3="20s"
 option_time_4="30s"
 option_time_5="60s"
-#option_time_4="Custom (in seconds)" # Roadmap or someone contribute :)
 
 list_col='1'
 list_row='2'
@@ -119,29 +94,22 @@ save='Save'
 copy_save='Copy & Save'
 edit='Edit'
 
-# Launcher CMD
 rofi_cmd() {
     $HOME/.config/catastrophic/scripts/catastrophic-launcher dmenu -c ~/.config/rofi/config-screenshot.rasi -l 2 -p "Take screenshot" --rofi-args "-no-show-icons -width 30"
 }
 
-# Pass variables to the launcher
 run_rofi() {
     echo -e "$option_1\n$option_2" | rofi_cmd
 }
 
-####
-# Choose Timer
-# CMD
 timer_cmd() {
     $HOME/.config/catastrophic/scripts/catastrophic-launcher dmenu -c ~/.config/rofi/config-screenshot.rasi -l 5 -p "Choose timer" --rofi-args "-no-show-icons -width 30"
 }
 
-# Ask for confirmation
 timer_exit() {
     echo -e "$option_time_1\n$option_time_2\n$option_time_3\n$option_time_4\n$option_time_5" | timer_cmd
 }
 
-# Confirm and execute
 timer_run() {
     selected_timer="$(timer_exit)"
     if [[ "$selected_timer" == "$option_time_1" ]]; then
@@ -163,21 +131,15 @@ timer_run() {
         exit
     fi
 }
-###
 
-####
-# Chose Screenshot Type
-# CMD
 type_screenshot_cmd() {
     $HOME/.config/catastrophic/scripts/catastrophic-launcher dmenu -c ~/.config/rofi/config-screenshot.rasi -l 3 -p "Type of screenshot" --rofi-args "-no-show-icons -width 30"
 }
 
-# Ask for confirmation
 type_screenshot_exit() {
     echo -e "$option_capture_1\n$option_capture_2\n$option_capture_3" | type_screenshot_cmd
 }
 
-# Confirm and execute
 type_screenshot_run() {
     selected_type_screenshot="$(type_screenshot_exit)"
     if [[ "$selected_type_screenshot" == "$option_capture_1" ]]; then
@@ -193,22 +155,15 @@ type_screenshot_run() {
         exit
     fi
 }
-###
 
-####
-# Choose to save or copy photo
-# CMD
 copy_save_editor_cmd() {
     $HOME/.config/catastrophic/scripts/catastrophic-launcher dmenu -c ~/.config/rofi/config-screenshot.rasi -l 4 -p "How to save" --rofi-args "-no-show-icons -width 30"
 }
 
-# Ask for confirmation
 copy_save_editor_exit() {
     echo -e "$copy\n$save\n$copy_save\n$edit" | copy_save_editor_cmd
 }
 
-# Confirm and execute
-# Note: `grimblast` only supports png outpuut when copy is specified
 copy_save_editor_run() {
     selected_chosen="$(copy_save_editor_exit)"
     if [[ "$selected_chosen" == "$copy" ]]; then
@@ -229,7 +184,6 @@ copy_save_editor_run() {
         exit
     fi
 }
-###
 
 timer() {
     if [[ $countdown -gt 10 ]]; then
@@ -255,7 +209,6 @@ timer() {
     done
 }
 
-# take shots
 takescreenshot() {
     sleep 1
     grimblast --notify "$option_chosen" --filetype "$image_format" "$option_type_screenshot" $NAME
@@ -278,7 +231,6 @@ takescreenshot_timer() {
     fi
 }
 
-# Execute Command
 run_cmd() {
     if [[ "$1" == '--opt1' ]]; then
         type_screenshot_run
@@ -290,7 +242,6 @@ run_cmd() {
     fi
 }
 
-# Actions
 chosen="$(run_rofi)"
 case ${chosen} in
     $option_1)

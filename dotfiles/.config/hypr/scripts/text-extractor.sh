@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Script by https://github.com/anshifmonz
 
 set -Eeuo pipefail
 
@@ -12,7 +11,6 @@ safe_kill() { [[ -n "${1:-}" ]] && kill "$1" 2>/dev/null || true; }
 cleanup() { safe_kill "$PICKER_PID"; }
 trap cleanup EXIT INT TERM
 
-# Check dependencies
 check_deps() {
   local missing_dependencies=()
   for dep in "${DEPS[@]}"; do command -v "$dep" >/dev/null 2>&1 || missing_dependencies+=("$dep"); done
@@ -21,7 +19,6 @@ check_deps() {
   fi
 }
 
-# Check if command exists
 _checkCommandExists() {
     cmd="$1"
     if ! command -v "$cmd" >/dev/null; then
@@ -34,13 +31,10 @@ _checkCommandExists() {
 
 check_deps
 
-# Arch
 if [[ $(_checkCommandExists "pacman") == 0 ]]; then
     OCR_LANGUAGE_LIST="$(pacman -Qq | grep -iE "tesseract-(ocr|data|langpack)*-" | awk -F '-' '{print $NF}')"
-# Fedora
 elif [[ $(_checkCommandExists "dnf") == 0 ]]; then
     OCR_LANGUAGE_LIST="$(dnf list --installed | grep -iE "tesseract-(ocr|data|langpack)*-" | awk -F '-' '{print $NF}')"
-# Opensuse
 else
     OCR_LANGUAGE_LIST="$(zypper se -i | grep -iE "tesseract-(ocr|data|langpack)*-" | awk -F '-' '{print $NF}')"
 fi

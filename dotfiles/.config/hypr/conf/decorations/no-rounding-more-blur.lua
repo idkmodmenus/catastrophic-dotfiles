@@ -1,8 +1,3 @@
--- -----------------------------------------------------
--- General window decoration
--- name: "No Rounding More Blur"
--- -----------------------------------------------------
-
 hl.config({
     decoration = {
         rounding = 0,

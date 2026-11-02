@@ -3,7 +3,7 @@
 An install script for the application launcher [Walker](https://github.com/abenz1267/walker)
 and its backend [Elephant](https://github.com/abenz1267/elephant), including the
 Elephant providers you choose. Part of
-[Catastrophic OS](https://github.com/catastrophic-os/dotfiles), but it also works on its own.
+[Catastrophic OS](https://github.com/idkmodmenus/catastrophic-dotfiles), but it also works on its own.
 
 Supported distributions:
 
@@ -18,14 +18,14 @@ aarch64 differs.
 ## Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/catastrophic-os/catastrophic-walker/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/apps/catastrophic-walker/install.sh | bash
 ```
 
 This installs Walker, Elephant and the providers `desktopapplications` and
 `menus`. To choose other providers, pass them as a comma-separated list:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/catastrophic-os/catastrophic-walker/main/install.sh | bash -s -- --providers desktopapplications,menus,calc,clipboard
+curl -sSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/apps/catastrophic-walker/install.sh | bash -s -- --providers desktopapplications,menus,calc,clipboard
 ```
 
 The script:

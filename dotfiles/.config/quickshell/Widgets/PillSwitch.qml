@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// On/off pill switch
 Rectangle {
     id: tog
     property bool checked

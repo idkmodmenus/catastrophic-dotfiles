@@ -5,8 +5,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Password prompt for a secured Wi-Fi network, rising from the bottom edge.
-// Replaces the nm-applet password dialog.
 Scope {
     id: root
 
@@ -15,7 +13,6 @@ Scope {
     property string error: ""
     property bool busy: false
 
-    // Passwords shorter than 8 characters are rejected by WPA; WEP keys differ
     readonly property bool wep: network && (network.security === WifiSecurityType.StaticWep
         || network.security === WifiSecurityType.DynamicWep)
     readonly property bool valid: wep ? input.text.length >= 5 : input.text.length >= 8
@@ -34,7 +31,6 @@ Scope {
         timeout.stop()
     }
 
-    // NetworkManager reports failure through a signal and success through state
     Connections {
         target: root.network
         ignoreUnknownSignals: true
@@ -52,7 +48,6 @@ Scope {
         }
     }
 
-    // A silent failure must not leave the field stuck on "Connecting"
     Timer {
         id: timeout
         interval: 25000
@@ -159,7 +154,6 @@ Scope {
                         Keys.onEscapePressed: root.close()
                     }
 
-                    // Show or hide the typed password
                     Text {
                         id: reveal
                         property bool checked: false

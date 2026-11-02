@@ -1,21 +1,12 @@
 #!/usr/bin/env bash
 
-# This script provides a central control for managing various background listener scripts.
-# It allows starting, stopping, and restarting individual listeners or all registered listeners.
-
-# Define an associative array to store listener names and their full paths.
-# Add more listeners here as needed, following the format:
-# LISTENERS["short-name"]="full/path/to/script.sh"
 declare -A LISTENERS
 LISTENERS["gtk-theme-switcher"]="$HOME/.config/catastrophic/listeners/gtk-theme-switcher.sh"
 LISTENERS["low-bat-notification"]="$HOME/.config/catastrophic/listeners/low-bat-notification.sh"
-# Example for another listener:
-# LISTENERS["another-listener"]="$HOME/.config/catastrophic/listeners/another-listener.sh"
 
-# Function to start a specific listener script
 start_listener() {
     local script_name="$1"
-    local init_flag="$2" # New argument for initialization flag
+    local init_flag="$2"
     local script_path="${LISTENERS[$script_name]}"
 
     if [ -z "$script_path" ]; then
@@ -25,7 +16,6 @@ start_listener() {
 
     echo "Attempting to start '$script_name'..."
 
-    # Check if the script file exists and is executable
     if [ ! -f "$script_path" ]; then
         echo "Error: Script file '$script_path' not found for '$script_name'."
         return 1
@@ -35,19 +25,15 @@ start_listener() {
         return 1
     fi
 
-    # Check if the script is already running
     if pgrep -f "$script_path" >/dev/null; then
         echo "Listener '$script_name' is already running (PID: $(pgrep -f "$script_path"))."
         return 0
     fi
 
-    # Start the script in the background using nohup to detach it from the terminal
-    # Redirect stdout and stderr to /dev/null to prevent nohup.out files
     nohup "$script_path" "$init_flag" >/dev/null 2>&1 &
     echo "Listener '$script_name' started successfully."
 }
 
-# Function to stop a specific listener script
 stop_listener() {
     local script_name="$1"
     local script_path="${LISTENERS[$script_name]}"
@@ -59,7 +45,6 @@ stop_listener() {
 
     echo "Attempting to stop '$script_name'..."
 
-    # Find the PID of the running script
     local pid=$(pgrep -f "$script_path")
 
     if [ -z "$pid" ]; then
@@ -68,7 +53,6 @@ stop_listener() {
     else
         echo "Found PID(s) for '$script_name': $pid. Sending SIGTERM..."
         kill $pid
-        # Give it a moment to terminate gracefully
         sleep 1
         if pgrep -f "$script_path" >/dev/null; then
             echo "Listener '$script_name' did not stop gracefully. Sending SIGKILL..."
@@ -80,7 +64,6 @@ stop_listener() {
     fi
 }
 
-# Function to restart a specific listener script
 restart_listener() {
     local script_name="$1"
     echo "Attempting to restart '$script_name'..."
@@ -88,7 +71,6 @@ restart_listener() {
     start_listener "$script_name"
 }
 
-# Main script logic based on command-line arguments
 case "$1" in
 --startall)
     echo "Starting all registered listeners..."

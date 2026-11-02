@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Sourced by catastrophic-dotfiles-installer after the packages are installed.
-# Variables from the installer: repo_path, profile_id, LOG_FILE, AUR_HELPER
-# Every system-level change below asks first. --yes does not skip these.
 
 ensure_sudo || return 1
 APPS_SRC="$repo_path/apps"
@@ -11,9 +8,6 @@ BIN_DIR="$HOME/.local/bin"
 mkdir -p "$SHARE_DIR" "$BIN_DIR"
 POST_NOTES=()
 
-# --- Default apps: use what the system already has, install one only if missing ---
-# pick_default_app CATEGORY "candidates, the first one found wins" FALLBACK_PACKAGE COMMAND
-# This runs once, on the first install. Updates keep whatever the user has chosen since.
 DEFAULT_APPS_FILE="$HOME/.cache/catastrophic-default-apps"
 DEFAULT_APPS_STAMP="$HOME/.cache/catastrophic-applied/default-apps"
 mkdir -p "$(dirname "$DEFAULT_APPS_FILE")" "$(dirname "$DEFAULT_APPS_STAMP")"
@@ -47,11 +41,6 @@ else
     echo "done" > "$DEFAULT_APPS_STAMP"
 fi
 
-# --- Dock and status bar look ---
-# The apps write their own config on first run, so a missing file is not the only case.
-# Merge the shipped look over the existing config (other keys, like pinned apps, stay),
-# and only when the shipped file changed since it was last applied, so a setting the
-# user changes afterwards is not reset on every update.
 for app in catastrophic-dock catastrophic-statusbar; do
     cfg="$HOME/.config/$app/config.json"
     shipped="$repo_path/setup/defaults/$app/config.json"
@@ -61,7 +50,7 @@ for app in catastrophic-dock catastrophic-statusbar; do
     [ "$(cat "$stamp" 2> /dev/null)" = "$sum" ] && continue
     mkdir -p "$(dirname "$cfg")" "$(dirname "$stamp")"
     if [ -s "$cfg" ] && jq empty "$cfg" &> /dev/null; then
-        cp -a "$cfg" "$cfg.bak" 2> /dev/null     # keep the previous version in case the merge is not wanted
+        cp -a "$cfg" "$cfg.bak" 2> /dev/null
         tmp="$(mktemp)"
         if jq -s '.[0] * .[1]' "$cfg" "$shipped" > "$tmp"; then mv "$tmp" "$cfg"; else rm -f "$tmp"; continue; fi
     else
@@ -71,7 +60,6 @@ for app in catastrophic-dock catastrophic-statusbar; do
     info "  ✓ $app: look updated"
 done
 
-# --- Packages the desktop no longer uses (asks first) ---
 if [ -f "$repo_path/setup/obsolete-packages" ]; then
     obsolete_installed=()
     while IFS= read -r pkg; do
@@ -83,7 +71,6 @@ if [ -f "$repo_path/setup/obsolete-packages" ]; then
     fi
 fi
 
-# --- 1. AUR packages ---
 step 1 7 "AUR packages"
 if [ -n "$AUR_HELPER" ] && [ -f "$repo_path/setup/dependencies/packages-aur" ]; then
     mapfile -t aur_pkgs < <(sed 's/#.*//' "$repo_path/setup/dependencies/packages-aur" | xargs -n1)
@@ -111,18 +98,14 @@ if [ -n "$AUR_HELPER" ] && [ -f "$repo_path/setup/dependencies/packages-aur" ]; 
     info "  ✓ $aur_total AUR packages: $aur_added installed, $aur_present already present, $aur_failed failed"
 fi
 
-# --- 2. pywalfox (Firefox colour theme bridge) ---
 step 2 7 "Firefox theme bridge"
 if command -v pipx &> /dev/null && ! command -v pywalfox &> /dev/null; then
     run_logged --title "Installing pywalfox..." pipx install pywalfox \
         || POST_NOTES+=("pywalfox was not installed (pipx install pywalfox)")
 fi
 
-# --- 3. Companion apps: dock, power menu, quickshell overview, walker + elephant ---
 step 3 7 "Desktop apps (dock, power menu, launcher)"
 
-# install_app NAME: copy the app unless the installed copy is already identical.
-# Sets APP_CHANGED=1 when files were copied.
 install_app() {
     local name=$1 dest="$SHARE_DIR/$1"
     APP_CHANGED=0
@@ -131,9 +114,6 @@ install_app() {
         return 0
     fi
     mkdir -p "$dest"
-    # Mirror the repo so files it dropped disappear. walker keeps downloaded files in its folder.
-    # Anything removed or replaced is kept in ~/.mydotfiles/backups/apps/<app>/<time>, so
-    # a file you added to an app folder is never lost.
     local del=(--delete --exclude=.git); [ "$name" = catastrophic-walker ] && del=()
     local keep="$HOME/.mydotfiles/backups/apps/$name/$(date +%Y%m%d_%H%M%S)"
     rsync -a --backup --backup-dir="$keep" "${del[@]}" "$APPS_SRC/$name/" "$dest/" || return 1
@@ -153,7 +133,6 @@ done
 
 if install_app quickshell-overview; then report_app quickshell-overview; fi
 
-# Settings app: the shared files plus its launcher script
 if install_app catastrophic-dotfiles-settings; then
     if ! cmp -s "$APPS_SRC/catastrophic-dotfiles-settings-launcher" "$BIN_DIR/catastrophic-dotfiles-settings"; then
         install -m755 "$APPS_SRC/catastrophic-dotfiles-settings-launcher" "$BIN_DIR/catastrophic-dotfiles-settings"
@@ -162,10 +141,8 @@ if install_app catastrophic-dotfiles-settings; then
     report_app catastrophic-dotfiles-settings
 fi
 
-# walker downloads the upstream walker and elephant binaries; it has its own installer
 if install_app catastrophic-walker; then
     walker_changed=$APP_CHANGED
-    # walker's installer only accepts an install folder that is a git repository
     [ -d "$SHARE_DIR/catastrophic-walker/.git" ] || git -C "$SHARE_DIR/catastrophic-walker" init -q
     if [ "$walker_changed" -eq 0 ] && { command -v walker && command -v elephant; } &> /dev/null; then
         info "  - walker and elephant are already installed. Skipping."
@@ -174,14 +151,12 @@ if install_app catastrophic-walker; then
         info "  ✓ walker and elephant installed."
     else
         error "  ✗ walker/elephant install failed. See $LOG_FILE"
-        POST_NOTES+=("walker/elephant failed: run bash ~/.local/share/catastrophic-walker/install.sh --no-deps")
+        POST_NOTES+=("walker/elephant failed: run CATASTROPHIC_WALKER_MANAGED=1 bash ~/.local/share/catastrophic-walker/install.sh --no-deps")
     fi
 fi
 
-# --- 4. User directories ---
 xdg-user-dirs-update 2> /dev/null || true
 
-# --- 5. System services ---
 step 4 7 "System services"
 svc_todo=()
 for svc in NetworkManager bluetooth power-profiles-daemon; do
@@ -192,8 +167,6 @@ for svc in NetworkManager bluetooth power-profiles-daemon; do
         svc_todo+=("$svc")
     fi
 done
-# Plain Arch often runs systemd-networkd and iwd. Two network managers fight over
-# the connection, so they are switched off when NetworkManager takes over.
 net_old=()
 if [[ " ${svc_todo[*]} " == *" NetworkManager "* ]]; then
     for svc in systemd-networkd iwd; do
@@ -214,7 +187,6 @@ if [ ${#svc_todo[@]} -gt 0 ] && gum confirm "$svc_question"; then
     [ ${#net_old[@]} -gt 0 ] && POST_NOTES+=("Wi-Fi: after rebooting, connect again from the Wi-Fi icon in the bar (NetworkManager does not know your old networks)")
 fi
 
-# --- 6. NVIDIA driver ---
 step 5 7 "Graphics driver"
 if lspci 2> /dev/null | grep -iE 'vga|3d' | grep -qi nvidia; then
     if pacman -Qq nvidia-utils &> /dev/null; then
@@ -228,7 +200,6 @@ if lspci 2> /dev/null | grep -iE 'vga|3d' | grep -qi nvidia; then
                     || POST_NOTES+=("GPU driver install failed: run sudo chwd -a")
             fi
         else
-            # DKMS needs the headers of the kernel that is running (linux, linux-lts, linux-zen, ...)
             kbase="$(cat "/usr/lib/modules/$(uname -r)/pkgbase" 2> /dev/null || echo linux)"
             if gum confirm "Install nvidia-open-dkms, ${kbase}-headers, nvidia-utils and egl-wayland (sudo)?"; then
                 run_logged --title "Installing NVIDIA driver..." \
@@ -243,28 +214,23 @@ else
     info "  - No NVIDIA GPU detected. Skipping."
 fi
 
-# --- 7. Login manager (SDDM) ---
 step 6 7 "Login manager"
 if systemctl is-enabled --quiet sddm 2> /dev/null; then
     info "  - SDDM is already your login manager. Skipping."
 elif gum confirm "Use SDDM as your login manager (disables the current one, sudo)?"; then
-    # --force replaces whichever display manager is currently enabled
     sudo systemctl enable --force sddm.service &>> "$LOG_FILE" && info "  ✓ SDDM enabled." \
         || POST_NOTES+=("Could not enable SDDM")
 fi
-# Without any login screen (common on plain Arch) say how to start the desktop
 if ! systemctl is-enabled --quiet display-manager.service 2> /dev/null; then
     POST_NOTES+=("No login screen is enabled. After rebooting, log in on the console and run: uwsm start hyprland.desktop")
 fi
 
-# --- 8. Branding: system icon and boot splash ---
 step 7 7 "Branding"
 if [ -d "$BRAND_SRC" ]; then
     icon_todo=0
     cmp -s "$BRAND_SRC/mark.svg" /usr/share/icons/hicolor/scalable/apps/catastrophic.svg 2> /dev/null || icon_todo=1
     cmp -s "$BRAND_SRC/mark.png" /usr/share/pixmaps/catastrophic.png 2> /dev/null || icon_todo=1
 
-    # The boot splash needs the plymouth hook in mkinitcpio; skip it otherwise
     splash_possible=0; splash_todo=0
     if grep -rqs 'plymouth' /etc/mkinitcpio.conf /etc/mkinitcpio.conf.d 2> /dev/null; then
         splash_possible=1
@@ -295,7 +261,6 @@ if [ -d "$BRAND_SRC" ]; then
     fi
 fi
 
-# --- Remember which version is installed (used by the update notification) ---
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/catastrophic"
 mkdir -p "$state_dir"
 if installed_sha="$(git -C "$repo_path" rev-parse HEAD 2> /dev/null)" && [ -n "$installed_sha" ]; then
@@ -304,7 +269,6 @@ if installed_sha="$(git -C "$repo_path" rev-parse HEAD 2> /dev/null)" && [ -n "$
     echo ok > "$state_dir/update-status"
 fi
 
-# --- Summary ---
 if [ ${#POST_NOTES[@]} -gt 0 ]; then
     echo
     warn "Things that need your attention:"

@@ -3,20 +3,9 @@ pragma Singleton
 import Quickshell
 import Quickshell.Io
 
-// The power menu's settings file and its parsed contents.
 Singleton {
     id: root
 
-    // One settings file, the usual place for a Linux app's own config:
-    //
-    //   ~/.config/catastrophic-powermenu/config.json
-    //
-    // It is created (empty) on first start if it does not exist yet, and is
-    // merged over the built-in defaults, so a partial or entirely empty file
-    // still leaves every value defined — the user only writes down what they
-    // want to change. The file is watched, so edits apply as soon as it is
-    // saved. PowerApp/config.json documents these defaults and must be kept in
-    // sync with them.
     readonly property var defaultSettings: ({
         "powermenu": { "order": ["lock", "suspend", "logout", "reboot", "poweroff"],
                        "marginRight": 0,
@@ -34,8 +23,6 @@ Singleton {
         "theme":     { "colorsFile": "~/.config/catastrophic-powermenu/colors.json" }
     })
 
-    // The buttons the menu knows, with the icon each one shows. The order in
-    // which they appear, and which of them appear at all, is powermenu.order.
     readonly property var buttonIcons: ({
         "lock": "icons/lock.svg",
         "suspend": "icons/suspend.svg",
@@ -46,8 +33,6 @@ Singleton {
 
     property var settings: defaultSettings
 
-    // powermenu.order with unknown ids dropped, so the window can build its
-    // buttons and keyboard navigation from it without further checks.
     readonly property var buttons: {
         let order = settings.powermenu.order
         if (!Array.isArray(order))
@@ -61,12 +46,8 @@ Singleton {
         })
     }
 
-    // The settings file has reported back (loaded, or missing and created), so
-    // `settings` holds the values from disk rather than the built-in defaults.
     property bool ready: false
 
-    // Guards the create pass below so a file that cannot be written (read-only
-    // home, no permissions) does not retry on every reload.
     property bool seeded: false
 
     FileView {
@@ -78,9 +59,6 @@ Singleton {
         onFileChanged: settingsFile.reload()
         onLoaded: { root.applySettings(); root.ready = true }
         onLoadFailed: {
-            // First miss: create the file, then come back through reload().
-            // Qt.callLater because this can fire while the component is still
-            // being built, before seedProc exists.
             if (!root.seeded) {
                 root.seeded = true
                 Qt.callLater(function() { seedProc.running = true })
@@ -91,8 +69,6 @@ Singleton {
         }
     }
 
-    // Creates ~/.config/catastrophic-powermenu/config.json when it is missing —
-    // FileView only writes files, it does not create the directory holding them.
     Process {
         id: seedProc
         command: ["bash", "-c",
@@ -109,9 +85,6 @@ Singleton {
         applySettings()
     }
 
-    // Parse a settings document that may carry a /* ... */ comment block and —
-    // being hand-edited — trailing commas, which strict JSON.parse rejects.
-    // Returns undefined when the text is empty or unparseable. Never throws.
     function parseSettings(src) {
         if (!src)
             return undefined
@@ -131,9 +104,6 @@ Singleton {
         }
     }
 
-    // Merge one settings document (as text) over an already-built settings
-    // object, key by key. Empty or unparseable text is ignored so a
-    // missing/partial file never clears previously merged values.
     function mergeSettings(merged, src): void {
         let parsed = parseSettings(src)
         if (parsed === undefined)
@@ -144,17 +114,12 @@ Singleton {
                     merged[group][key] = parsed[group][key]
     }
 
-    // Rebuild the settings object: built-in defaults with the settings file
-    // merged on top, so a file that only carries the keys the user changed
-    // keeps the defaults for everything else.
     function applySettings(): void {
         let merged = JSON.parse(JSON.stringify(root.defaultSettings))
         mergeSettings(merged, settingsFile.text())
         root.settings = merged
     }
 
-    // Run the command configured for a button (commands.<id>) through bash, so
-    // a leading ~, arguments and pipes all work.
     function runCommand(id): void {
         let cmd = root.settings.commands[id]
         if (typeof cmd !== "string" || cmd.trim() === "") {
@@ -164,12 +129,6 @@ Singleton {
         Quickshell.execDetached(["bash", "-c", cmd])
     }
 
-    // Open the settings file in powermenu.editorCommand, which gets the file
-    // path as its last argument. An empty command, or one whose program is not
-    // found (e.g. the Catastrophic editor script when the menu runs on its own), falls
-    // back to xdg-open — the default application for JSON files. The command
-    // is passed as an argument rather than spliced into the script, so quotes
-    // in it cannot break the fallback logic.
     function editConfig(): void {
         Quickshell.execDetached(["bash", "-c",
             'f="$HOME/.config/catastrophic-powermenu/config.json"; c="${1/#\\~/$HOME}";'

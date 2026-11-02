@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-#
-# Start, stop and update walker and elephant, and manage elephant providers
-#
 
 set -euo pipefail
 
-# The repository lives one level above this script. Resolve the symlink in
-# ~/.local/bin so the script also works from any other clone.
 INSTALL_DIR="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
 BIN_DIR="$HOME/.local/bin"
 PROVIDER_DIR="$HOME/.config/elephant/providers"
@@ -53,8 +48,6 @@ require_installed() {
         die "walker and elephant are not installed. Run $INSTALL_DIR/install.sh first."
 }
 
-# PIDs of processes running $BIN_DIR/<name>, not other installations.
-# After an update the old binary of a running process shows as "(deleted)".
 own_pids() {
     local name="$1" pid
     for pid in $(pgrep -x "$name" 2>/dev/null || true); do
@@ -76,7 +69,6 @@ start() {
     else
         info "Starting elephant"
         setsid -f "$BIN_DIR/elephant" >"$STATE_DIR/elephant.log" 2>&1 </dev/null
-        # walker needs the elephant socket, so wait up to 5 seconds for it
         for _ in $(seq 50); do
             [ -S "$SOCKET" ] && [ -n "$(elephant_pids)" ] && break
             sleep 0.1
@@ -103,7 +95,6 @@ stop() {
         return
     fi
     info "Stopping walker and elephant"
-    # shellcheck disable=SC2086
     kill $pids 2>/dev/null || true
     for _ in $(seq 30); do
         [ -z "$(walker_pids)$(elephant_pids)" ] && return
@@ -138,7 +129,6 @@ providers() {
     done
 }
 
-# Run install.sh from the repository and restart walker and elephant if they were running
 run_install() {
     local was_running=0
     is_running && was_running=1
@@ -149,7 +139,6 @@ run_install() {
     fi
 }
 
-# Split arguments into provider names (NAMES) and install.sh options (OPTIONS)
 split_args() {
     NAMES=()
     OPTIONS=()
@@ -162,7 +151,6 @@ split_args() {
     done
 }
 
-# Install the given provider list, keeping the installed walker and elephant versions
 change_providers() {
     local list="$1"
     shift
@@ -202,7 +190,6 @@ remove() {
     done
     [ "$new" != "$list" ] || die "None of these providers is installed: ${NAMES[*]}"
     [ -n "$new" ] || die "At least one provider must stay installed"
-    # Removing providers needs no new packages
     change_providers "$new" --no-deps
 }
 
@@ -212,7 +199,6 @@ update() {
         info "Updating catastrophic-walker in $INSTALL_DIR"
         git -C "$INSTALL_DIR" pull --ff-only --quiet || die "Could not update $INSTALL_DIR"
     fi
-    # Run the updated install.sh from a new process
     run_install --providers "$(manifest_get providers)" "$@"
 }
 

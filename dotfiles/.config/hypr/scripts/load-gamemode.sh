@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-#                                      __   
-#   ___ ____ ___ _  ___ __ _  ___  ___/ /__ 
-#  / _ `/ _ `/  ' \/ -_)  ' \/ _ \/ _  / -_)
-#  \_, /\_,_/_/_/_/\__/_/_/_/\___/\_,_/\__/ 
-# /___/                                     
-# 
 
-# Notifications
 source "$HOME/.config/catastrophic/scripts/catastrophic-notification-handler"
 
 _loadGameMode() {

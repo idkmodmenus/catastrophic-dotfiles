@@ -1,21 +1,9 @@
--- -----------------------------------------------------
--- Animations
--- name "End-4"
--- credit https://github.com/end-4/dots-hyprland
--- -----------------------------------------------------
-
---------------------------------------------------------------------------------
--- Animation Master Switch
---------------------------------------------------------------------------------
 hl.config({
     animations = {
         enabled = true,
     }
 })
 
---------------------------------------------------------------------------------
--- Animation Curves (Bezier)
---------------------------------------------------------------------------------
 hl.curve("linear", { type = "bezier", points = { {0, 0}, {1, 1} } })
 hl.curve("md3_standard", { type = "bezier", points = { {0.2, 0}, {0, 1} } })
 hl.curve("md3_decel", { type = "bezier", points = { {0.05, 0.7}, {0.1, 1} } })
@@ -31,9 +19,6 @@ hl.curve("easeOutExpo", { type = "bezier", points = { {0.16, 1}, {0.3, 1} } })
 hl.curve("softAcDecel", { type = "bezier", points = { {0.26, 0.26}, {0.15, 1} } })
 hl.curve("md2", { type = "bezier", points = { {0.4, 0}, {0.2, 1} } })
 
---------------------------------------------------------------------------------
--- Animation Rules
---------------------------------------------------------------------------------
 hl.animation({ leaf = "windows", enabled = true, speed = 3, bezier = "md3_decel", style = "popin 60%" })
 hl.animation({ leaf = "windowsIn", enabled = true, speed = 3, bezier = "md3_decel", style = "popin 60%" })
 hl.animation({ leaf = "windowsOut", enabled = true, speed = 3, bezier = "md3_accel", style = "popin 60%" })

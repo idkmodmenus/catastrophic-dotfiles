@@ -1,14 +1,14 @@
 # Catastrophic Dock
 
 A dock for Hyprland built with [Quickshell](https://quickshell.org). Part of 
-[Catastrophic OS](https://github.com/catastrophic-os/dotfiles), but it also runs on its own.
+[Catastrophic OS](https://github.com/idkmodmenus/catastrophic-dotfiles), but it also runs on its own.
 
 ![Catastrophic Dock](screenshots/dock.png)
 
 ## Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/catastrophic-os/catastrophic-dock/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/apps/catastrophic-dock/install.sh | bash
 ```
 
 The script clones catastrophic-dock into `$HOME/.local/share/catastrophic-dock`, or pulls the
@@ -92,12 +92,12 @@ output_path = "~/.config/catastrophic-dock/colors.json"
 `templates/colors.json` maps each Material color role to its matugen value, e.g.
 `"primary": "{{colors.primary.default.hex}}"`. The dock watches the file, so no
 `post_hook` is needed. Catastrophic OS ships a complete
-[config and template](https://github.com/catastrophic-os/dotfiles/tree/main/dotfiles/.config/matugen).
+[config and template](https://github.com/idkmodmenus/catastrophic-dotfiles/tree/main/dotfiles/.config/matugen).
 
 ## Uninstall
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/catastrophic-os/catastrophic-dock/main/uninstall.sh | bash
+curl -sSL https://raw.githubusercontent.com/idkmodmenus/catastrophic-dotfiles/main/apps/catastrophic-dock/uninstall.sh | bash
 ```
 
 Stops the dock and removes `$HOME/.local/share/catastrophic-dock` and the

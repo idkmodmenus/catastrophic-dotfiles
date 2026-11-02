@@ -1,7 +1,4 @@
 #version 440
-// Directional motion blur centred on the item. `dir` is the full smear length
-// in texture coordinates. Samples near the centre weigh more (tent falloff),
-// so the item stays readable and the smear fades out smoothly at both ends.
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 layout(std140, binding = 0) uniform buf {

@@ -4,8 +4,6 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// Screen recording state for the bar. The work is done by catastrophic-record;
-// this only watches its state file, so it costs nothing while idle.
 Singleton {
     id: root
 
@@ -13,7 +11,6 @@ Singleton {
     readonly property string statePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/catastrophic-record"
 
     property bool active: false
-    // Seconds since the recording began
     property int elapsed: 0
     property real began: 0
 

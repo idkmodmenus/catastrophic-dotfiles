@@ -1,8 +1,3 @@
--------------------------------------------------------
--- Monitor Setup
--- name: "Workspace Split"
--------------------------------------------------------
-
 local function map_workspaces(start_id, end_id, monitor_name)
     for i = start_id, end_id do
         hl.workspace_rule({

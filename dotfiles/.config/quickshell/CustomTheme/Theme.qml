@@ -6,17 +6,11 @@ import Quickshell.Io
 QtObject { 
     id: root
     
-    // Static properties
     readonly property string fontFamily: "Fira Sans Semibold"
-    // Body and secondary text, so titles in the semibold family stand out
     readonly property string fontFamilyRegular: "Fira Sans"
     
-    // True while the loaded palette is a light one. Derived from the palette
-    // itself rather than read from the GTK preference, so it updates atomically
-    // with reloadTheme() and stays correct for any hand-written colors.json.
     readonly property bool isLight: background.hslLightness > 0.5
 
-    // Dynamic color properties
     property color background: "#0e1514"
     property color error: "#ffb4ab"
     property color error_container: "#93000a"
@@ -72,10 +66,8 @@ QtObject {
         id: reader
         command: ["cat", Quickshell.env("HOME") + "/.config/catastrophic/colors/colors.json"]
         
-        // REQUIRED: Quickshell needs this to parse the binary stream into text
         stdout: StdioCollector {
             onStreamFinished: {
-                // "this.text" contains the full output of the cat command
                 var output = this.text.trim();
                 
                 if (output !== "") {
@@ -96,11 +88,9 @@ QtObject {
     }
 
     function reloadTheme() {
-        // Toggle false then true to guarantee Quickshell restarts the cat process
         reader.running = false;
         reader.running = true;
     }
 
-    // Load the JSON colors automatically when Quickshell starts
     Component.onCompleted: reloadTheme()
 }

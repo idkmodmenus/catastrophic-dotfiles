@@ -52,7 +52,7 @@ blur while they move. Keys are on `Super`:
 
 | Keys | Opens |
 | --- | --- |
-| `Super + D` | Dashboard: clock, weather, calendar, media, system load. Resting the pointer on the clock (or clicking it) opens it too; right-click the clock for the calendar. |
+| `Super + D` | Dashboard: your Catastrophic OS version, update status and what's new, the calendar, media and system load. Resting the pointer on the clock (or clicking it) opens it too; right-click the clock for the calendar. |
 | `Super + N` | Notification centre (or click the bell; right-click it for Silent mode) |
 | `Super + Ctrl + P` | Session menu: lock, log out, sleep, restart, shut down (or the power icon in the bar) |
 | `Super + Ctrl + Return` | Application launcher |

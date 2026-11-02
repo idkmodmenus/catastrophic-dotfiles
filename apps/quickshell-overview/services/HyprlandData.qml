@@ -7,9 +7,6 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import "../common"
 
-/**
- * Provides access to some Hyprland data not available in Quickshell.Hyprland.
- */
 Singleton {
     id: root
     property var windowList: []

@@ -3,19 +3,12 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Hyprland workspace switcher.
 RowLayout {
     id: wsRoot
     spacing: 6
 
-    // Minimum number of workspaces to always display, even when empty. The list
-    // still grows beyond this to reveal any higher-numbered workspace that
-    // exists (e.g. switching to workspace 6 while this is 5 adds a 6th dot).
     property int minWorkspaces: 5
 
-    // The individual workspace buttons, exposed so StatusbarWindow can splice
-    // them into its keyboard-navigation list. Rebuilt whenever workspaces are
-    // added or removed.
     property var navButtons: []
 
     function rebuildNavButtons(): void {
@@ -25,8 +18,6 @@ RowLayout {
         wsRoot.navButtons = a
     }
 
-    // The workspace ids to render: 1..N, where N is at least minWorkspaces and
-    // extends to cover the highest-numbered workspace that currently exists.
     readonly property var workspaceIds: {
         let maxId = Math.max(1, wsRoot.minWorkspaces)
         const list = Hyprland.workspaces.values
@@ -39,8 +30,6 @@ RowLayout {
         return ids
     }
 
-    // The live Hyprland workspace for an id, or null when it is empty (Hyprland
-    // only tracks workspaces that hold windows or are focused).
     function workspaceById(id: int): var {
         const list = Hyprland.workspaces.values
         for (let i = 0; i < list.length; i++)
@@ -58,19 +47,13 @@ RowLayout {
 
         delegate: Rectangle {
             id: ws
-            required property var modelData   // the workspace id (int)
-            // Set by StatusbarWindow's keyboard navigation.
+            required property var modelData
             property bool focused: false
 
-            // Whether this workspace is the currently focused one.
             readonly property bool isActive: Hyprland.focusedWorkspace
                 && Hyprland.focusedWorkspace.id === ws.modelData
-            // Whether the workspace currently holds windows (exists in Hyprland).
             readonly property bool occupied: wsRoot.workspaceById(ws.modelData) !== null
 
-            // Run this workspace's action (mouse click or keyboard Return).
-            // Hyprland with Lua dispatchers ignores the plain "workspace N"
-            // string, so branch on usingLua the same way the overview does.
             function activate(): void {
                 if (Hyprland.usingLua)
                     Hyprland.dispatch("hl.dsp.focus({workspace = '" + ws.modelData + "'})")
@@ -82,8 +65,6 @@ RowLayout {
             implicitHeight: 26
             radius: 13
 
-            // Empty, unfocused workspaces are dimmed to set them apart from the
-            // ones that hold windows.
             opacity: (ws.isActive || ws.occupied || wsMouse.containsMouse) ? 1 : 0.45
             Behavior on opacity {
                 NumberAnimation { duration: 300; easing.type: Easing.OutQuint }
@@ -95,17 +76,13 @@ RowLayout {
             border.color: Theme.primary
             border.width: ws.isActive ? 0 : 1
 
-            // Crossfade the fill between active / hover / inactive states so the
-            // background of the active circle fades in and the previous one out.
             Behavior on color {
                 ColorAnimation { duration: 500; easing.type: Easing.OutQuint }
             }
-            // Fade the outline in/out as the fill takes over on activation.
             Behavior on border.width {
                 NumberAnimation { duration: 500; easing.type: Easing.OutQuint }
             }
 
-            // Keyboard-selection ring, distinct from the active-workspace fill.
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: -3
@@ -127,7 +104,6 @@ RowLayout {
                 font.pixelSize: 13
                 font.bold: true
 
-                // Match the fill crossfade so the label recolors in step.
                 Behavior on color {
                     ColorAnimation { duration: 500; easing.type: Easing.OutQuint }
                 }

@@ -5,7 +5,6 @@ import QtQuick.Layouts
 import qs.CustomTheme
 import qs.Widgets
 
-// Toasts that slide out of the top of the right edge
 Scope {
     id: root
 
@@ -17,7 +16,6 @@ Scope {
         alignStart: true
         open: Notifs.popups.length > 0 && !Notifs.centerOpen && !DrawerState.popoutOpen
 
-        // Keep the last list while the panel slides away
         property var shown: []
         Connections {
             target: Notifs
@@ -44,7 +42,6 @@ Scope {
                     }
 
                     Timer {
-                        // Critical notifications stay until dismissed
                         running: toast.notif?.urgency !== NotificationUrgency.Critical && !win.panelHovered
                         interval: (toast.notif?.expireTimeout ?? 0) > 0 ? toast.notif.expireTimeout * 1000 : 6000
                         onTriggered: Notifs.hidePopup(toast.notif)

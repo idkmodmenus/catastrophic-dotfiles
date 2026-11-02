@@ -1,21 +1,15 @@
 #!/usr/bin/env bash
 
-# -----------------------------------------------------
-# Load Launcher
-# -----------------------------------------------------
 launcher=$($HOME/.config/catastrophic/scripts/catastrophic-launcher which)
 
-# Use Walker (one entry per line)
 _show_walker() {
     awk -F '\t' '{ printf "%s  ➔ %s\n", $1, $2 }' | $HOME/.config/catastrophic/scripts/catastrophic-launcher dmenu -p "Keybinds"
 }
 
-# Use Rofi (two-line entries separated by null)
 _show_rofi() {
     awk -F '\t' '{ printf "%s\n➔ %s\0", $1, $2 }' | $HOME/.config/catastrophic/scripts/catastrophic-launcher dmenu -p "Keybinds" -c ~/.config/rofi/config-compact.rasi --rofi-args "-sep \\0 -eh 2"
 }
 
-# Pipe the JSON stream through jq and awk into the configured launcher
 hyprctl binds -j | jq -c '.[] | select(.description != "")' | awk '
 BEGIN {
     # Define modifier bits based on libxkbcommon

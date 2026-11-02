@@ -1,7 +1,6 @@
 import QtQuick
 import qs.CustomTheme
 
-// Filled line graph of values between 0 and `max`, newest on the right
 Canvas {
     id: spark
 

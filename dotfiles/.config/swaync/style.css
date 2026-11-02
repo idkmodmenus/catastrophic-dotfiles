@@ -1,6 +1,5 @@
 @import "themes/glass/style.css";
 
-/* Clean: flat surfaces, a soft outline and rounding that matches the frame */
 .floating-notifications.background .notification-row .notification-background .notification,
 .floating-notifications.background .notification-row .notification-background .notification.critical {
   background: @surface;

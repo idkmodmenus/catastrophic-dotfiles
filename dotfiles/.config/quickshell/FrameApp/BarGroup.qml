@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Recessed track inside an island that groups a section of it
 Rectangle {
     default property alias content: row.data
     property alias spacing: row.spacing

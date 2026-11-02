@@ -76,16 +76,10 @@ output_path = '~/.config/catastrophic/colors/onprimary'
 input_path  = "./templates/colors.json"
 output_path = "~/.local/share/catastrophic-dotfiles-settings/colors/colors.json"
 
-# Colors of the Catastrophic Dock (github.com/catastrophic-os/catastrophic-dock), which reads
-# its own copy so it can also run without the rest of the Catastrophic shell. It watches the file, so no
-# post_hook is needed. The path is theme.colorsFile in ~/.config/catastrophic-dock/config.json.
 [templates.catastrophic_dock]
 input_path  = "./templates/colors.json"
 output_path = "~/.config/catastrophic-dock/colors.json"
 
-# Colors of the Catastrophic Power Menu (github.com/catastrophic-os/catastrophic-powermenu), which
-# reads its own copy like the dock. The path is theme.colorsFile in
-# ~/.config/catastrophic-powermenu/config.json.
 [templates.catastrophic_powermenu]
 input_path  = "./templates/colors.json"
 output_path = "~/.config/catastrophic-powermenu/colors.json"
@@ -99,8 +93,6 @@ input_path = '~/.config/matugen/templates/ohmyposh-colors.json'
 output_path = '~/.config/ohmyposh/colors.json'
 post_hook = "jq --slurpfile palette ~/.config/ohmyposh/colors.json '. + $palette[0]' ~/.config/ohmyposh/EDM115-newline.omp.json > /tmp/new_theme.json && mv /tmp/new_theme.json ~/.config/ohmyposh/EDM115-newline.omp.json"
 
-
-# Qt apps (qt6ct palette) and KDE apps (kdeglobals colors)
 [templates.qt6ct]
 input_path = '~/.config/matugen/templates/qt6ct-colors.conf'
 output_path = '~/.config/qt6ct/colors/matugen.conf'

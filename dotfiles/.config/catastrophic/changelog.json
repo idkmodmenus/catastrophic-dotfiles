@@ -1,13 +1,32 @@
 [
     {
+        "version": "2.24.0",
+        "date": "2026-11-01",
+        "title": "New welcome screen and smoother motion",
+        "notes": [
+            "Redesigned welcome screen with an animated logo, a side menu and pages for shortcuts, settings, system info and help",
+            "Menus and popouts glide in and out more smoothly, with a steadier motion blur",
+            "The workspace highlight slides between workspaces",
+            "The fastfetch logo keeps its shape",
+            "The display manager tool no longer tries to download a theme that does not exist",
+            "The arch-cleanup command works again",
+            "The dock, power menu and launcher installers download from the Catastrophic repository",
+            "The update counter works on Fedora when the folder has matching file names",
+            "Removed old helper scripts that pointed to missing downloads"
+        ]
+    },
+    {
         "version": "2.23.0",
         "date": "2026-11-01",
-        "title": "Your own logo",
+        "title": "Bug fixes",
         "notes": [
-            "The Catastrophic planet logo replaces the Arch logo in the bar",
-            "fastfetch shows the planet logo as a picture in kitty",
-            "The dashboard shows your version, update status and what's new",
-            "The bottom dock is off by default; your apps are in the bar"
+            "Popouts no longer close when you move quickly between bar items",
+            "The dashboard no longer pops open when you sweep past the clock",
+            "The bar and the dashboard show the same weather, and it retries if the network is slow at login",
+            "The Wi-Fi and Bluetooth tray icons stay hidden behind their chips",
+            "Apps no longer show twice when the bottom dock is switched on",
+            "Switching the dock on from the sidebar works when it is not running",
+            "The update notice and the dashboard agree on whether you are up to date"
         ]
     },
     {

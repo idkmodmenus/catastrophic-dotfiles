@@ -127,7 +127,6 @@ Singleton {
             caelestiaColors.m3onSecondary = bestOnColor(secondary);
             caelestiaColors.m3secondaryContainer = secondaryContainer;
             caelestiaColors.m3onSecondaryContainer = bestOnColor(secondaryContainer);
-            // Preserve a stronger accent presence across UI mixes.
             caelestiaColors.m3surfaceVariant = firstColor(palette, ["surface1", "surfaceVariant"], defaultColors.m3surfaceVariant);
             caelestiaColors.m3outline = firstColor(palette, ["overlay2", "outline"], defaultColors.m3outline);
             caelestiaColors.m3outlineVariant = firstColor(palette, ["overlay0", "outlineVariant"], defaultColors.m3outlineVariant);
@@ -153,7 +152,6 @@ Singleton {
             }
         }
 
-        // Keep foundational tones from Material keys for readability.
         const baseMap = {
             "background": "m3background",
             "onBackground": "m3onBackground",

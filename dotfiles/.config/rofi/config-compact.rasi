@@ -1,15 +1,3 @@
-/*
-#  ____        __ _  
-# |  _ \ ___  / _(_) 
-# | |_) / _ \| |_| | 
-# |  _ < (_) |  _| | 
-# |_| \_\___/|_| |_| 
-#                    
-# by Catastrophic OS (2023) 
-# ----------------------------------------------------- 
-*/
-
-/* ---- Configuration ---- */
 configuration {
     modi:                       "drun,filebrowser,window,run";
     font:                       "Fira Sans 11";
@@ -30,22 +18,16 @@ configuration {
     kb-cancel: "Escape,MousePrimary";    
 }
 
-/* ---- Load font ---- */
 @import "~/.config/catastrophic/settings/rofi-font.rasi"
 
-/* ---- Load colors ---- */
 @theme "~/.config/rofi/colors.rasi"
 
-/* ---- Load wallpaper ---- */
 @import "~/.cache/catastrophic/hyprland-dotfiles/current_wallpaper.rasi"
 
-/* ---- Load border width ---- */
 @import "~/.config/catastrophic/settings/rofi-border.rasi"
 
-/* ---- Load border radius ---- */
 @import "~/.config/catastrophic/settings/rofi-border-radius.rasi"
 
-// Main //
 window {
     width:                        30em;
     x-offset:                     0em;
@@ -76,7 +58,6 @@ mainbox {
     background-image:            @current-image;
 }
 
-/* ---- Imagebox ---- */
 imagebox {
     padding:                      1em;
     background-color:             transparent;
@@ -84,7 +65,6 @@ imagebox {
     children:                     [ "inputbar" ];
 }
 
-// Inputs //
 inputbar {
     enabled:                     true;
     spacing:                     0em;
@@ -114,7 +94,6 @@ entry {
     placeholder-color:           inherit;
 }
 
-// Lists //
 listbox {
     padding:                     0em;
     spacing:                     0em;
@@ -142,7 +121,6 @@ listview {
     text-color:                  @on-surface;
 }
 
-// Elements //
 element {
     enabled:                     true;
     padding:                     1em;

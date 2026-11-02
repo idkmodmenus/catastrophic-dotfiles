@@ -44,7 +44,6 @@ Scope {
                 property bool canBeActive: root.monitorIsFocused
                 active: false
                 onCleared: () => {
-                    // Only the monitor that owns the grab may close the overview
                     if (root.closeOnFocusLoss && !active && canBeActive)
                         GlobalStates.overviewOpen = false;
                 }
@@ -59,13 +58,11 @@ Scope {
                 }
             }
 
-            // Re-evaluate grab ownership when focused monitor changes
             Connections {
                 target: Hyprland
                 function onFocusedMonitorChanged() {
                     if (!GlobalStates.overviewOpen)
                         return;
-                    // Transfer the grab to the newly focused monitor
                     if (root.monitorIsFocused && !grab.active) {
                         grab.active = true;
                     } else if (!root.monitorIsFocused && grab.active) {
@@ -85,7 +82,6 @@ Scope {
                 }
             }
 
-            // Keep the layershell surface full-screen so backdrop/blur are not constrained by content size.
             implicitWidth: screen.width
             implicitHeight: screen.height
 
@@ -118,14 +114,12 @@ Scope {
                 }
 
                 Keys.onPressed: event => {
-                    // close: Escape or Enter
                     if (event.key === Qt.Key_Escape || event.key === Qt.Key_Return) {
                         GlobalStates.overviewOpen = false;
                         event.accepted = true;
                         return;
                     }
 
-                    // Helper: compute current group bounds
                     const workspacesPerGroup = Config.options.overview.rows * Config.options.overview.columns;
                     const currentId = Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1;
                     const useWorkspaceMap = Config.options.overview.useWorkspaceMap;
@@ -166,7 +160,6 @@ Scope {
 
                     let targetId = null;
 
-                    // Arrow keys and vim-style hjkl
                     if (event.key === Qt.Key_Left || event.key === Qt.Key_H) {
                         targetVisualColumn = (targetVisualColumn - 1 + columns) % columns;
                     } else if (event.key === Qt.Key_Right || event.key === Qt.Key_L) {
@@ -177,17 +170,14 @@ Scope {
                         targetVisualRow = (targetVisualRow + 1) % rows;
                     }
 
-                    // Number keys: jump to workspace within the current group
-                    // 1-9 map to positions 1-9, 0 maps to position 10
                     else if (event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
-                        const position = event.key - Qt.Key_0; // 1-9
+                        const position = event.key - Qt.Key_0;
                         if (position <= workspacesPerGroup) {
                             targetId = minWorkspaceId + position - 1;
                         }
                     } else if (event.key === Qt.Key_0) {
-                        // 0 = 10th workspace in the group (if group has 10+ workspaces)
                         if (workspacesPerGroup >= 10) {
-                            targetId = minWorkspaceId + 9; // 10th position = offset 9
+                            targetId = minWorkspaceId + 9;
                         }
                     }
 

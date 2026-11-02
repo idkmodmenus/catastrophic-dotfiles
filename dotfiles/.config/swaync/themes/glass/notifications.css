@@ -1,7 +1,6 @@
 @import '../../colors.css';
 
-/* === Derived dynamic colors === */
-@define-color base alpha(@surface, 0.8);                      /* translucent blurred base */
+@define-color base alpha(@surface, 0.8);
 @define-color surface_custom alpha(@surface_container_high,0.8);
 @define-color hovercolor alpha(@surface_container_high,0.8);
 @define-color activecolor @primary_container;
@@ -14,7 +13,6 @@
 @define-color fontcolor @on_surface;
 @define-color text @on_surface;
 
-
 * {
   font-size: 1rem;
   font-weight: 900;
@@ -26,8 +24,6 @@
 .widget-mpris {
   all: unset;
 }
-
-
 
 .floating-notifications.background .notification-row .notification-background .notification {
     background-color: @surface;
@@ -50,8 +46,6 @@
     margin-right:18px;
     box-shadow: 1 1 5 1px @shadow;
 }
-
-/*This is the margin for the floating notifications on desktop only!*/
 
 .floating-notifications.background
   .notification-row
@@ -104,7 +98,6 @@
   background-color: @primary;
   color: @text;
 }
-
 
 .summary {
   font-weight: 800;

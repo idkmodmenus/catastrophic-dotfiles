@@ -5,44 +5,28 @@ import QtQuick.Effects
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Shows the number of pending system updates next to a package icon. The count
-// comes from catastrophic-check-system-updates (the same script the
-// update checks use), polled every 30 minutes. The module hides itself completely while no
-// updates are available; clicking it launches the Catastrophic update routine.
 Rectangle {
     id: updates
 
-    // Number of available updates (0 = nothing pending, module hidden).
     property int count: 0
-    // True when there is nothing to show. The right Repeater reads this to
-    // collapse the layout slot, and rebuildNavItems skips collapsed modules.
-    // It is deliberately independent of the (effective) `visible` property:
-    // binding a Loader's visibility to a child's effective visibility latches
-    // off once the right area collapses while the pill is in collapsed mode.
     readonly property bool collapsed: count <= 0
-    // Set by the keyboard navigation in StatusbarWindow.
     property bool focused: false
 
-    // Run the module's action (mouse click or keyboard Return).
     function activate(): void {
         Quickshell.execDetached(["bash", "-c",
             Quickshell.env("HOME") + "/.config/catastrophic/settings/installupdates.sh"])
     }
 
-    // Hidden (and collapsed to zero size) when there is nothing to update.
     visible: !collapsed
 
     readonly property bool active: mouseArea.containsMouse || updates.focused
 
-    // Tight 3px padding each side so the module sits close to its neighbours.
     implicitWidth: collapsed ? 0 : row.implicitWidth + 6
     implicitHeight: 30
     radius: 15
 
-    // Same accent-filled highlight as BarButton on hover/selection.
     color: active ? Theme.primary : "transparent"
 
-    // Fade the accent circle in/out like BarButton does.
     Behavior on color {
         ColorAnimation { duration: 500; easing.type: Easing.OutQuint }
     }
@@ -91,8 +75,6 @@ Rectangle {
         onClicked: updates.activate()
     }
 
-    // Parse the script's JSON output ({"text": "69", ...}); an empty line means
-    // zero updates and the script prints nothing.
     function refresh(): void {
         updatesProc.running = false
         updatesProc.running = true
@@ -115,7 +97,6 @@ Rectangle {
         }
     }
 
-    // Re-check on the same 1800s interval as the update checks.
     Timer {
         interval: 1800 * 1000
         running: true
@@ -123,10 +104,6 @@ Rectangle {
         onTriggered: updates.refresh()
     }
 
-    // Let external scripts drive the module via `qs ipc call updates ...`.
-    // `reset` clears the count immediately (e.g. right after an update run,
-    // so the module hides itself without waiting for the next poll); `refresh`
-    // re-runs the check script on demand.
     IpcHandler {
         target: "updates"
         function reset(): void { updates.count = 0 }

@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-#
-# Start the Catastrophic Dock or send it an IPC call
-#
 
 set -euo pipefail
 
-# The dock lives one level above this script. Resolve the symlink in
-# ~/.local/bin so the script also works from any other clone.
 DOCK_DIR="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
 
 IPC_FUNCTIONS=(
@@ -61,23 +56,17 @@ case "$command" in
         for fn in "${IPC_FUNCTIONS[@]}"; do
             if [ "$command" = "$fn" ]; then
                 running() { qs -p "$DOCK_DIR" ipc show >/dev/null 2>&1; }
-                # The dock is only started at login while enabled, so it may
-                # first have to be started to take the call
                 if ! running; then
                     setsid -f qs -n -p "$DOCK_DIR" >/dev/null 2>&1 </dev/null
                     for _ in $(seq 1 50); do running && break; sleep 0.1; done
                 fi
                 config="$HOME/.config/catastrophic-dock/config.json"
                 is_on() { grep -q '"enabled"[[:space:]]*:[[:space:]]*true' "$config" 2>/dev/null; }
-                # Decided before the call: the dock writes its file in the background
                 turning_off=0
                 if [ "$command" = "disable" ] || { [ "$command" = "toggle" ] && is_on; }; then
                     turning_off=1
                 fi
                 qs -p "$DOCK_DIR" ipc call dock "$command"
-                # Switched off: quit too, so it holds no memory until it is wanted.
-                # Wait (up to 3 s) until "enabled": false is saved, so the dock
-                # also stays off after the next login.
                 if [ "$turning_off" = 1 ]; then
                     for _ in $(seq 1 30); do
                         is_on || break

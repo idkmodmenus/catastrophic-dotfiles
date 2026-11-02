@@ -2,8 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
 
-// Rounded chip in the bar. "filled" pills are solid accent with dark text;
-// plain ones only light up on hover. Hovering opens the named popout.
 Rectangle {
     id: pill
 
@@ -16,7 +14,6 @@ Rectangle {
     property int padding: 8
     readonly property bool hovered: mouse.containsMouse
     readonly property bool lit: hovered || (popout !== "" && bar.popoutKind === popout)
-    // Text colour for content placed inside
     readonly property color ink: filled ? Theme.on_primary : (lit ? Theme.primary : Theme.on_surface)
 
     signal clicked(var mouse)

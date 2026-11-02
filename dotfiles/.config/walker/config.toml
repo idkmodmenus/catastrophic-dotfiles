@@ -1,3 +1,2 @@
-# Clean launcher: no F-key badges, no keybind hint row
 hide_quick_activation = true
 hide_action_hints = true

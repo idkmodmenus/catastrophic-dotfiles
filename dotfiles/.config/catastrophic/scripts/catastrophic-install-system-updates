@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-#    ____         __       ____               __     __
-#   /  _/__  ___ / /____ _/ / / __ _____  ___/ /__ _/ /____ ___
-#  _/ // _ \(_-</ __/ _ `/ / / / // / _ \/ _  / _ `/ __/ -_|_-<
-# /___/_//_/___/\__/\_,_/_/_/  \_,_/ .__/\_,_/\_,_/\__/\__/___/
-#                                 /_/
-#
 
-# Check if command exists
 _checkCommandExists() {
     command -v "$1" &> /dev/null
 }
@@ -24,16 +17,12 @@ _isInstalled() {
     esac
 
     if [ -n "${check}" ]; then
-        echo 0 #'0' means 'true' in Bash
-        return #true
+        echo 0
+        return
     fi
-    echo 1 #'1' means 'false' in Bash
-    return #false
+    echo 1
+    return
 }
-
-# ------------------------------------------------------
-# Confirm Start
-# ------------------------------------------------------
 
 sleep 1
 clear
@@ -53,11 +42,6 @@ else
     exit
 fi
 
-# ----------------------------------------------------- 
-# Install update
-# ----------------------------------------------------- 
-
-# Arch
 if _checkCommandExists "pacman"; then
 
     yay_installed="false"
@@ -76,13 +60,10 @@ if _checkCommandExists "pacman"; then
         sudo pacman -Syu
     fi
 
-# Fedora
 elif _checkCommandExists "dnf"; then
     sudo dnf upgrade
-# openSUSE
 elif _checkCommandExists "zypper"; then
     sudo zypper dup
-# Ubuntu
 elif _checkCommandExists "apt"; then
     sudo apt update && sudo apt upgrade
 else
@@ -92,17 +73,13 @@ else
 fi
 echo
 
-# Flatpak
 if _checkCommandExists "flatpak"; then
     echo ":: Searching for Flatpak updates..."
     flatpak update
     echo
 fi
 
-# Refresh Quickshell Statusbar
 qs ipc call updates refresh
-# qs ipc call updates reset
 
-# Finishing
 echo ":: Update complete! Press [ENTER] to close."
 read

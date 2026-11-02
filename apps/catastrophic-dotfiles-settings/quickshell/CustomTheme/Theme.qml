@@ -6,10 +6,8 @@ import Quickshell.Io
 QtObject { 
     id: root
     
-    // Static properties
     readonly property string fontFamily: "Fira Sans Semibold"
     
-    // Dynamic color properties
     property color background: "#1a1110"
     property color error: "#ffb4ab"
     property color error_container: "#93000a"
@@ -65,10 +63,8 @@ QtObject {
         id: reader
         command: ["cat", Quickshell.env("HOME") + "/.local/share/catastrophic-dotfiles-settings/colors/colors.json"]
         
-        // REQUIRED: Quickshell needs this to parse the binary stream into text
         stdout: StdioCollector {
             onStreamFinished: {
-                // "this.text" contains the full output of the cat command
                 var output = this.text.trim();
                 
                 if (output !== "") {
@@ -89,11 +85,8 @@ QtObject {
     }
 
     function reloadTheme() {
-        // Toggle false then true to guarantee Quickshell restarts the cat process
         reader.running = false;
         reader.running = true;
     }
 
-    // Load the JSON colors automatically when Quickshell starts
-    // Component.onCompleted: reloadTheme()
 }

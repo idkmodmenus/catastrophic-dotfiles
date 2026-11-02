@@ -13,14 +13,12 @@ import qs.CustomTheme
 PanelWindow {
     id: root
     
-    // --- WAYLAND CONFIGURATION ---
     WlrLayershell.layer: WlrLayer.Overlay
     exclusionMode: WlrLayershell.Ignore
     
-    implicitWidth: 420 // 380 + 40
+    implicitWidth: 420
     color: "transparent"
 
-    // --- POSITIONING ---
     anchors {
         left: true
         top: true
@@ -32,7 +30,6 @@ PanelWindow {
         bottom: 0
     }
 
-    // --- CLICK OUTSIDE TO CLOSE ---
     HyprlandFocusGrab {
         windows: [root]
         active: root.isOpen
@@ -43,7 +40,6 @@ PanelWindow {
         }
     }
 
-    // --- ESCAPE KEY LISTENER ---
     Shortcut {
         sequence: "Escape"
         onActivated: {
@@ -53,7 +49,6 @@ PanelWindow {
         }
     }
 
-    // --- ANIMATION LOGIC ---
     property bool isOpen: false
     visible: isOpen || slideAnim.running
     
@@ -68,11 +63,9 @@ PanelWindow {
         }
     }
 
-
     property string defaultWallpaperFolder: Quickshell.env("HOME") + "/.config/catastrophic/wallpapers"
     property string wallpaperSettingFile: Quickshell.env("HOME") + "/.config/catastrophic/settings/wallpaper-folder"
 
-    // Start as default in case file does not exist
     property string wallpaperFolder: defaultWallpaperFolder
 
     FileView {
@@ -144,7 +137,6 @@ PanelWindow {
         }
     }
 
-    // --- REUSABLE COMPONENTS ---
     component CatastrophicMenuItem: MenuItem {
         id: control
         contentItem: Text {
@@ -161,7 +153,6 @@ PanelWindow {
             radius: 4
         }
     }
-
 
     component SettingsWheel: Button {
         implicitWidth: 28
@@ -319,14 +310,12 @@ PanelWindow {
             opacity: 0.95
             clip: true
 
-            // Gradient border (outer)
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop { position: 0.0; color: Theme.primary }
                 GradientStop { position: 1.0; color: Theme.on_primary }
             }
 
-            // Background fill (inner), inset by the border thickness
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 2
@@ -339,13 +328,11 @@ PanelWindow {
             anchors.margins: 15
             spacing: 15
 
-            // --- HEADER CONTROLS (Search & Settings) ---
             RowLayout {
                 Layout.fillWidth: true
                 Layout.topMargin: 5
                 spacing: 10
 
-                // Search Input
                 TextField {
                     id: searchInput
                     placeholderText: "Search image"
@@ -354,8 +341,6 @@ PanelWindow {
                     padding:8
                     Layout.fillWidth: true
                     horizontalAlignment: TextInput.AlignHCenter
-                    
-                    // opacity: activeFocus || text.length > 0 ? 1.0 : 0.7
                     
                     background: Rectangle {
                         anchors.fill: parent
@@ -366,7 +351,6 @@ PanelWindow {
                     }
                 }
 
-                // Settings Wheel & Menu
                 SettingsWheel {
                     onClicked: wallpaperMenu.open()
                     
@@ -411,7 +395,6 @@ PanelWindow {
                         CatastrophicMenuItem { 
                             text: "Reload Images"
                             onClicked: {
-                                // Blank the folder and set it back so FolderListModel rescans it
                                 const current = root.wallpaperFolder
                                 root.wallpaperFolder = ""
                                 Qt.callLater(() => { root.wallpaperFolder = current })
@@ -433,7 +416,6 @@ PanelWindow {
                 }
             }
 
-            // --- ADVANCED OPTIONS ---
             ColumnLayout {
                 id: advancedOptions
                 Layout.fillWidth: true
@@ -441,7 +423,6 @@ PanelWindow {
                 spacing: 10
                 visible: false
 
-                // --- WALLPAPER DIRECTORY SETTING ---
                 ColumnLayout {
                     Layout.fillWidth: true
                     Label {
@@ -485,7 +466,6 @@ PanelWindow {
                     }
                 }
 
-                // --- WALLPAPER TRANSITION EFFECT SETTING ---
                 ColumnLayout {
                     Layout.fillWidth: true
                     Label {
@@ -510,7 +490,6 @@ PanelWindow {
                     }
                 }
 
-                // --- OUTPUT SETTINGS ---
                 RowLayout {
                     ColumnLayout {
                         Label {
@@ -591,7 +570,6 @@ PanelWindow {
                 opacity: 0.3 
             }
 
-            // --- ERROR MSG FOR EMPTY OR INVALID DIRECTORY ---
             Text {
                 id: emptyWallpaperDirectoryMsg
                 visible: true
@@ -606,14 +584,12 @@ PanelWindow {
                 text: "Wallpaper folder is either empty or invalid."
             }
 
-            // --- IMAGE GRID ---
             GridView {
                 id: grid
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
                 
-                // --- SCROLLING PERFORMANCE FIX ---
                 cacheBuffer: 3000
                 reuseItems: true 
                 
@@ -707,7 +683,6 @@ PanelWindow {
                                 }
                             }
 
-                            // The text label gets beautifully clipped by the rounded mask at the bottom corners too!
                             Rectangle {
                                 anchors.bottom: parent.bottom
                                 anchors.left: parent.left
@@ -734,8 +709,6 @@ PanelWindow {
                             cursorShape: Qt.PointingHandCursor
                             
                             onClicked: {
-                                // Pass each value as its own argument. No shell reads the
-                                // file name, so quotes and spaces in it are safe.
                                 const args = [Quickshell.env("HOME") + "/.config/catastrophic/scripts/catastrophic-wallpaper", model.filePath]
                                 if (advancedOptions.visible) {
                                     const outputSelection = outputMonitorSelector.currentValue

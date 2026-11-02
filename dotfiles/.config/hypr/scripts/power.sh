@@ -1,16 +1,9 @@
 #!/usr/bin/env bash
-#    ___                    
-#   / _ \___ _    _____ ____
-#  / ___/ _ \ |/|/ / -_) __/
-# /_/   \___/__,__/\__/_/   
-#                           
 
 terminate_clients() {
   	TIMEOUT=5
-	# Get a list of all client PIDs in the current Hyprland session
 	client_pids=$(hyprctl clients -j | jq -r '.[] | .pid')
 
-	# Send SIGTERM (kill -15) to each client PID and wait for termination
 	for pid in $client_pids; do
 		echo ":: Sending SIGTERM to PID $pid"
 		kill -15 $pid
@@ -18,7 +11,6 @@ terminate_clients() {
 
 	start_time=$(date +%s)
 	for pid in $client_pids; do
-		# Wait for the process to terminate
 		while kill -0 $pid 2>/dev/null; do
 		current_time=$(date +%s)
 		elapsed_time=$((current_time - start_time))
