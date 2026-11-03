@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import qs.CustomTheme
+import qs.Widgets
 
 Scope {
     id: root
@@ -43,7 +44,7 @@ Scope {
 
     function launch(entry): void {
         if (!entry) return
-        entry.execute()
+        AppLaunch.run(entry)
         win.open = false
     }
 

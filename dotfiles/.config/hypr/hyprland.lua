@@ -29,3 +29,9 @@ if f then
 end
 
 require("hyprland-gui")
+
+local gamemode = io.open((os.getenv("XDG_RUNTIME_DIR") or "/tmp") .. "/catastrophic-gamemode/active", "r")
+if gamemode then
+    gamemode:close()
+    activate_gamemode()
+end

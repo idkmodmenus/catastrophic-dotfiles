@@ -1,5 +1,18 @@
 [
     {
+        "version": "2.26.0",
+        "date": "2026-11-02",
+        "title": "A real game mode",
+        "notes": [
+            "Game mode frees RAM: it closes background helpers and compresses idle memory of open apps",
+            "Your game, the desktop and apps playing music are left untouched",
+            "Game mode mutes notifications, keeps the screen awake and switches to the performance power profile",
+            "Turning game mode off brings back exactly what it stopped",
+            "Game mode stays on when the Hyprland config reloads and is off after a restart",
+            "Apps opened from the launcher and the bar run separately from the desktop, so a crashing app can no longer take the desktop with it"
+        ]
+    },
+    {
         "version": "2.25.0",
         "date": "2026-11-02",
         "title": "Lighter and faster",

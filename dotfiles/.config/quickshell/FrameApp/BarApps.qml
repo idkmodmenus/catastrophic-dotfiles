@@ -4,6 +4,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import qs.CustomTheme
+import qs.Widgets
 
 RowLayout {
     id: apps
@@ -91,7 +92,7 @@ RowLayout {
             implicitHeight: apps.iconSize + 12
 
             function launch(): void {
-                if (modelData.entry) modelData.entry.execute()
+                if (modelData.entry) AppLaunch.run(modelData.entry)
                 else Quickshell.execDetached(["bash", "-c", modelData.appId])
             }
             function activate(): void {
