@@ -1,11 +1,3 @@
-local HOME = os.getenv("HOME")
-
-local current_path = os.getenv("PATH")
-hl.env("PATH", HOME .. "/.local/bin:" .. current_path)
-
-local current_path = os.getenv("PATH")
-hl.env("PATH", HOME .. "/.cargo/bin:" .. current_path)
-
 hl.window_rule({
     name = "pavucontrol",
     match = {class = ".*org.pulseaudio.pavucontrol.*"},
@@ -187,7 +179,6 @@ hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
 
 hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
-hl.env("XDG_SESSION_TYPE", "wayland")
 hl.env("XDG_SESSION_DESKTOP", "Hyprland")
 
 hl.env("GDK_SCALE", "1")

@@ -19,6 +19,12 @@ FloatingWindow {
         }
     }
 
+    Timer {
+        interval: 10 * 60 * 1000
+        running: !root.visible
+        onTriggered: Qt.quit()
+    }
+
     property string profile: Quickshell.env("PROFILE")
 
     color: Theme.background 

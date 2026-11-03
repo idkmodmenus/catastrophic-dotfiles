@@ -1,5 +1,18 @@
 [
     {
+        "version": "2.25.0",
+        "date": "2026-11-02",
+        "title": "Lighter and faster",
+        "notes": [
+            "The dock no longer starts at login when it is turned off",
+            "The classic status bar only loads when it is turned on or its calendar is opened",
+            "The settings app closes itself after ten minutes in the background",
+            "Fullscreen games skip the compositor for lower input lag",
+            "Reloading the Hyprland config no longer adds duplicate folders to PATH",
+            "Desktop portals restart in the right order at login"
+        ]
+    },
+    {
         "version": "2.24.0",
         "date": "2026-11-01",
         "title": "New welcome screen and smoother motion",

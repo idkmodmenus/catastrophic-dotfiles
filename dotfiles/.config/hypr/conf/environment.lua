@@ -1,8 +1,18 @@
 local home = os.getenv("HOME")
 local path = os.getenv("PATH") or "/usr/local/bin:/usr/bin"
-if not path:find(home .. "/.local/bin", 1, true) then
-    hl.env("PATH", home .. "/.local/bin:" .. home .. "/.cargo/bin:" .. path)
+local seen, parts = {}, {}
+for _, dir in ipairs({ home .. "/.local/bin", home .. "/.cargo/bin" }) do
+    seen[dir] = true
+    parts[#parts + 1] = dir
 end
+for dir in path:gmatch("[^:]+") do
+    local key = dir:gsub("/+$", "")
+    if not seen[key] then
+        seen[key] = true
+        parts[#parts + 1] = dir
+    end
+end
+hl.env("PATH", table.concat(parts, ":"))
 
 local gtk_settings = os.getenv("HOME") .. "/.config/gtk-3.0/settings.ini"
 local settings = io.open(gtk_settings, "r")

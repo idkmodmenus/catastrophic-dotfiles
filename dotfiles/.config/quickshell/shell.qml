@@ -32,7 +32,7 @@ ShellRoot {
     LazyWindow { name: "welcome"; openProperty: "visible"; window: Component { WelcomeWindow {} } }
     LazyWindow { name: "sidebar"; window: Component { SidebarWindow {} } }
     LazyWindow { name: "wallpaper"; window: Component { WallpaperWindow {} } }
-    StatusbarWindow {}
+    Statusbar {}
 
     Variants {
         model: Quickshell.screens

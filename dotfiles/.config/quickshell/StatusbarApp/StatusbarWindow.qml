@@ -354,34 +354,9 @@ PanelWindow {
         root.barExpanded = false
     }
 
-    IpcHandler {
-        target: "calendar"
-        function toggle(): void { root.calendarOpen = !root.calendarOpen }
-        function open(): void { root.calendarOpen = true }
-        function close(): void { root.calendarOpen = false }
-        function isOpen(): bool { return root.calendarOpen }
-    }
-
-    IpcHandler {
-        target: "statusbar"
-        function toggle(): void { root.setEnabled(!root.settings.bar.enabled) }
-        function enable(): void { root.setEnabled(true) }
-        function disable(): void { root.setEnabled(false) }
-        function alwaysExpand(): void { root.setAlwaysExpanded(true) }
-        function autoCollapse(): void { root.setAlwaysExpanded(false) }
-        function autohideOn(): void { root.setAutohide(true) }
-        function autohideOff(): void { root.setAutohide(false) }
-        function autohideToggle(): void {
-            root.setAutohide(!root.settings.bar.autohide)
-        }
-        function refresh(): void { root.reloadSettings() }
-        function focus(): void {
-            root.barExpanded = true
-            keyHandler.forceActiveFocus()
-        }
-        function expand(): void { root.barExpanded = !root.barExpanded }
-        function collapse(): void { root.barExpanded = false }
-        function reload(): void { root.reloadSettings() }
+    function focusBar(): void {
+        root.barExpanded = true
+        keyHandler.forceActiveFocus()
     }
 
     color: "transparent"

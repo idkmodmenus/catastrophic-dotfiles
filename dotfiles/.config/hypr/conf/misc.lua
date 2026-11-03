@@ -7,4 +7,7 @@ hl.config({
         on_focus_under_fullscreen = 1,
         allow_session_lock_restore = true
     },
+    render = {
+        direct_scanout = 2,
+    },
 })

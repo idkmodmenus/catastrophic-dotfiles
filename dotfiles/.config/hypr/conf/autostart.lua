@@ -8,10 +8,11 @@ hl.on("hyprland.start", function ()
         f:close()
     end
 
-    hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
-
-    hl.exec_cmd("systemctl --user stop xdg-desktop-portal xdg-desktop-portal-hyprland")
-    hl.exec_cmd("systemctl --user start xdg-desktop-portal-hyprland xdg-desktop-portal")
+    hl.exec_cmd(
+        "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP; " ..
+        "systemctl --user stop xdg-desktop-portal xdg-desktop-portal-hyprland; " ..
+        "systemctl --user start xdg-desktop-portal-hyprland xdg-desktop-portal"
+    )
 
     hl.exec_cmd("awww-daemon")
 
