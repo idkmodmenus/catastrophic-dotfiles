@@ -21,7 +21,7 @@
       "type": "command",
       "key": "{#90}├─ {#35}󰚩  {#1;37}catastrophic  {#}",
       "text": "v=$( { sed -n 's/.*\"Version\": *\"\\([^\"]*\\)\".*/\\1/p' ~/.config/catastrophic/version.json; } 2>/dev/null ); if [ -n \"$v\" ]; then echo \"v$v\"; else echo n/a; fi",
-      "format": "Catastrophic OS {#90}{result}{#}"
+      "format": "Catastrophic Shell {#90}{result}{#}"
     },
     {
       "type": "wm",

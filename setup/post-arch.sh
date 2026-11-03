@@ -239,7 +239,7 @@ if [ -d "$BRAND_SRC" ]; then
 
     if [ "$icon_todo" -eq 0 ] && [ "$splash_todo" -eq 0 ]; then
         info "  - The icon and boot splash are already installed. Skipping."
-    elif gum confirm "Install the Catastrophic OS icon and boot splash (sudo)?"; then
+    elif gum confirm "Install the Catastrophic Shell icon and boot splash (sudo)?"; then
         if [ "$icon_todo" -eq 1 ]; then
             sudo install -Dm644 "$BRAND_SRC/mark.svg" /usr/share/icons/hicolor/scalable/apps/catastrophic.svg
             sudo install -Dm644 "$BRAND_SRC/mark.png" /usr/share/pixmaps/catastrophic.png

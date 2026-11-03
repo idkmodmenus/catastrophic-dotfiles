@@ -90,15 +90,15 @@ notify_and_act() {
     [ -n "$summary" ] && body="$summary"$'\n'"Your installed version may be out of date."
     command -v notify-send > /dev/null 2>&1 || return 0
 
-    action="$(timeout 12h notify-send --app-name="Catastrophic OS" --icon=system-software-update \
+    action="$(timeout 12h notify-send --app-name="Catastrophic Shell" --icon=system-software-update \
         --urgency=critical --expire-time=0 --wait \
         --action=update="Update now" --action=later="Later" --action=skip="Skip this version" \
-        "Catastrophic OS update available" "$body" 2> /dev/null)"
+        "Catastrophic Shell update available" "$body" 2> /dev/null)"
 
     case "$action" in
         update)
             run_in_terminal "$UPDATER; status=\$?; echo; read -r -p 'Press Enter to close this window. ' _; exit \$status" \
-                || notify-send --app-name="Catastrophic OS" "Could not open a terminal" "Run this yourself: $UPDATE_CMD"
+                || notify-send --app-name="Catastrophic Shell" "Could not open a terminal" "Run this yourself: $UPDATE_CMD"
             check_once quiet
             ;;
         skip)
@@ -148,7 +148,7 @@ case "$MODE" in
         if is_outdated; then
             notify_and_act "$(sed -n 2p "$STATUS_FILE")" "$(sed -n 3p "$STATUS_FILE")"
         else
-            command -v notify-send > /dev/null 2>&1 && notify-send --app-name="Catastrophic OS" "Catastrophic OS is up to date" "You have the latest version."
+            command -v notify-send > /dev/null 2>&1 && notify-send --app-name="Catastrophic Shell" "Catastrophic Shell is up to date" "You have the latest version."
         fi
         ;;
     watch)

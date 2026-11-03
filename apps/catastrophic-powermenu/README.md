@@ -3,7 +3,7 @@
 A power menu for Hyprland built with [Quickshell](https://quickshell.org). It
 slides in from the right edge of the screen with buttons to lock the screen,
 suspend, log out, reboot and power off. Part of
-[Catastrophic OS](https://github.com/idkmodmenus/catastrophic-dotfiles), but it also runs on its own.
+[Catastrophic Shell](https://github.com/idkmodmenus/catastrophic-dotfiles), but it also runs on its own.
 
 ![Catastrophic Power Menu](screenshots/powermenu.jpg)
 
@@ -120,7 +120,7 @@ output_path = "~/.config/catastrophic-powermenu/colors.json"
 
 `templates/colors.json` maps each Material color role to its matugen value, e.g.
 `"primary": "{{colors.primary.default.hex}}"`. The power menu watches the file,
-so no `post_hook` is needed. Catastrophic OS ships a complete
+so no `post_hook` is needed. Catastrophic Shell ships a complete
 [config and template](https://github.com/idkmodmenus/catastrophic-dotfiles/tree/main/dotfiles/.config/matugen).
 
 ## Uninstall

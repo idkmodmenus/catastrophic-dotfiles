@@ -141,7 +141,7 @@ Scope {
                             Layout.fillWidth: true
                             spacing: 0
                             Text {
-                                text: "Catastrophic OS"
+                                text: "Catastrophic Shell"
                                 font.family: Theme.fontFamily
                                 font.pixelSize: 17
                                 font.weight: Font.DemiBold

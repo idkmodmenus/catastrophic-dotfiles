@@ -1,7 +1,7 @@
 # Catastrophic Dock
 
 A dock for Hyprland built with [Quickshell](https://quickshell.org). Part of 
-[Catastrophic OS](https://github.com/idkmodmenus/catastrophic-dotfiles), but it also runs on its own.
+[Catastrophic Shell](https://github.com/idkmodmenus/catastrophic-dotfiles), but it also runs on its own.
 
 ![Catastrophic Dock](screenshots/dock.png)
 
@@ -91,7 +91,7 @@ output_path = "~/.config/catastrophic-dock/colors.json"
 
 `templates/colors.json` maps each Material color role to its matugen value, e.g.
 `"primary": "{{colors.primary.default.hex}}"`. The dock watches the file, so no
-`post_hook` is needed. Catastrophic OS ships a complete
+`post_hook` is needed. Catastrophic Shell ships a complete
 [config and template](https://github.com/idkmodmenus/catastrophic-dotfiles/tree/main/dotfiles/.config/matugen).
 
 ## Uninstall

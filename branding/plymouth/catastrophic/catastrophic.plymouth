@@ -1,6 +1,6 @@
 [Plymouth Theme]
 Name=Catastrophic
-Description=Catastrophic OS boot splash
+Description=Catastrophic Shell boot splash
 ModuleName=script
 
 [script]

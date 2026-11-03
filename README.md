@@ -1,4 +1,4 @@
-# Catastrophic OS
+# Catastrophic Shell
 
 Hyprland desktop for Arch Linux and CachyOS.
 
@@ -52,7 +52,7 @@ blur while they move. Keys are on `Super`:
 
 | Keys | Opens |
 | --- | --- |
-| `Super + D` | Dashboard: your Catastrophic OS version, update status and what's new, the calendar, media and system load. Resting the pointer on the clock (or clicking it) opens it too; right-click the clock for the calendar. |
+| `Super + D` | Dashboard: your Catastrophic Shell version, update status and what's new, the calendar, media and system load. Resting the pointer on the clock (or clicking it) opens it too; right-click the clock for the calendar. |
 | `Super + N` | Notification centre (or click the bell; right-click it for Silent mode) |
 | `Super + Ctrl + P` | Session menu: lock, log out, sleep, restart, shut down (or the power icon in the bar) |
 | `Super + Ctrl + Return` | Application launcher |
@@ -99,8 +99,8 @@ and makes the system match it:
   in `~/.config` goes with it, and the folder it was in is removed only if that left it empty.
   Anything removed is in the backup.
 - Files and folders you created yourself are never removed, including empty folders and
-  extra files inside the folders the OS ships.
-- When a real folder or a link of yours sits where the OS puts a link (for example
+  extra files inside the folders Catastrophic Shell ships.
+- When a real folder or a link of yours sits where Catastrophic Shell puts a link (for example
   `~/.config/btop`), it is copied into the backup first and only then replaced. The backup
   of a link keeps where it pointed.
 - The dock, power menu and overview folders in `~/.local/share` are mirrored from the repo.

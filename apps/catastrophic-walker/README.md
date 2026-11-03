@@ -3,7 +3,7 @@
 An install script for the application launcher [Walker](https://github.com/abenz1267/walker)
 and its backend [Elephant](https://github.com/abenz1267/elephant), including the
 Elephant providers you choose. Part of
-[Catastrophic OS](https://github.com/idkmodmenus/catastrophic-dotfiles), but it also works on its own.
+[Catastrophic Shell](https://github.com/idkmodmenus/catastrophic-dotfiles), but it also works on its own.
 
 Supported distributions:
 

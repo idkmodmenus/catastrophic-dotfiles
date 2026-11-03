@@ -68,7 +68,7 @@ show_summary() {
     missing_n="$(grep -vE '^\s*(#|$)' "$SRC/setup/dependencies/packages-arch" | sed 's/#.*//' | xargs pacman -T 2>/dev/null | grep -c . || true)"
     de="${XDG_CURRENT_DESKTOP:-${DESKTOP_SESSION:-none (console)}}"
 
-    printf '\n\033[1;36m  Catastrophic OS\033[0m  -  Hyprland desktop for Arch Linux and CachyOS\n\n'
+    printf '\n\033[1;36m  Catastrophic Shell\033[0m  -  Hyprland desktop for Arch Linux and CachyOS\n\n'
     printf '  \033[1m%-11s\033[0m %s\n' "What" "$mode"
     printf '  \033[1m%-11s\033[0m %s, %s GB RAM, graphics: %s\n' "Computer" "${PRETTY_NAME:-Arch}" "${ram:-?}" "${gpus:-unknown}"
     printf '  \033[1m%-11s\033[0m %s GB free on /\n' "Disk" "$(( root_free / 1048576 ))"
@@ -115,7 +115,7 @@ case " ${ID:-} ${ID_LIKE:-} " in
 esac
 curl -fsI --max-time 15 https://archlinux.org >/dev/null 2>&1 || curl -fsI --max-time 15 https://github.com >/dev/null 2>&1 || die "No internet connection."
 
-stage 2 "Downloading Catastrophic OS"
+stage 2 "Downloading Catastrophic Shell"
 SELF_DIR=""
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
     SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)"
@@ -127,7 +127,7 @@ if [ -n "$SELF_DIR" ] && [ -f "$SELF_DIR/catastrophic.dotinst" ] && [ -d "$SELF_
     SRC="$WORK_DIR/src"
 else
     WORK_DIR="$(mktemp -d -t catastrophic-install-XXXXXX)"
-    say "Downloading Catastrophic OS ($BRANCH)..."
+    say "Downloading Catastrophic Shell ($BRANCH)..."
     say "This is a one-time download of about 50 MB and can take a few minutes on a slow connection."
     if command -v git >/dev/null 2>&1; then
         git clone --depth=1 --progress --branch "$BRANCH" "$REPO_URL" "$WORK_DIR/src" || die "Could not clone $REPO_URL"

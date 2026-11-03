@@ -12,7 +12,7 @@ fi
 tmp="$(mktemp -t catastrophic-update-XXXXXX.sh)" || { echo "Could not create a temporary file."; exit 1; }
 trap 'rm -f "$tmp"' EXIT
 
-echo "Updating Catastrophic OS from $INSTALL_URL"
+echo "Updating Catastrophic Shell from $INSTALL_URL"
 echo
 
 if ! curl -fsSL --retry 3 --connect-timeout 15 "$INSTALL_URL" -o "$tmp"; then

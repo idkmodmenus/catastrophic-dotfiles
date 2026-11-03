@@ -207,7 +207,7 @@ FloatingWindow {
                     Text {
                         Layout.alignment: Qt.AlignHCenter
                         Layout.topMargin: 6
-                        text: "Catastrophic OS"
+                        text: "Catastrophic Shell"
                         font.family: Theme.fontFamily
                         font.pixelSize: 32
                         font.letterSpacing: 0.5
@@ -372,7 +372,7 @@ FloatingWindow {
             WelcomeRow { last: true; label: "Memory"; value: root.info.memory || "…" }
 
             WelcomeSection { text: "Software" }
-            WelcomeRow { first: true; label: "Catastrophic OS"; value: root.version || "…" }
+            WelcomeRow { first: true; label: "Catastrophic Shell"; value: root.version || "…" }
             WelcomeRow { label: "Hyprland"; value: root.info.hyprland || "…" }
             WelcomeRow { last: true; label: "Quickshell"; value: root.info.quickshell || "…" }
 
@@ -429,7 +429,7 @@ FloatingWindow {
         WelcomePage {
             index: 4; current: root.page; title: "Help"
 
-            WelcomeSection { first: true; text: "Catastrophic OS" }
+            WelcomeSection { first: true; text: "Catastrophic Shell" }
             WelcomeRow {
                 first: true
                 icon: "\u{f06b0}"; label: "Check for updates"; sub: "Installed: " + (root.version || "…")

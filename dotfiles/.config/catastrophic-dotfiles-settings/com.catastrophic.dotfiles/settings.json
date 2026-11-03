@@ -255,7 +255,7 @@
     },{
       "name": "Notify me about updates",
       "id": "update_notifications",
-      "instructions": "Show a notification at login when a new Catastrophic OS update is available?",
+      "instructions": "Show a notification at login when a new Catastrophic Shell update is available?",
       "file": "~/.config/catastrophic/settings/update-notifications.sh",
       "type": "toggle",
       "mode": "overwrite",
